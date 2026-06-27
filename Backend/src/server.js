@@ -1,4 +1,8 @@
+import dns from 'node:dns';
 import dotenv from 'dotenv';
+
+// Configure public DNS resolvers to fix querySrv ECONNREFUSED on local systems/ISPs
+dns.setServers(['1.1.1.1', '8.8.8.8']);
 import app from './app.js';
 import connectDB from './config/db.js';
 
