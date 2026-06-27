@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import fieldMetadataSchema from './fieldMetadataSchema.js';
 
 const userSchema = new mongoose.Schema(
   {
@@ -21,7 +22,6 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
       match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email address'],
-      index: true,
     },
     password: {
       type: String,
@@ -34,10 +34,14 @@ const userSchema = new mongoose.Schema(
       enum: ['researcher', 'admin', 'reviewer', 'sponsor'],
       default: 'researcher',
     },
+    twoFactorEnabled: {
+      type: Boolean,
+      default: true,
+    },
     status: {
       type: String,
-      enum: ['active', 'blocked', 'deleted'],
-      default: 'active',
+      enum: ['pending_verification', 'active', 'blocked', 'deleted'],
+      default: 'pending_verification',
       index: true,
     },
     googleId: {
@@ -59,6 +63,11 @@ const userSchema = new mongoose.Schema(
       index: true,
     },
     passwordChangedAt: Date,
+    fieldMetadata: {
+      type: Map,
+      of: fieldMetadataSchema,
+      default: {},
+    },
   },
   {
     timestamps: true,
@@ -88,9 +97,14 @@ userSchema.pre(/^find/, function (next) {
   next();
 });
 
-// Instance method to check if password is correct
+// Instance method to check if password is correct (legacy/compatibility)
 userSchema.methods.correctPassword = async function (candidatePassword, userPassword) {
   return await bcrypt.compare(candidatePassword, userPassword);
+};
+
+// Instance method to compare password (modern)
+userSchema.methods.comparePassword = async function (candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
 };
 
 // Instance method to check if password was changed after token issuance

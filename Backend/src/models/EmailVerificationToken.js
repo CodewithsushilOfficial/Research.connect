@@ -22,6 +22,7 @@ const emailVerificationTokenSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    collection: 'email_verifications',
   }
 );
 

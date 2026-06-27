@@ -52,6 +52,23 @@ const projectSchema = new mongoose.Schema(
       default: Date.now,
     },
     endDate: Date,
+    source: {
+      type: String,
+      enum: ['manual', 'googleScholar', 'orcid', 'scopus', 'linkedin'],
+      default: 'manual',
+    },
+    lastUpdated: {
+      type: Date,
+      default: Date.now,
+    },
+    updatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    syncVersion: {
+      type: Number,
+      default: 1,
+    },
   },
   {
     timestamps: true,

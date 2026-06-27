@@ -36,6 +36,7 @@ const sessionSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    collection: 'sessions',
   }
 );
 

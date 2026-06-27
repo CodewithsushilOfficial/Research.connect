@@ -6,7 +6,6 @@ const savedPublicationSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'Bookmark must belong to a user'],
-      index: true,
     },
     publication: {
       type: mongoose.Schema.Types.ObjectId,

@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "seed": "node src/database/seed.js"
+    "seed": "node src/database/seed.js",
+    "test:history": "node src/tests/profile-history.test.js"
   },
   "keywords": [
     "mern",
@@ -30,7 +31,7 @@
     "mongoose": "^8.4.1",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
-    "nodemailer": "^6.9.13"
+    "nodemailer": "^9.0.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.2"

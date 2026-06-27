@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import fieldMetadataSchema from './fieldMetadataSchema.js';
 
 const academicProfileSchema = new mongoose.Schema(
   {
@@ -39,6 +40,15 @@ const academicProfileSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: '',
+    },
+    rawScholarData: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
+    fieldMetadata: {
+      type: Map,
+      of: fieldMetadataSchema,
+      default: {},
     },
   },
   {

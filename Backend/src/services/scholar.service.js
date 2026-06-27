@@ -11,7 +11,11 @@ import UserResearchArea from '../models/UserResearchArea.js';
 import Keyword from '../models/Keyword.js';
 import UserKeyword from '../models/UserKeyword.js';
 import ActivityLog from '../models/ActivityLog.js';
+import ExternalAccount from '../models/ExternalAccount.js';
+import PublicationHistory from '../models/PublicationHistory.js';
+import PublicationAnalytics from '../models/PublicationAnalytics.js';
 import AppError from '../utils/AppError.js';
+import { updateFieldWithMetadata } from '../utils/sourceTracker.js';
 
 // Simple in-memory cache for SerpAPI responses
 const serpApiCache = new Map();
@@ -153,20 +157,48 @@ export const getScholarImportPreview = async (input) => {
   // Parse metrics
   const citationsTable = citationsInfo.table || [];
   const citationsAll = citationsTable[0]?.citations?.all || 0;
-  const citationsRecent = citationsTable[0]?.citations?.since_2021 || 0;
+  const citationsRecent = citationsTable[0]?.citations?.since_2021 || citationsTable[0]?.citations?.since_2019 || 0;
   const hIndexAll = citationsTable[1]?.h_index?.all || 0;
-  const hIndexRecent = citationsTable[1]?.h_index?.since_2021 || 0;
+  const hIndexRecent = citationsTable[1]?.h_index?.since_2021 || citationsTable[1]?.h_index?.since_2019 || 0;
   const i10IndexAll = citationsTable[2]?.i10_index?.all || 0;
-  const i10IndexRecent = citationsTable[2]?.i10_index?.since_2021 || 0;
+  const i10IndexRecent = citationsTable[2]?.i10_index?.since_2021 || citationsTable[2]?.i10_index?.since_2019 || 0;
+
+  // Smart splitting for institution and department
+  const parts = (authorInfo.affiliations || '').split(',');
+  let institution = authorInfo.affiliations || '';
+  let department = '';
+  if (parts.length > 1) {
+    department = parts[0].trim();
+    institution = parts.slice(1).join(',').trim();
+  }
+
+  // Parse Email Domain
+  let emailDomain = '';
+  if (authorInfo.email && authorInfo.email.includes('at ')) {
+    emailDomain = authorInfo.email.split('at ')[1].trim();
+  }
+
+  // Citation Trend/Graph points
+  const citationsByYear = (citationsInfo.graph || []).map((pt) => ({
+    year: pt.year,
+    citations: pt.citations,
+  }));
 
   return {
     type: 'profile_preview',
     authorId,
     profile: {
       fullName: authorInfo.name,
-      affiliation: authorInfo.affiliations,
-      website: authorInfo.website || '',
+      googleScholarId: authorId,
+      profileUrl: `https://scholar.google.com/citations?user=${authorId}`,
       profilePhoto: authorInfo.thumbnail || '',
+      affiliation: authorInfo.affiliations || '',
+      institution,
+      organization: institution,
+      department,
+      emailDomain,
+      homepage: authorInfo.website || '',
+      verifiedEmailDomain: emailDomain ? `Verified email at ${emailDomain}` : '',
       interests: authorInfo.interests ? authorInfo.interests.map((i) => i.title) : [],
     },
     metrics: {
@@ -178,21 +210,37 @@ export const getScholarImportPreview = async (input) => {
       i10Index: i10IndexAll,
       i10IndexSinceLastYear: i10IndexRecent,
       totalCoAuthors: coauthors.length,
+      citationsByYear,
     },
-    publications: articles.map((art) => ({
-      title: art.title,
-      authors: art.authors,
-      journal: art.publication || '',
-      publicationYear: art.year ? parseInt(art.year, 10) : null,
-      citationCount: art.cited_by?.value || 0,
-      pdfUrl: art.link || '',
-    })),
+    publications: articles.map((art) => {
+      // Find PDF link from resources if available
+      const pdfResource = (art.resources || []).find((r) => r.file_format === 'PDF');
+      const pdfUrl = pdfResource ? pdfResource.link : '';
+
+      return {
+        title: art.title,
+        authors: art.authors,
+        journal: art.publication || '',
+        publisher: art.publisher || '',
+        publicationYear: art.year ? parseInt(art.year, 10) : null,
+        citationCount: art.cited_by?.value || 0,
+        pdfUrl,
+        publicationUrl: art.link || '',
+        abstract: art.description || `${art.title}. Published in ${art.publication || 'Academic Journal'}.`,
+        doi: '', // SerpAPI doesn't return DOI directly in initial list, but can be manually updated
+        volume: art.volume || '',
+        issue: art.issue || '',
+        pages: art.pages || '',
+        publicationType: (art.publication || '').toLowerCase().includes('patent') ? 'patent' : 'journal',
+      };
+    }),
     coAuthors: coauthors.map((ca) => ({
       name: ca.name,
       scholarId: ca.author_id,
       scholarUrl: ca.link,
       affiliation: ca.affiliations || '',
       thumbnail: ca.thumbnail || '',
+      relationship: 'co-author',
     })),
   };
 };
@@ -200,70 +248,78 @@ export const getScholarImportPreview = async (input) => {
 /**
  * Save / Import Google Scholar Data
  */
-export const importGoogleScholarProfile = async (userId, authorId, selectedPubTitles = null) => {
+export const importGoogleScholarProfile = async (userId, authorId, selectedPubTitles = null, selectedFields = null) => {
   const data = await fetchAuthorDetailsFromAPI(authorId);
 
-  const authorInfo = data.author || {};
-  const articles = data.articles || [];
-  const citationsInfo = data.cited_by || {};
-  const coauthors = data.co_authors || [];
-
-  // 1. Update Profile Information
-  const bioText = authorInfo.interests ? authorInfo.interests.map((i) => i.title).join(', ') : 'Researcher';
-  const profile = await Profile.findOneAndUpdate(
-    { user: userId },
+  // 1. Create/Update the ExternalAccount document with raw payload
+  await ExternalAccount.findOneAndUpdate(
+    { user: userId, provider: 'googleScholar' },
     {
-      $set: {
-        bio: bioText,
-        institution: authorInfo.affiliations || 'Independent Researcher',
-        profilePhoto: authorInfo.thumbnail || '',
-      },
+      providerUserId: authorId,
+      profileUrl: `https://scholar.google.com/citations?user=${authorId}`,
+      lastSyncedAt: new Date(),
+      syncStatus: 'synced',
+      rawResponse: data,
+      importVersion: 1,
     },
-    { new: true, upsert: true }
+    { upsert: true, new: true }
   );
 
-  // 2. Update Academic Profile Link
-  await AcademicProfile.findOneAndUpdate(
-    { user: userId },
-    {
-      $set: {
-        googleScholar: authorId,
-        personalWebsite: authorInfo.website || '',
-      },
-    },
-    { new: true, upsert: true }
-  );
+  const preview = await getScholarImportPreview(authorId);
 
-  // 3. Save Research Metrics
-  const citationsTable = citationsInfo.table || [];
-  const citationsAll = citationsTable[0]?.citations?.all || 0;
-  const citationsRecent = citationsTable[0]?.citations?.since_2021 || 0;
-  const hIndexAll = citationsTable[1]?.h_index?.all || 0;
-  const hIndexRecent = citationsTable[1]?.h_index?.since_2021 || 0;
-  const i10IndexAll = citationsTable[2]?.i10_index?.all || 0;
-  const i10IndexRecent = citationsTable[2]?.i10_index?.since_2021 || 0;
+  // 2. Update Profile Information using sourceTracker helper
+  const profile = await Profile.findOne({ user: userId });
+  if (profile) {
+    const fieldsToImport = selectedFields || ['displayName', 'institution', 'department', 'profilePhoto', 'bio', 'website'];
+    
+    fieldsToImport.forEach((field) => {
+      if (field === 'displayName') {
+        updateFieldWithMetadata(profile, 'displayName', preview.profile.fullName, 'googleScholar', userId);
+      }
+      if (field === 'institution') {
+        updateFieldWithMetadata(profile, 'institution', preview.profile.institution, 'googleScholar', userId);
+      }
+      if (field === 'department') {
+        updateFieldWithMetadata(profile, 'department', preview.profile.department, 'googleScholar', userId);
+      }
+      if (field === 'profilePhoto' && preview.profile.profilePhoto) {
+        updateFieldWithMetadata(profile, 'profilePhoto', preview.profile.profilePhoto, 'googleScholar', userId);
+      }
+      if (field === 'bio') {
+        updateFieldWithMetadata(profile, 'bio', preview.profile.interests.join(', '), 'googleScholar', userId);
+      }
+      if (field === 'website') {
+        updateFieldWithMetadata(profile, 'website', preview.profile.homepage, 'googleScholar', userId);
+      }
+    });
+    
+    await profile.save();
+  }
 
-  await ResearchMetrics.findOneAndUpdate(
-    { user: userId },
-    {
-      $set: {
-        totalPublications: articles.length,
-        totalCitations: citationsAll,
-        citationsSinceLastYear: citationsRecent,
-        hIndex: hIndexAll,
-        hIndexSinceLastYear: hIndexRecent,
-        i10Index: i10IndexAll,
-        i10IndexSinceLastYear: i10IndexRecent,
-        totalCoAuthors: coauthors.length,
-      },
-    },
-    { new: true, upsert: true }
-  );
+  // 3. Update Academic Profile Link
+  const academicProfile = await AcademicProfile.findOne({ user: userId }) || new AcademicProfile({ user: userId });
+  updateFieldWithMetadata(academicProfile, 'googleScholar', authorId, 'googleScholar', userId);
+  updateFieldWithMetadata(academicProfile, 'personalWebsite', preview.profile.homepage, 'googleScholar', userId);
+  academicProfile.rawScholarData = data;
+  await academicProfile.save();
 
-  // 4. Save Research Interests as ResearchAreas & Keywords
-  const interests = authorInfo.interests || [];
-  for (const interest of interests) {
-    const normalizedName = interest.title.trim();
+  // 4. Save Research Metrics
+  const metrics = await ResearchMetrics.findOne({ user: userId }) || new ResearchMetrics({ user: userId });
+  updateFieldWithMetadata(metrics, 'totalPublications', preview.metrics.totalPublications, 'googleScholar', userId);
+  updateFieldWithMetadata(metrics, 'totalCitations', preview.metrics.totalCitations, 'googleScholar', userId);
+  updateFieldWithMetadata(metrics, 'citationsSinceLastYear', preview.metrics.citationsSinceLastYear, 'googleScholar', userId);
+  updateFieldWithMetadata(metrics, 'hIndex', preview.metrics.hIndex, 'googleScholar', userId);
+  updateFieldWithMetadata(metrics, 'hIndexSinceLastYear', preview.metrics.hIndexSinceLastYear, 'googleScholar', userId);
+  updateFieldWithMetadata(metrics, 'i10Index', preview.metrics.i10Index, 'googleScholar', userId);
+  updateFieldWithMetadata(metrics, 'i10IndexSinceLastYear', preview.metrics.i10IndexSinceLastYear, 'googleScholar', userId);
+  updateFieldWithMetadata(metrics, 'totalCoAuthors', preview.metrics.totalCoAuthors, 'googleScholar', userId);
+  updateFieldWithMetadata(metrics, 'citationsByYear', preview.metrics.citationsByYear, 'googleScholar', userId);
+  await metrics.save();
+
+  // 5. Save Research Interests as ResearchAreas & Keywords
+  const interests = preview.profile.interests || [];
+  for (const title of interests) {
+    const normalizedName = title.trim();
     const slug = normalizedName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 
     // Save Keyword
@@ -274,7 +330,13 @@ export const importGoogleScholarProfile = async (userId, authorId, selectedPubTi
     );
     await UserKeyword.findOneAndUpdate(
       { user: userId, keyword: keywordDoc._id },
-      { user: userId, keyword: keywordDoc._id },
+      { 
+        user: userId, 
+        keyword: keywordDoc._id,
+        source: 'googleScholar',
+        lastUpdated: new Date(),
+        updatedBy: userId,
+      },
       { upsert: true }
     );
 
@@ -286,21 +348,29 @@ export const importGoogleScholarProfile = async (userId, authorId, selectedPubTi
     );
     await UserResearchArea.findOneAndUpdate(
       { user: userId, researchArea: areaDoc._id },
-      { user: userId, researchArea: areaDoc._id },
+      { 
+        user: userId, 
+        researchArea: areaDoc._id,
+        source: 'googleScholar',
+        lastUpdated: new Date(),
+        updatedBy: userId,
+      },
       { upsert: true }
     );
   }
 
-  // 5. Save Co-authors in ResearchCollaborator
-  for (const ca of coauthors) {
+  // 6. Save Co-authors in ResearchCollaborator
+  for (const ca of preview.coAuthors) {
     try {
       await ResearchCollaborator.findOneAndUpdate(
-        { user: userId, scholarId: ca.author_id },
+        { user: userId, scholarId: ca.scholarId },
         {
           $set: {
             name: ca.name,
-            scholarUrl: ca.link,
-            affiliation: ca.affiliations || '',
+            scholarUrl: ca.scholarUrl,
+            affiliation: ca.affiliation,
+            thumbnail: ca.thumbnail,
+            relationship: ca.relationship,
           },
         },
         { upsert: true }
@@ -310,49 +380,94 @@ export const importGoogleScholarProfile = async (userId, authorId, selectedPubTi
     }
   }
 
-  // 6. Import Selected Articles
-  console.log(`🌱 Importing ${articles.length} articles...`);
-  for (const article of articles) {
+  // 7. Import Publications
+  console.log(`🌱 Normalizing and importing ${preview.publications.length} publications...`);
+  for (const pubData of preview.publications) {
     // If selective import filter is enabled, check membership
-    if (selectedPubTitles && !selectedPubTitles.includes(article.title)) {
+    if (selectedPubTitles && !selectedPubTitles.includes(pubData.title)) {
       continue;
     }
 
     try {
-      let pub = await Publication.findOne({ title: article.title, user: userId });
-      const citationCount = article.cited_by?.value || 0;
-      const pubYear = article.year ? parseInt(article.year, 10) : new Date().getFullYear();
+      let pub = await Publication.findOne({ title: pubData.title, user: userId });
+      const isNewPub = !pub;
 
-      if (!pub) {
+      if (isNewPub) {
         pub = new Publication({
           user: userId,
-          title: article.title,
-          abstract: `${article.title}. Published in ${article.publication || 'Academic Journal'}.`,
-          publisher: article.publisher || '',
-          journal: article.publication || '',
-          publicationYear: pubYear,
-          citationCount,
-          pdfUrl: article.link || '',
+          title: pubData.title,
+          abstract: pubData.abstract,
+          publisher: pubData.publisher,
+          journal: pubData.journal,
+          publicationYear: pubData.publicationYear || new Date().getFullYear(),
+          citationCount: pubData.citationCount,
+          pdfUrl: pubData.pdfUrl,
+          publicationUrl: pubData.publicationUrl,
+          volume: pubData.volume,
+          issue: pubData.issue,
+          pages: pubData.pages,
+          publicationType: pubData.publicationType,
           visibility: 'public',
         });
+        
+        // Setup initial source metadata
+        updateFieldWithMetadata(pub, 'title', pubData.title, 'googleScholar', userId);
+        updateFieldWithMetadata(pub, 'abstract', pubData.abstract, 'googleScholar', userId);
+        updateFieldWithMetadata(pub, 'citationCount', pubData.citationCount, 'googleScholar', userId);
+        
         await pub.save();
 
         // Create Publication Author mappings
-        const authorNames = article.authors ? article.authors.split(',') : [authorInfo.name];
+        const authorNames = pubData.authors ? pubData.authors.split(',') : [preview.profile.fullName];
         for (let i = 0; i < authorNames.length; i++) {
           await PublicationAuthor.create({
             publication: pub._id,
-            user: i === 0 ? userId : undefined,
+            user: i === 0 ? userId : undefined, // link first author to the registered user
             authorName: authorNames[i].trim(),
             authorOrder: i + 1,
           });
         }
+
+        // Initialize Publication Analytics
+        await PublicationAnalytics.findOneAndUpdate(
+          { publication: pub._id, date: new Date().setHours(0, 0, 0, 0) },
+          { $setOnInsert: { views: 0, downloads: 0, reads: 0, shares: 0, recommendations: 0 } },
+          { upsert: true }
+        );
+
+        // Save Publication History
+        await PublicationHistory.create({
+          publication: pub._id,
+          user: userId,
+          action: 'create',
+          details: 'Imported from Google Scholar',
+        });
       } else {
-        pub.citationCount = citationCount;
-        await pub.save();
+        // Update existing publication citations and other non-locked fields
+        let updated = false;
+        if (updateFieldWithMetadata(pub, 'citationCount', pubData.citationCount, 'googleScholar', userId)) {
+          updated = true;
+        }
+        if (pubData.pdfUrl && updateFieldWithMetadata(pub, 'pdfUrl', pubData.pdfUrl, 'googleScholar', userId)) {
+          updated = true;
+        }
+        if (pubData.publicationUrl && updateFieldWithMetadata(pub, 'publicationUrl', pubData.publicationUrl, 'googleScholar', userId)) {
+          updated = true;
+        }
+        
+        if (updated) {
+          await pub.save();
+          // Save Publication History
+          await PublicationHistory.create({
+            publication: pub._id,
+            user: userId,
+            action: 'update_metadata',
+            details: 'Updated citation counts / files via Google Scholar Sync',
+          });
+        }
       }
     } catch (err) {
-      console.warn(`⚠️ Skipped article import "${article.title}":`, err.message);
+      console.warn(`⚠️ Skipped article import "${pubData.title}":`, err.message);
     }
   }
 
@@ -373,11 +488,17 @@ export const importGoogleScholarProfile = async (userId, authorId, selectedPubTi
  * Unlink Google Scholar Profile
  */
 export const unlinkGoogleScholarProfile = async (userId) => {
-  await AcademicProfile.findOneAndUpdate(
-    { user: userId },
-    { $set: { googleScholar: '', personalWebsite: '' } }
-  );
+  const academicProfile = await AcademicProfile.findOne({ user: userId });
+  if (academicProfile) {
+    academicProfile.googleScholar = '';
+    academicProfile.rawScholarData = null;
+    if (academicProfile.fieldMetadata) {
+      academicProfile.fieldMetadata.delete('googleScholar');
+    }
+    await academicProfile.save();
+  }
 
+  await ExternalAccount.findOneAndDelete({ user: userId, provider: 'googleScholar' });
   await ResearchMetrics.findOneAndDelete({ user: userId });
 
   await ActivityLog.create({
@@ -397,6 +518,7 @@ function getMockScholarData(authorId) {
       name: 'Dr. Sarah Jenkins',
       affiliations: 'Associate Professor, Stanford University',
       website: 'https://sarahjenkins.lab.stanford.edu',
+      email: 'Verified email at stanford.edu',
       interests: [
         { title: 'Neural Networks' },
         { title: 'Natural Language Processing' },
@@ -409,6 +531,14 @@ function getMockScholarData(authorId) {
         { citations: { all: 2458, since_2021: 1542 } },
         { h_index: { all: 28, since_2021: 22 } },
         { i10_index: { all: 35, since_2021: 30 } }
+      ],
+      graph: [
+        { year: 2021, citations: 210 },
+        { year: 2022, citations: 320 },
+        { year: 2023, citations: 450 },
+        { year: 2024, citations: 520 },
+        { year: 2025, citations: 610 },
+        { year: 2026, citations: 348 }
       ]
     },
     articles: [
@@ -417,18 +547,30 @@ function getMockScholarData(authorId) {
         authors: 'Sarah Jenkins, John Doe',
         publication: 'Journal of Biomedical Informatics',
         year: '2026',
+        volume: '42',
+        issue: '3',
+        pages: '128-142',
         cited_by: { value: 128 },
-        link: 'https://res.cloudinary.com/research-connect/raw/upload/papers/attention_healthcare.pdf',
-        description: 'An optimized transformer network applied to diagnostic segmentation of 3D medical scans.'
+        link: 'https://scholar.google.com/citations?view_op=view_citation&citation_id=attention_diagnostics',
+        description: 'An optimized transformer network applied to diagnostic segmentation of 3D medical scans.',
+        resources: [
+          { file_format: 'PDF', link: 'https://res.cloudinary.com/research-connect/raw/upload/papers/attention_healthcare.pdf' }
+        ]
       },
       {
         title: 'Secure Federated Learning in Distributed Healthcare Frameworks',
         authors: 'Alex Rivera, Sarah Jenkins',
         publication: 'IEEE Transactions on Information Forensics and Security',
         year: '2026',
+        volume: '15',
+        issue: '1',
+        pages: '89-102',
         cited_by: { value: 15 },
-        link: 'https://res.cloudinary.com/research-connect/raw/upload/papers/federated_security.pdf',
-        description: 'Using cryptographic models to secure multi-institutional machine learning pipelines.'
+        link: 'https://scholar.google.com/citations?view_op=view_citation&citation_id=federated_security',
+        description: 'Using cryptographic models to secure multi-institutional machine learning pipelines.',
+        resources: [
+          { file_format: 'PDF', link: 'https://res.cloudinary.com/research-connect/raw/upload/papers/federated_security.pdf' }
+        ]
       }
     ],
     co_authors: [

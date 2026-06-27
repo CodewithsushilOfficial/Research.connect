@@ -2,6 +2,9 @@ import mongoose from 'mongoose';
 import './AcademicProfile.js';
 import './UserResearchArea.js';
 import './UserKeyword.js';
+import './Education.js';
+import './Experience.js';
+import fieldMetadataSchema from './fieldMetadataSchema.js';
 
 const profileSchema = new mongoose.Schema(
   {
@@ -18,6 +21,16 @@ const profileSchema = new mongoose.Schema(
     },
     coverPhoto: {
       type: String,
+      default: '',
+    },
+    displayName: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    headline: {
+      type: String,
+      trim: true,
       default: '',
     },
     bio: {
@@ -87,6 +100,24 @@ const profileSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    employmentStatus: {
+      type: String,
+      enum: ['employed', 'unemployed', 'student', 'retired', 'other'],
+      default: 'employed',
+    },
+    profileVisibility: {
+      type: String,
+      enum: ['public', 'private', 'restricted'],
+      default: 'public',
+      index: true,
+    },
+    socialLinks: {
+      linkedin: { type: String, default: '' },
+      twitter: { type: String, default: '' },
+      github: { type: String, default: '' },
+      researchgate: { type: String, default: '' },
+      orcid: { type: String, default: '' },
+    },
     profileCompletion: {
       type: Number,
       default: 0, // Percentage
@@ -112,6 +143,11 @@ const profileSchema = new mongoose.Schema(
       default: 0,
       index: true,
     },
+    fieldMetadata: {
+      type: Map,
+      of: fieldMetadataSchema,
+      default: {},
+    },
   },
   {
     timestamps: true,
@@ -131,6 +167,14 @@ profileSchema.virtual('academicProfile', {
   justOne: true,
 });
 
+// Virtual populate for Research Metrics
+profileSchema.virtual('researchMetrics', {
+  ref: 'ResearchMetrics',
+  foreignField: 'user',
+  localField: 'user',
+  justOne: true,
+});
+
 // Virtual populate for User Research Areas
 profileSchema.virtual('researchAreas', {
   ref: 'UserResearchArea',
@@ -143,6 +187,22 @@ profileSchema.virtual('keywords', {
   ref: 'UserKeyword',
   foreignField: 'user',
   localField: 'user',
+});
+
+// Virtual populate for Education List
+profileSchema.virtual('educationList', {
+  ref: 'Education',
+  foreignField: 'user',
+  localField: 'user',
+  options: { sort: { sortOrder: 1, startYear: -1 } }
+});
+
+// Virtual populate for Experience List
+profileSchema.virtual('experienceList', {
+  ref: 'Experience',
+  foreignField: 'user',
+  localField: 'user',
+  options: { sort: { sortOrder: 1, startYear: -1 } }
 });
 
 // Pre-save hook to calculate Profile Completion Rate

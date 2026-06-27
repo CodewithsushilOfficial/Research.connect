@@ -50,13 +50,7 @@ export const AuthProvider = ({ children }) => {
         role, 
         ...additionalData 
       });
-      const { accessToken } = response.data;
-      localStorage.setItem('accessToken', accessToken);
-      
-      // Get complete profile info
-      const profileResponse = await api.get('/profile/me');
-      setUser(profileResponse.data.profile);
-      return { success: true };
+      return { success: true, otpRequired: true, email };
     } catch (err) {
       return { success: false, error: err.response?.data?.message || 'Registration failed' };
     } finally {
@@ -69,7 +63,12 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       const response = await api.post('/auth/login', { email, password });
-      const { accessToken } = response.data;
+      const { accessToken, otpRequired } = response.data;
+      
+      if (otpRequired) {
+        return { success: true, otpRequired: true, email, otpCode: response.data.otpCode };
+      }
+      
       localStorage.setItem('accessToken', accessToken);
       
       // Fetch full profile info

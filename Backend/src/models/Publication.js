@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import './PublicationAuthor.js';
 import './PublicationKeyword.js';
 import './PublicationResearchArea.js';
+import fieldMetadataSchema from './fieldMetadataSchema.js';
 
 const publicationSchema = new mongoose.Schema(
   {
@@ -96,6 +97,27 @@ const publicationSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
       index: true,
+    },
+    volume: {
+      type: String,
+      default: '',
+    },
+    issue: {
+      type: String,
+      default: '',
+    },
+    pages: {
+      type: String,
+      default: '',
+    },
+    publicationUrl: {
+      type: String,
+      default: '',
+    },
+    fieldMetadata: {
+      type: Map,
+      of: fieldMetadataSchema,
+      default: {},
     },
   },
   {

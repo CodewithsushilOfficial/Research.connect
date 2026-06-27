@@ -25,6 +25,7 @@ const refreshTokenSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    collection: 'refresh_tokens',
   }
 );
 

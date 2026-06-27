@@ -32,6 +32,18 @@ export const validateSignup = [
 ];
 
 export const validateProfileUpdate = [
+  body('displayName')
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('Display name cannot exceed 100 characters'),
+
+  body('headline')
+    .optional()
+    .trim()
+    .isLength({ max: 150 })
+    .withMessage('Headline cannot exceed 150 characters'),
+
   body('bio')
     .optional()
     .trim()
@@ -63,15 +75,11 @@ export const validateProfileUpdate = [
 
   body('phone')
     .optional()
-    .trim()
-    .matches(/^\+?[1-9]\d{1,14}$/)
-    .withMessage('Please provide a valid phone number'),
+    .trim(),
 
   body('website')
     .optional()
-    .trim()
-    .isURL()
-    .withMessage('Please provide a valid website URL'),
+    .trim(),
 
   body('gender')
     .optional()
@@ -82,6 +90,26 @@ export const validateProfileUpdate = [
     .optional()
     .isArray()
     .withMessage('Languages must be an array of strings'),
+
+  body('employmentStatus')
+    .optional()
+    .isIn(['employed', 'unemployed', 'student', 'retired', 'other'])
+    .withMessage('Invalid employment status'),
+
+  body('profileVisibility')
+    .optional()
+    .isIn(['public', 'private', 'restricted'])
+    .withMessage('Invalid profile visibility'),
+
+  body('socialLinks')
+    .optional()
+    .isObject()
+    .withMessage('Social links must be an object'),
+
+  body('dateOfBirth')
+    .optional()
+    .isISO8601()
+    .withMessage('Date of birth must be a valid date'),
 ];
 
 export const validateCollaborationPreferences = [

@@ -6,7 +6,6 @@ const publicationResearchAreaSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Publication',
       required: [true, 'Publication is required'],
-      index: true,
     },
     researchArea: {
       type: mongoose.Schema.Types.ObjectId,

@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import fieldMetadataSchema from './fieldMetadataSchema.js';
 
 const researchMetricsSchema = new mongoose.Schema(
   {
@@ -40,6 +41,17 @@ const researchMetricsSchema = new mongoose.Schema(
     totalCoAuthors: {
       type: Number,
       default: 0,
+    },
+    citationsByYear: [
+      {
+        year: { type: Number, required: true },
+        citations: { type: Number, required: true },
+      },
+    ],
+    fieldMetadata: {
+      type: Map,
+      of: fieldMetadataSchema,
+      default: {},
     },
   },
   {

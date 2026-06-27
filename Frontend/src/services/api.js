@@ -24,12 +24,17 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
-// Request Interceptor: Attach Access Token (if stored in memory)
+// Request Interceptor: Attach Access Token and Device ID
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('accessToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    const deviceId = localStorage.getItem('deviceId');
+    if (deviceId) {
+      config.headers['X-Device-ID'] = deviceId;
     }
     return config;
   },

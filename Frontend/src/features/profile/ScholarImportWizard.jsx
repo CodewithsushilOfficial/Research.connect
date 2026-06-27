@@ -26,6 +26,7 @@ const ScholarImportWizard = ({ onImportComplete, onCancel }) => {
   
   // Selection States
   const [selectedPubs, setSelectedPubs] = useState([]);
+  const [selectedFields, setSelectedFields] = useState(['displayName', 'institution', 'department', 'profilePhoto', 'bio', 'website']);
   const [importing, setImporting] = useState(false);
 
   const handlePreview = async (e) => {
@@ -95,6 +96,7 @@ const ScholarImportWizard = ({ onImportComplete, onCancel }) => {
       await api.post('/profile/google-scholar/import', {
         authorId: previewData.authorId,
         selectedPubTitles: selectedPubs,
+        selectedFields,
       });
       onImportComplete();
     } catch (err) {
@@ -202,7 +204,7 @@ const ScholarImportWizard = ({ onImportComplete, onCancel }) => {
             <div className="text-left flex-grow min-w-0">
               <h4 className="font-bold text-sm text-slate-800 flex items-center gap-1.5">
                 {previewData.profile.fullName} 
-                <a href={previewData.profile.website} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-blue-600">
+                <a href={previewData.profile.website || '#'} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-blue-600">
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
               </h4>
@@ -216,6 +218,43 @@ const ScholarImportWizard = ({ onImportComplete, onCancel }) => {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Selective Profile Fields Checklist */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5 border-b border-slate-100 pb-2">
+              <Sparkles className="w-4 h-4 text-blue-600" /> Select Profile Fields to Import
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
+              {[
+                { key: 'displayName', label: 'Full Name', val: previewData.profile.fullName },
+                { key: 'institution', label: 'Institution', val: previewData.profile.institution },
+                { key: 'department', label: 'Department', val: previewData.profile.department },
+                { key: 'profilePhoto', label: 'Profile Photo', val: previewData.profile.profilePhoto ? 'Available' : 'None' },
+                { key: 'bio', label: 'Biography (Interests)', val: previewData.profile.interests.join(', ') },
+                { key: 'website', label: 'Personal Website', val: previewData.profile.homepage || 'None' }
+              ].map((field) => {
+                const isChecked = selectedFields.includes(field.key);
+                return (
+                  <label key={field.key} className={`flex items-start gap-2.5 p-3 border rounded-xl cursor-pointer transition-all ${
+                    isChecked ? 'bg-blue-50/10 border-blue-200' : 'border-slate-200 hover:bg-slate-50'
+                  }`}>
+                    <input 
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => setSelectedFields(prev => 
+                        prev.includes(field.key) ? prev.filter(k => k !== field.key) : [...prev, field.key]
+                      )}
+                      className="mt-0.5 w-4 h-4 text-blue-600 border-slate-350 rounded focus:ring-blue-500 cursor-pointer"
+                    />
+                    <div className="min-w-0">
+                      <span className="text-xs font-bold text-slate-700 block">{field.label}</span>
+                      <span className="text-[10px] text-slate-400 block truncate">{field.val || 'Not specified'}</span>
+                    </div>
+                  </label>
+                );
+              })}
             </div>
           </div>
 

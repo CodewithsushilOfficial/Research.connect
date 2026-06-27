@@ -21,6 +21,7 @@ import SearchHistory from '../models/SearchHistory.js';
 import ActivityLog from '../models/ActivityLog.js';
 import Report from '../models/Report.js';
 import ResearchFeed from '../models/ResearchFeed.js';
+import OTP from '../models/OTP.js';
 
 dotenv.config();
 

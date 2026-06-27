@@ -6,13 +6,29 @@ const userResearchAreaSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'User is required'],
-      index: true,
     },
     researchArea: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'ResearchArea',
       required: [true, 'Research Area is required'],
       index: true,
+    },
+    source: {
+      type: String,
+      enum: ['manual', 'googleScholar', 'orcid', 'scopus', 'linkedin'],
+      default: 'manual',
+    },
+    lastUpdated: {
+      type: Date,
+      default: Date.now,
+    },
+    updatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    syncVersion: {
+      type: Number,
+      default: 1,
     },
   },
   {

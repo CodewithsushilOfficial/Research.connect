@@ -22,6 +22,7 @@ const passwordResetTokenSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    collection: 'password_resets',
   }
 );
 
