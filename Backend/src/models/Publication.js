@@ -4,6 +4,17 @@ import './PublicationKeyword.js';
 import './PublicationResearchArea.js';
 import fieldMetadataSchema from './fieldMetadataSchema.js';
 
+const fileObjectSchema = new mongoose.Schema(
+  {
+    publicId: { type: String, default: '' },
+    secureUrl: { type: String, default: '' },
+    folder: { type: String, default: '' },
+    size: { type: Number, default: 0 },
+    format: { type: String, default: '' },
+  },
+  { _id: false }
+);
+
 const publicationSchema = new mongoose.Schema(
   {
     user: {
@@ -55,8 +66,8 @@ const publicationSchema = new mongoose.Schema(
       default: '',
     },
     coverImage: {
-      type: String,
-      default: '',
+      type: fileObjectSchema,
+      default: () => ({}),
     },
     conference: {
       type: String,
@@ -137,6 +148,26 @@ const publicationSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: '',
+    },
+    pdf: {
+      type: fileObjectSchema,
+      default: () => ({}),
+    },
+    supplementaryFiles: {
+      type: [fileObjectSchema],
+      default: [],
+    },
+    datasets: {
+      type: [fileObjectSchema],
+      default: [],
+    },
+    posters: {
+      type: [fileObjectSchema],
+      default: [],
+    },
+    presentations: {
+      type: [fileObjectSchema],
+      default: [],
     },
     thumbnail: {
       type: String,
@@ -268,6 +299,26 @@ publicationSchema.virtual('researchAreas', {
 // Soft delete query middleware
 publicationSchema.pre(/^find/, function (next) {
   this.find({ isDeleted: { $ne: true } });
+  next();
+});
+
+// Pre-validate hook to handle string values gracefully (e.g. from seed or imports)
+publicationSchema.pre('validate', function (next) {
+  if (typeof this.coverImage === 'string') {
+    this.coverImage = { secureUrl: this.coverImage };
+  }
+  if (typeof this.pdf === 'string') {
+    this.pdf = { secureUrl: this.pdf };
+  }
+  next();
+});
+
+// Pre-save hook to synchronize string URLs with object urls for compatibility
+publicationSchema.pre('save', function (next) {
+  if (this.pdf && this.pdf.secureUrl) {
+    this.pdfUrl = this.pdf.secureUrl;
+    this.fileUrl = this.pdf.secureUrl;
+  }
   next();
 });
 

@@ -13,7 +13,9 @@ import Profile from '../models/Profile.js';
 import SavedPublication from '../models/SavedPublication.js';
 import DownloadAnalytics from '../models/DownloadAnalytics.js';
 import AppError from '../utils/AppError.js';
-import { uploadFile, deleteFile } from '../services/storage.service.js';
+
+import File from '../models/File.js';
+import { uploadFileToCloudinary, deleteFileFromCloudinary } from '../services/upload.service.js';
 
 // Helper: extract validation errors and throw if any
 const validateExpress = (req) => {
@@ -622,9 +624,15 @@ export const deletePublication = async (req, res, next) => {
       return next(new AppError('No publication found with that ID', 404));
     }
 
-    // Ownership check
-    if (publication.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      return next(new AppError('You do not have permission to delete this resource', 403));
+    // Automatic cleanup of associated files from Cloudinary and files collection
+    try {
+      const associatedFiles = await File.find({ publicationId: publication._id });
+      for (const file of associatedFiles) {
+        await deleteFileFromCloudinary(file.publicId);
+      }
+      await PublicationFile.deleteMany({ publication: publication._id });
+    } catch (cleanupErr) {
+      console.error('Failed to clean up publication files on delete:', cleanupErr);
     }
 
     publication.isDeleted = true;
@@ -829,25 +837,36 @@ export const uploadPublicationFile = async (req, res, next) => {
       return next(new AppError('Please provide a file to upload.', 400));
     }
 
-    // Upload using hybrid storage service
-    const uploadResult = await uploadFile(req.file, `publications/${publication._id}`);
+    // Upload using centralized storage service
+    const fileRecord = await uploadFileToCloudinary(
+      req.file,
+      'publication-pdf',
+      { publicationId: publication._id },
+      req.user._id
+    );
 
     // Register file metadata record
     const pubFile = await PublicationFile.create({
       publication: publication._id,
       fileName: req.file.originalname,
       fileType: path.extname(req.file.originalname).substring(1) || 'bin',
-      cloudinaryPublicId: uploadResult.publicId,
-      fileUrl: uploadResult.url,
+      cloudinaryPublicId: fileRecord.publicId,
+      fileUrl: fileRecord.secureUrl,
       fileSize: req.file.size,
       uploadedBy: req.user._id
     });
 
-    // Update core publication fileUrl / pdfUrl if it is a PDF
-    if (req.file.mimetype.includes('pdf')) {
-      publication.pdfUrl = uploadResult.url;
-      await publication.save();
-    }
+    // Update core publication PDF
+    publication.pdf = {
+      publicId: fileRecord.publicId,
+      secureUrl: fileRecord.secureUrl,
+      folder: fileRecord.folder,
+      size: fileRecord.fileSize,
+      format: fileRecord.format
+    };
+    publication.pdfUrl = fileRecord.secureUrl;
+    publication.fileUrl = fileRecord.secureUrl;
+    await publication.save();
 
     // Log History
     await PublicationHistory.create({
@@ -886,11 +905,22 @@ export const uploadCoverImage = async (req, res, next) => {
       return next(new AppError('Please provide a cover image file.', 400));
     }
 
-    // Upload using hybrid storage service
-    const uploadResult = await uploadFile(req.file, `publications/${publication._id}/cover`);
+    // Upload using centralized storage service
+    const fileRecord = await uploadFileToCloudinary(
+      req.file,
+      'publication-cover',
+      { publicationId: publication._id },
+      req.user._id
+    );
 
     // Update publication coverImage
-    publication.coverImage = uploadResult.url;
+    publication.coverImage = {
+      publicId: fileRecord.publicId,
+      secureUrl: fileRecord.secureUrl,
+      folder: fileRecord.folder,
+      size: fileRecord.fileSize,
+      format: fileRecord.format
+    };
     await publication.save();
 
     // Log History
@@ -904,7 +934,7 @@ export const uploadCoverImage = async (req, res, next) => {
     res.status(200).json({
       status: 'success',
       message: 'Cover image uploaded successfully.',
-      data: { coverImage: uploadResult.url, publication },
+      data: { coverImage: fileRecord.secureUrl, publication },
     });
   } catch (error) {
     next(error);
@@ -932,20 +962,34 @@ export const uploadSupplementaryFiles = async (req, res, next) => {
 
     const uploadedFiles = [];
     for (const file of req.files) {
-      const uploadResult = await uploadFile(file, `publications/${publication._id}/supplementary`);
+      const fileRecord = await uploadFileToCloudinary(
+        file,
+        'publication-supplementary',
+        { publicationId: publication._id },
+        req.user._id
+      );
       
       const pubFile = await PublicationFile.create({
         publication: publication._id,
         fileName: file.originalname,
         fileType: file.originalname.split('.').pop() || 'bin',
-        cloudinaryPublicId: uploadResult.publicId,
-        fileUrl: uploadResult.url,
+        cloudinaryPublicId: fileRecord.publicId,
+        fileUrl: fileRecord.secureUrl,
         fileSize: file.size,
         uploadedBy: req.user._id,
       });
 
+      publication.supplementaryFiles.push({
+        publicId: fileRecord.publicId,
+        secureUrl: fileRecord.secureUrl,
+        folder: fileRecord.folder,
+        size: fileRecord.fileSize,
+        format: fileRecord.format
+      });
+
       uploadedFiles.push(pubFile);
     }
+    await publication.save();
 
     // Log History
     await PublicationHistory.create({

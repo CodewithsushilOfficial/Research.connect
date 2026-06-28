@@ -30,6 +30,11 @@ import ConnectionsDashboard from '../pages/Dashboard/ConnectionsDashboard.jsx';
 import FollowersPage from '../pages/Dashboard/FollowersPage.jsx';
 import FollowingPage from '../pages/Dashboard/FollowingPage.jsx';
 
+// Projects Pages
+import ProjectsDashboard from '../pages/Projects/ProjectsDashboard.jsx';
+import CreateProject from '../pages/Projects/CreateProject.jsx';
+import ProjectDetails from '../pages/Projects/ProjectDetails.jsx';
+
 // Gate
 import ProtectedRoute from './ProtectedRoute.jsx';
 
@@ -95,6 +100,30 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute>
               <GlobalSearch />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="projects" 
+          element={
+            <ProtectedRoute>
+              <ProjectsDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="projects/new" 
+          element={
+            <ProtectedRoute>
+              <CreateProject />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="projects/:id" 
+          element={
+            <ProtectedRoute>
+              <ProjectDetails />
             </ProtectedRoute>
           } 
         />

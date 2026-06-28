@@ -13,6 +13,8 @@ import searchRouter from './search.routes.js';
 import collaborationRouter from './collaboration.routes.js';
 import connectionRouter from './connection.routes.js';
 import followRouter from './follow.routes.js';
+import projectRouter from './project.routes.js';
+import uploadRouter from './upload.routes.js';
 
 const router = express.Router();
 
@@ -30,6 +32,9 @@ router.use('/taxonomy', taxonomyRouter);
 router.use('/search', searchRouter);
 router.use('/collaboration', collaborationRouter);
 router.use('/connections', connectionRouter);
+router.use('/projects', projectRouter);
+router.use('/upload', uploadRouter);
 router.use('/', followRouter);
 
 export default router;
+

@@ -17,6 +17,8 @@ import UserResearchArea from '../models/UserResearchArea.js';
 import PublicationAuthor from '../models/PublicationAuthor.js';
 import PublicationHistory from '../models/PublicationHistory.js';
 import { updateFieldWithMetadata } from '../utils/sourceTracker.js';
+import File from '../models/File.js';
+import { uploadFileToCloudinary, deleteFileFromCloudinary } from '../services/upload.service.js';
 
 /**
  * Get current user profile and metrics
@@ -332,15 +334,36 @@ export const refreshGoogleScholar = async (req, res, next) => {
 export const uploadPhoto = async (req, res, next) => {
   try {
     const isCover = req.path.includes('cover');
-    const photoUrl = req.file ? `/uploads/${req.file.filename}` : '';
-
-    if (!photoUrl) {
+    if (!req.file) {
       return next(new AppError('No photo file uploaded.', 400));
     }
 
-    const updateField = isCover ? { coverPhoto: photoUrl } : { profilePhoto: photoUrl };
+    const profile = await Profile.findOne({ user: req.user._id });
+    if (!profile) {
+      return next(new AppError('Profile not found for this user.', 404));
+    }
 
-    const profile = await Profile.findOneAndUpdate(
+    const uploadType = isCover ? 'cover-image' : 'profile-image';
+
+    // Clean up old photo if it exists
+    const oldPhotoUrl = isCover ? profile.coverPhoto : profile.profilePhoto;
+    if (oldPhotoUrl) {
+      const oldFile = await File.findOne({ secureUrl: oldPhotoUrl, uploadType });
+      if (oldFile) {
+        await deleteFileFromCloudinary(oldFile.publicId);
+      }
+    }
+
+    // Upload to Cloudinary using central service
+    const fileRecord = await uploadFileToCloudinary(
+      req.file,
+      uploadType,
+      { profileId: profile._id },
+      req.user._id
+    );
+
+    const updateField = isCover ? { coverPhoto: fileRecord.secureUrl } : { profilePhoto: fileRecord.secureUrl };
+    const updatedProfile = await Profile.findOneAndUpdate(
       { user: req.user._id },
       updateField,
       { new: true }
@@ -349,7 +372,11 @@ export const uploadPhoto = async (req, res, next) => {
     res.status(200).json({
       status: 'success',
       message: `${isCover ? 'Cover' : 'Profile'} photo updated successfully.`,
-      profile,
+      profile: updatedProfile,
+      data: {
+        secureUrl: fileRecord.secureUrl,
+        publicId: fileRecord.publicId,
+      },
     });
   } catch (error) {
     next(error);
