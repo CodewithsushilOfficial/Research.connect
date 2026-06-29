@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import React, { useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -278,24 +277,11 @@ const MainLayout = () => {
           </div>
         </div>
       </header>
-=======
-import React from 'react';
-import { Outlet } from 'react-router-dom';
-import Navbar from '@/components/common/Navbar.jsx';
-import Footer from '@/components/common/Footer.jsx';
-
-const MainLayout = () => {
-  return (
-    <div className="flex flex-col min-h-screen">
-      {/* Sticky Header Navbar */}
-      <Navbar />
->>>>>>> 68563a8 (feat(frontend): add shared layout and reusable UI components)
 
       <main className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Outlet />
       </main>
 
-<<<<<<< HEAD
       <footer className="w-full border-t border-slate-200 py-6 bg-white mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <span className="text-xs text-slate-400">
@@ -307,10 +293,6 @@ const MainLayout = () => {
           </div>
         </div>
       </footer>
-=======
-      {/* Footer */}
-      <Footer />
->>>>>>> 68563a8 (feat(frontend): add shared layout and reusable UI components)
     </div>
   );
 };
