@@ -222,12 +222,12 @@ const MainLayout = () => {
                     user?.user?.profilePhoto ||
                     'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
                   }
-                  alt={user.user?.fullName || 'User Profile'}
+                  alt={user?.displayName || user?.user?.fullName || 'User Profile'}
                   className="w-9 h-9 rounded-full object-cover border border-slate-100 shadow-sm"
                 />
                 <div className="hidden md:flex flex-col text-left">
                   <span className="text-xs font-semibold text-slate-800 tracking-tight leading-none">
-                    {user?.user?.fullName || user?.fullName || 'User'}
+                    {user?.displayName || user?.user?.fullName || user?.fullName || 'User'}
                   </span>
                   <span className="text-[10px] text-slate-400 font-medium capitalize mt-1">
                     {user.designation || 'Researcher'}

@@ -54,29 +54,31 @@ export const AuthProvider = ({ children }) => {
     return { deviceId, deviceName };
   };
 
-  const processUserData = (profileData) => {
-    if (!profileData) return null;
-    const userModelFields = profileData.user && typeof profileData.user === 'object' ? profileData.user : {};
-    return {
-      ...profileData,
-      ...userModelFields,
-      id: userModelFields._id || userModelFields.id || profileData.user,
-    };
+const processUserData = (profileData) => {
+  if (!profileData) return null;
+  const userModelFields = profileData.user && typeof profileData.user === 'object' ? profileData.user : {};
+  return {
+    ...userModelFields,
+    ...profileData,
+    id: userModelFields._id || userModelFields.id || profileData.user,
+    displayName: profileData.displayName || userModelFields.fullName || '',
   };
+};
 
-  const fetchUserProfile = async (userObj) => {
-    try {
-      const profileResponse = await api.get('/profile/me');
-      if (profileResponse.data?.profile) {
-        setUser(processUserData(profileResponse.data.profile));
-      } else {
-        setUser(userObj);
-      }
-    } catch (profileErr) {
-      // Profile may not be created yet, use raw user object
+const fetchUserProfile = async (userObj) => {
+  try {
+    const profileResponse = await api.get('/profile/me');
+    const profileData = profileResponse.data?.data?.profile;
+    if (profileData) {
+      setUser(processUserData(profileData));
+    } else {
       setUser(userObj);
     }
-  };
+  } catch (profileErr) {
+    // Profile may not be created yet, use raw user object
+    setUser(userObj);
+  }
+};
 
   const checkAuth = async () => {
     let token = localStorage.getItem('token');
@@ -210,24 +212,31 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Sync profile data
-  const syncProfile = async () => {
-    try {
-      const response = await api.get('/profile/me');
-      setUser(processUserData(response.data.profile));
-    } catch (err) {
-      console.error('Profile sync failed:', err.message);
-      // Fallback: fetch raw user
-      try {
-        const userResponse = await api.get('/auth/me');
-        if (userResponse.data?.success) {
-          setUser(userResponse.data.data.user);
-        }
-      } catch (userErr) {
-        console.error('User sync fallback failed:', userErr.message);
-      }
+ 
+// Sync profile data
+const syncProfile = async () => {
+  try {
+    const response = await api.get('/profile/me');
+    const profileData = response.data?.data?.profile;
+    if (profileData) {
+      setUser(processUserData(profileData));
+    } else {
+      throw new Error('No profile data');
     }
-  };
+  } catch (err) {
+    console.error('Profile sync failed:', err.message);
+    // Fallback: fetch raw user
+    try {
+      const userResponse = await api.get('/auth/me');
+      if (userResponse.data?.success) {
+        setUser(userResponse.data.data.user);
+      }
+    } catch (userErr) {
+      console.error('User sync fallback failed:', userErr.message);
+    }
+  }
+};
+
 
   return (
     <AuthContext.Provider
