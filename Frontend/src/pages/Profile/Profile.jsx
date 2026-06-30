@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Award, 
-  MapPin, 
-  Mail, 
-  Phone, 
-  Globe, 
-  Plus, 
-  CheckCircle2, 
+import {
+  Award,
+  MapPin,
+  Mail,
+  Phone,
+  Globe,
+  Plus,
+  CheckCircle2,
   ExternalLink,
-  BookOpen, 
+  BookOpen,
   User,
   GraduationCap,
   Briefcase,
@@ -34,7 +34,7 @@ import SyncMergeModal from '../../features/profile/SyncMergeModal.jsx';
 const providerIcons = {
   'ORCID': (
     <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="#A6C307">
-      <path d="M12 0C5.372 0 0 5.372 0 12s5.372 12 12 12 12-5.372 12-12S18.628 0 12 0zM7.734 17.776H6.277V6.36h1.457v11.416zm-.728-12.433c-.524 0-.949-.425-.949-.949 0-.524.425-.949.949-.949.525 0 .949.425.949.949 0 .524-.424.949-.949.949zm9.584 7.039c0 2.876-1.785 4.394-4.394 4.394h-2.585V6.36h2.894c2.518 0 4.085 1.488 4.085 4.384v1.638zm-1.457-.036c0-2.075-.983-3.149-2.621-3.149h-1.457v6.627h1.365c1.72 0 2.713-.983 2.713-3.203v-.275z"/>
+      <path d="M12 0C5.372 0 0 5.372 0 12s5.372 12 12 12 12-5.372 12-12S18.628 0 12 0zM7.734 17.776H6.277V6.36h1.457v11.416zm-.728-12.433c-.524 0-.949-.425-.949-.949 0-.524.425-.949.949-.949.525 0 .949.425.949.949 0 .524-.424.949-.949.949zm9.584 7.039c0 2.876-1.785 4.394-4.394 4.394h-2.585V6.36h2.894c2.518 0 4.085 1.488 4.085 4.384v1.638zm-1.457-.036c0-2.075-.983-3.149-2.621-3.149h-1.457v6.627h1.365c1.72 0 2.713-.983 2.713-3.203v-.275z" />
     </svg>
   ),
   'Google Scholar': (
@@ -50,15 +50,15 @@ const providerIcons = {
   ),
   'LinkedIn': (
     <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="#0A66C2">
-      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
     </svg>
   ),
   'ResearchGate': (
     <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="#00CCBB">
-      <path d="M19.37 11.56c-.02-.08-.06-.16-.1-.23L16.48 6.5h-2.92v11h2.17v-4.14h.77l2.25 4.14h2.46l-2.62-4.81c1.07-.44 1.83-1.5 1.83-2.73a2.91 2.91 0 0 0-.05-.4zm-3.64-1.25V8.26h.81c.73 0 1.18.33 1.18.98 0 .66-.45.99-1.18.99h-.81zM9.43 11.56c0-.85-.18-1.5-.53-1.93-.35-.44-.9-.65-1.62-.65H5.21v5.19h2.07c.72 0 1.27-.21 1.62-.65.35-.43.53-1.08.53-1.96zm-2.07 4.13H5.21v2.18H3.04v-11h4.24c1.35 0 2.41.38 3.19 1.14.77.76 1.16 1.85 1.16 3.26 0 1.4-.39 2.49-1.16 3.25-.78.77-1.84 1.17-3.19 1.17z"/>
+      <path d="M19.37 11.56c-.02-.08-.06-.16-.1-.23L16.48 6.5h-2.92v11h2.17v-4.14h.77l2.25 4.14h2.46l-2.62-4.81c1.07-.44 1.83-1.5 1.83-2.73a2.91 2.91 0 0 0-.05-.4zm-3.64-1.25V8.26h.81c.73 0 1.18.33 1.18.98 0 .66-.45.99-1.18.99h-.81zM9.43 11.56c0-.85-.18-1.5-.53-1.93-.35-.44-.9-.65-1.62-.65H5.21v5.19h2.07c.72 0 1.27-.21 1.62-.65.35-.43.53-1.08.53-1.96zm-2.07 4.13H5.21v2.18H3.04v-11h4.24c1.35 0 2.41.38 3.19 1.14.77.76 1.16 1.85 1.16 3.26 0 1.4-.39 2.49-1.16 3.25-.78.77-1.84 1.17-3.19 1.17z" />
     </svg>
   ),
-  
+
   'Website': (
     <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" />
@@ -69,14 +69,14 @@ const providerIcons = {
 };
 
 const ProfilePage = () => {
-  const { user } = useAuth();
+  const { user, syncProfile } = useAuth();
   const { importProfile, loading: importLoading, error: importError } = useScholarImport();
 
   const [profileData, setProfileData] = useState(null);
   const [publications, setPublications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [scholarStatus, setScholarStatus] = useState(null);
-  
+
   const [activeTab, setActiveTab] = useState('About');
   const [scholarIdInput, setScholarIdInput] = useState('');
   const [showImportPanel, setShowImportPanel] = useState(false);
@@ -170,7 +170,7 @@ const ProfilePage = () => {
           if (provider === 'Scopus') updatedAcademic.scopusId = '';
           if (provider === 'LinkedIn') updatedAcademic.linkedIn = '';
           if (provider === 'ResearchGate') updatedAcademic.researchGate = '';
-          
+
           await api.put('/profile', {
             ...profileData,
             academicProfile: updatedAcademic
@@ -279,7 +279,7 @@ const ProfilePage = () => {
   const handleScholarImport = async (e) => {
     e.preventDefault();
     if (!scholarIdInput.trim()) return;
-    
+
     let authorId = scholarIdInput.trim();
     if (authorId.includes('user=')) {
       authorId = authorId.split('user=')[1].split('&')[0];
@@ -306,17 +306,18 @@ const ProfilePage = () => {
   }
 
   // Fallbacks mapping to Google Scholar data or real profiles
-  const fullName = profileData?.user?.fullName || '';
+  // const fullName = profileData?.user?.fullName || '';
+  const fullName = profileData?.displayName || profileData?.user?.fullName || '';
   const designation = profileData?.designation || 'Researcher';
   const department = profileData?.department || '';
   const institution = profileData?.institution || '';
-  const locationText = profileData?.city && profileData?.country 
-    ? `${profileData.city}, ${profileData.country}` 
+  const locationText = profileData?.city && profileData?.country
+    ? `${profileData.city}, ${profileData.country}`
     : (profileData?.country && profileData.country !== 'Not Specified' ? profileData.country : '');
-  
+
   const bioText = profileData?.bio || 'No biography added yet.';
   const emailText = profileData?.user?.email || '';
-  
+
   return (
     <div className="flex flex-col gap-8">
       {/* Google Scholar Sync Banner Card */}
@@ -325,35 +326,33 @@ const ProfilePage = () => {
           <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-blue-600 animate-pulse" /> Google Scholar Integration
             {scholarStatus?.connected && (
-              <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase border ${
-                scholarStatus.syncStatus === 'synced'
+              <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase border ${scholarStatus.syncStatus === 'synced'
                   ? 'bg-green-50 text-green-700 border-green-200/50'
                   : 'bg-amber-50 text-amber-700 border-amber-200/50'
-              }`}>
+                }`}>
                 {scholarStatus.syncStatus}
               </span>
             )}
           </h4>
           <p className="text-xs text-slate-500 max-w-xl">
-            {scholarStatus?.connected 
-              ? `Connected with Scholar ID: ${scholarStatus.providerUserId}. Last synced: ${
-                  scholarStatus.lastSyncedAt 
-                    ? new Date(scholarStatus.lastSyncedAt).toLocaleString() 
-                    : 'Never'
-                }`
+            {scholarStatus?.connected
+              ? `Connected with Scholar ID: ${scholarStatus.providerUserId}. Last synced: ${scholarStatus.lastSyncedAt
+                ? new Date(scholarStatus.lastSyncedAt).toLocaleString()
+                : 'Never'
+              }`
               : 'Auto-populate your academic metrics, citations index, co-authors network, and papers directly from your Google Scholar profile.'}
           </p>
         </div>
-        
+
         {scholarStatus?.connected ? (
           <div className="flex items-center gap-3 shrink-0">
-            <button 
+            <button
               onClick={() => setShowSyncModal(true)}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors flex items-center gap-2 cursor-pointer shadow-sm shadow-blue-500/10"
             >
               <RefreshCw className="w-4 h-4 animate-spin-slow" /> Sync Latest
             </button>
-            <button 
+            <button
               onClick={async () => {
                 if (window.confirm('Are you sure you want to unlink your Google Scholar profile?')) {
                   setLoading(true);
@@ -374,7 +373,7 @@ const ProfilePage = () => {
             </button>
           </div>
         ) : (
-          <button 
+          <button
             onClick={() => setShowImportPanel(!showImportPanel)}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors flex items-center gap-2 shrink-0 cursor-pointer shadow-sm shadow-blue-500/10"
           >
@@ -385,7 +384,7 @@ const ProfilePage = () => {
 
       {/* Interactive Scholar Import Input Panel */}
       {showImportPanel && !profileData?.academicProfile?.googleScholar && (
-        <ScholarImportWizard 
+        <ScholarImportWizard
           onImportComplete={async () => {
             setShowImportPanel(false);
             setLoading(true);
@@ -400,22 +399,22 @@ const ProfilePage = () => {
       <div className="glass-card rounded-3xl overflow-hidden bg-white border border-slate-200/80 shadow-sm relative transition-all duration-300 hover:shadow-md">
         {/* Cover Photo */}
         <div className="h-44 sm:h-52 bg-slate-100 relative overflow-hidden group">
-          <img 
+          <img
             src={getPhotoUrl(profileData?.coverPhoto, 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=1200')}
             alt="Cover Banner"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent"></div>
-          
+
           {/* Edit Cover Photo Overlay Button */}
           <label className="absolute top-4 right-4 bg-white/90 hover:bg-white text-slate-800 px-3 py-2 rounded-xl shadow-lg cursor-pointer transition-all hover:scale-105 flex items-center gap-2 text-xs font-bold backdrop-blur-sm opacity-0 group-hover:opacity-100 duration-300 z-20">
             <Camera className="w-4 h-4 text-blue-600" />
             <span>Change Cover</span>
-            <input 
-              type="file" 
-              accept="image/*" 
-              className="hidden" 
-              onChange={(e) => handlePhotoUpload(e, 'cover')} 
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => handlePhotoUpload(e, 'cover')}
             />
           </label>
         </div>
@@ -425,7 +424,7 @@ const ProfilePage = () => {
           {/* Profile Photo */}
           <div className="relative shrink-0 group/photo">
             <div className="relative w-36 h-36 rounded-full overflow-hidden border-4 border-white shadow-xl bg-white group-hover/photo:border-blue-600 transition-all duration-300">
-              <img 
+              <img
                 src={getPhotoUrl(profileData?.profilePhoto, 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80')}
                 alt={fullName}
                 className="w-full h-full object-cover"
@@ -433,11 +432,11 @@ const ProfilePage = () => {
               <label className="absolute inset-0 bg-black/65 flex flex-col items-center justify-center text-white cursor-pointer opacity-0 group-hover/photo:opacity-100 transition-opacity duration-300">
                 <Camera className="w-5 h-5 text-blue-400" />
                 <span className="text-[10px] font-bold mt-1">Change Photo</span>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  className="hidden" 
-                  onChange={(e) => handlePhotoUpload(e, 'photo')} 
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => handlePhotoUpload(e, 'photo')}
                 />
               </label>
             </div>
@@ -464,7 +463,7 @@ const ProfilePage = () => {
 
               {/* Action Buttons */}
               <div className="flex flex-wrap items-center gap-3">
-                <button 
+                <button
                   onClick={() => setShowEditModal(true)}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all hover:-translate-y-0.5 cursor-pointer shadow-md shadow-blue-500/10"
                 >
@@ -498,23 +497,23 @@ const ProfilePage = () => {
                 return (
                   <div key={provider.name} className="relative group">
                     {isConnected ? (
-                      <a 
-                        href={linkUrl} 
-                        target="_blank" 
+                      <a
+                        href={linkUrl}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="w-10 h-10 rounded-xl bg-white border border-slate-200 hover:border-blue-500 shadow-sm flex items-center justify-center hover:shadow-md hover:scale-105 transition-all duration-250"
                       >
                         {providerIcons[provider.name]}
                       </a>
                     ) : (
-                      <button 
+                      <button
                         onClick={() => setShowEditModal(true)}
                         className="w-10 h-10 rounded-xl bg-white border border-slate-200 hover:border-blue-500 shadow-sm flex items-center justify-center hover:shadow-md hover:scale-105 transition-all duration-250 cursor-pointer"
                       >
                         {providerIcons[provider.name]}
                       </button>
                     )}
-                    
+
                     {/* Tooltip */}
                     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2.5 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg">
                       {provider.name} {isConnected ? '✓' : '(Not Linked)'}
@@ -532,11 +531,10 @@ const ProfilePage = () => {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`py-4 text-xs font-extrabold tracking-wider uppercase border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-                activeTab === tab 
-                  ? 'border-blue-600 text-blue-600' 
+              className={`py-4 text-xs font-extrabold tracking-wider uppercase border-b-2 transition-all cursor-pointer whitespace-nowrap ${activeTab === tab
+                  ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-slate-500 hover:text-slate-900'
-              }`}
+                }`}
             >
               {tab}
             </button>
@@ -546,10 +544,10 @@ const ProfilePage = () => {
 
       {/* Main Two-Column Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
+
         {/* Left Column (Changes dynamically based on activeTab) */}
         <div className="lg:col-span-2 flex flex-col gap-8 text-left">
-          
+
           {activeTab === 'About' && (
             <>
               {/* About Section */}
@@ -581,7 +579,7 @@ const ProfilePage = () => {
                   {/* Left Column: Personal/Institutional */}
                   <div className="space-y-3.5 bg-slate-50/50 p-6 rounded-2xl border border-slate-100/85">
                     <h4 className="text-[10px] font-extrabold text-slate-500 tracking-wider uppercase border-b border-slate-200/50 pb-1.5 mb-3">Institutional & Profile Details</h4>
-                    
+
                     {/* Full Name */}
                     <div className="flex items-start gap-3">
                       <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
@@ -606,8 +604,8 @@ const ProfilePage = () => {
                       <div>
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Date of Birth</span>
                         <span className="text-sm font-semibold text-slate-800">
-                          {profileData?.dateOfBirth 
-                            ? new Date(profileData.dateOfBirth).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) 
+                          {profileData?.dateOfBirth
+                            ? new Date(profileData.dateOfBirth).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
                             : 'Not Specified'}
                         </span>
                       </div>
@@ -652,7 +650,7 @@ const ProfilePage = () => {
                   {/* Right Column: Academic Identifiers */}
                   <div className="space-y-3.5 bg-slate-50/50 p-6 rounded-2xl border border-slate-100/85">
                     <h4 className="text-[10px] font-extrabold text-slate-500 tracking-wider uppercase border-b border-slate-200/50 pb-1.5 mb-3">Academic Identifiers & Profiles</h4>
-                    
+
                     {/* ORCID ID */}
                     <div className="flex items-start gap-3">
                       <div className="w-9 h-9 rounded-xl bg-white border border-slate-200/60 shadow-sm flex items-center justify-center shrink-0 mt-0.5">
@@ -661,13 +659,13 @@ const ProfilePage = () => {
                       <div>
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">ORCID ID</span>
                         {profileData?.academicProfile?.orcid ? (
-                          <a 
-                            href={`https://orcid.org/${profileData.academicProfile.orcid}`} 
-                            target="_blank" 
+                          <a
+                            href={`https://orcid.org/${profileData.academicProfile.orcid}`}
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="text-sm font-semibold text-slate-800 hover:text-blue-600 flex items-center gap-1 group/link"
                           >
-                            {profileData.academicProfile.orcid} 
+                            {profileData.academicProfile.orcid}
                             <ExternalLink className="w-3 h-3 text-slate-400 opacity-0 group-hover/link:opacity-100 transition-opacity" />
                           </a>
                         ) : (
@@ -684,9 +682,9 @@ const ProfilePage = () => {
                       <div>
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Google Scholar</span>
                         {profileData?.academicProfile?.googleScholar ? (
-                          <a 
-                            href={`https://scholar.google.com/citations?user=${profileData.academicProfile.googleScholar}`} 
-                            target="_blank" 
+                          <a
+                            href={`https://scholar.google.com/citations?user=${profileData.academicProfile.googleScholar}`}
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="text-sm font-semibold text-blue-600 hover:underline flex items-center gap-1 group/link"
                           >
@@ -707,9 +705,9 @@ const ProfilePage = () => {
                       <div>
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Scopus ID</span>
                         {profileData?.academicProfile?.scopusId ? (
-                          <a 
-                            href={`https://www.scopus.com/authid/detail.uri?authorId=${profileData.academicProfile.scopusId}`} 
-                            target="_blank" 
+                          <a
+                            href={`https://www.scopus.com/authid/detail.uri?authorId=${profileData.academicProfile.scopusId}`}
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="text-sm font-semibold text-slate-800 hover:text-blue-600 flex items-center gap-1 group/link"
                           >
@@ -730,10 +728,10 @@ const ProfilePage = () => {
                       <div>
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">LinkedIn</span>
                         {profileData?.academicProfile?.linkedIn ? (
-                          <a 
-                            href={profileData.academicProfile.linkedIn.startsWith('http') ? profileData.academicProfile.linkedIn : `https://linkedin.com/in/${profileData.academicProfile.linkedIn}`} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
+                          <a
+                            href={profileData.academicProfile.linkedIn.startsWith('http') ? profileData.academicProfile.linkedIn : `https://linkedin.com/in/${profileData.academicProfile.linkedIn}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="text-sm font-semibold text-blue-600 hover:underline flex items-center gap-1 group/link"
                           >
                             View Profile
@@ -745,7 +743,7 @@ const ProfilePage = () => {
                       </div>
                     </div>
 
-                   
+
                   </div>
                 </div>
               </div>
@@ -794,10 +792,10 @@ const ProfilePage = () => {
                     <div className="min-w-0">
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Personal Website</span>
                       {profileData?.website ? (
-                        <a 
-                          href={profileData.website.startsWith('http') ? profileData.website : `https://${profileData.website}`} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
+                        <a
+                          href={profileData.website.startsWith('http') ? profileData.website : `https://${profileData.website}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="font-semibold text-blue-600 hover:underline block truncate leading-tight"
                         >
                           {profileData.website}
@@ -965,9 +963,8 @@ const ProfilePage = () => {
                     profileData.projectList.map((proj, idx) => (
                       <div key={proj._id || idx} className="p-5 rounded-2xl bg-slate-50 border border-slate-100 space-y-2 hover:shadow-sm transition-all duration-300">
                         <div className="flex justify-between items-center">
-                          <span className={`px-2 py-0.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wide ${
-                            proj.status === 'Active' ? 'bg-green-50 text-green-700 border border-green-200/30' : 'bg-slate-200/50 text-slate-600'
-                          }`}>
+                          <span className={`px-2 py-0.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wide ${proj.status === 'Active' ? 'bg-green-50 text-green-700 border border-green-200/30' : 'bg-slate-200/50 text-slate-600'
+                            }`}>
                             {proj.status}
                           </span>
                           <span className="text-[10px] font-bold text-slate-400">{proj.type}</span>
@@ -1047,7 +1044,7 @@ const ProfilePage = () => {
                         <h4 className="font-bold text-slate-800 text-sm leading-snug group-hover:text-blue-600 transition-colors">
                           {pub.title}
                         </h4>
-                        
+
                         {/* Citations Badge */}
                         <span className="px-2.5 py-1 bg-blue-50 text-blue-600 border border-blue-100/50 rounded-xl text-[10px] font-bold shrink-0">
                           {pub.citationCount} citations
@@ -1089,9 +1086,9 @@ const ProfilePage = () => {
                           </span>
                         )}
                         {pub.pdfUrl && (
-                          <a 
-                            href={pub.pdfUrl} 
-                            target="_blank" 
+                          <a
+                            href={pub.pdfUrl}
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="text-blue-600 hover:underline flex items-center gap-0.5"
                           >
@@ -1291,7 +1288,7 @@ const ProfilePage = () => {
 
         {/* Right Column (Metrics & Metadata Summary - Sticky) */}
         <div className="flex flex-col gap-8 text-left lg:sticky lg:top-6 self-start h-fit">
-          
+
           {/* Research Metrics Dashboard Card */}
           <div className="glass-card rounded-3xl p-6 bg-white border border-slate-200/80 shadow-sm space-y-6">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -1400,8 +1397,8 @@ const ProfilePage = () => {
                     });
 
                     const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-                    const areaD = points.length > 0 
-                      ? `${pathD} L ${points[points.length - 1].x} 140 L ${points[0].x} 140 Z` 
+                    const areaD = points.length > 0
+                      ? `${pathD} L ${points[points.length - 1].x} 140 L ${points[0].x} 140 Z`
                       : '';
 
                     return (
@@ -1410,47 +1407,47 @@ const ProfilePage = () => {
                         {areaD && <path d={areaD} fill="url(#citationGrad)" opacity="0.15" />}
                         {/* Smooth Line */}
                         {pathD && <path d={pathD} fill="none" stroke="#2563EB" strokeWidth="2.5" strokeLinecap="round" />}
-                        
+
                         {/* Interactive Nodes */}
                         {points.map((p, i) => (
                           <g key={i} className="group/node cursor-pointer">
-                            <circle 
-                              cx={p.x} 
-                              cy={p.y} 
-                              r="4" 
-                              fill="#ffffff" 
-                              stroke="#2563EB" 
-                              strokeWidth="2" 
+                            <circle
+                              cx={p.x}
+                              cy={p.y}
+                              r="4"
+                              fill="#ffffff"
+                              stroke="#2563EB"
+                              strokeWidth="2"
                               className="transition-all duration-200 group-hover/node:r-6 group-hover/node:fill-blue-600"
                             />
                             {/* Hover tooltip */}
                             <g className="opacity-0 group-hover/node:opacity-100 transition-opacity duration-200 pointer-events-none">
-                              <rect 
-                                x={p.x - 30} 
-                                y={p.y - 32} 
-                                width="60" 
-                                height="22" 
-                                rx="6" 
-                                fill="#0f172a" 
+                              <rect
+                                x={p.x - 30}
+                                y={p.y - 32}
+                                width="60"
+                                height="22"
+                                rx="6"
+                                fill="#0f172a"
                               />
-                              <text 
-                                x={p.x} 
-                                y={p.y - 17} 
-                                fill="#ffffff" 
-                                fontSize="9" 
-                                fontWeight="bold" 
+                              <text
+                                x={p.x}
+                                y={p.y - 17}
+                                fill="#ffffff"
+                                fontSize="9"
+                                fontWeight="bold"
                                 textAnchor="middle"
                               >
                                 {p.citations}
                               </text>
                             </g>
                             {/* X-axis labels */}
-                            <text 
-                              x={p.x} 
-                              y="155" 
-                              fill="#64748b" 
-                              fontSize="8" 
-                              fontWeight="bold" 
+                            <text
+                              x={p.x}
+                              y="155"
+                              fill="#64748b"
+                              fontSize="8"
+                              fontWeight="bold"
                               textAnchor="middle"
                             >
                               {p.year}
@@ -1547,10 +1544,10 @@ const ProfilePage = () => {
                   {completeness.percentage < 40 ? 'Good start!' : completeness.percentage < 75 ? 'Great progress!' : 'Excellent progress!'}
                 </p>
                 <p className="text-[10px] text-slate-400">
-                  {completeness.percentage < 40 
-                    ? 'Complete your profile to increase your visibility.' 
-                    : completeness.percentage < 75 
-                      ? 'Your profile ranks in the top 35% of computer science researchers.' 
+                  {completeness.percentage < 40
+                    ? 'Complete your profile to increase your visibility.'
+                    : completeness.percentage < 75
+                      ? 'Your profile ranks in the top 35% of computer science researchers.'
                       : 'Your profile ranks in the top 8% of computer science researchers.'}
                 </p>
               </div>
@@ -1570,16 +1567,17 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      <EditProfileModal 
-        isOpen={showEditModal} 
-        onClose={() => setShowEditModal(false)} 
+      <EditProfileModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
         initialData={{
           ...profileData,
           publications
-        }} 
-        onSaveSuccess={() => {
-          fetchProfileDetails();
-        }} 
+        }}
+        onSaveSuccess={async () => {
+          await fetchProfileDetails();
+          await syncProfile();
+        }}
       />
       <SyncMergeModal
         isOpen={showSyncModal}
