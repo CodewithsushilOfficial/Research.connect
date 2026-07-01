@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const googleScholarProfileRepository = require('../repository/google-scholar-profile.repository');
 const publicationRepository = require('../repository/publication.repository');
 const publicationAuthorRepository = require('../repository/publication-author.repository');
@@ -7,8 +8,8 @@ const researchAreaRepository = require('../repository/research-area.repository')
 const keywordRepository = require('../repository/keyword.repository');
 const importRepository = require('../repository/import.repository');
 const importLogRepository = require('../repository/import-log.repository');
-const derivedAnalyticsRepository = require('../repository/derived-analytics.repository');
-const syncHistoryRepository = require('../repository/sync-history.repository');
+const derivedAnalyticsRepository = require('./derived-analytics.repository');
+const syncHistoryRepository = require('./sync-history.repository');
 
 const serpApiService = require('./serpapi.service');
 const importQueueService = require('./import-queue.service');
@@ -170,27 +171,51 @@ class ScholarService {
       }
 
       // --- STEP 2: Fetch and Save Publications (Incremental Sync) (30%-50%) ---
-      await updateProgress(30, 'Fetching and paginating publications from Google Scholar...');
+      await updateProgress(30, 'Fetching publications list from Google Scholar...');
       
-      let start = 0;
       let articles = [];
-      let hasMore = true;
+      
+      // Use the first batch of articles already fetched in the details request (up to 100)
+      if (data.articles && data.articles.length > 0) {
+        articles = data.articles;
+      }
 
-      while (hasMore) {
-        await importQueueService.log(jobId, userId, `Fetching publications starting at index ${start}...`);
-        const articlesBatch = await serpApiService.fetchAuthorArticles(authorId, start);
-        
-        if (articlesBatch && articlesBatch.articles && articlesBatch.articles.length > 0) {
-          articles = articles.concat(articlesBatch.articles);
-          start += articlesBatch.articles.length;
+      // Parallel multi-page fetching in chunks of 5 pages
+      if (articles.length === 100) {
+        let hasMore = true;
+        let nextStart = 100;
+        const chunkSize = 5;
+
+        while (hasMore) {
+          await importQueueService.log(jobId, userId, `Fetching publications in parallel starting at index ${nextStart}...`);
           
-          if (articlesBatch.articles.length < 5 && serpApiService.apiKey === 'demoserpapikey') {
-            hasMore = false;
-          } else if (articlesBatch.articles.length < 100 && serpApiService.apiKey !== 'demoserpapikey') {
-            hasMore = false;
+          const promises = [];
+          for (let i = 0; i < chunkSize; i++) {
+            promises.push(serpApiService.fetchAuthorArticles(authorId, nextStart + i * 100));
           }
-        } else {
-          hasMore = false;
+
+          const results = await Promise.all(promises);
+          let batchHasMore = true;
+
+          for (let i = 0; i < results.length; i++) {
+            const batch = results[i];
+            if (batch && batch.articles && batch.articles.length > 0) {
+              articles = articles.concat(batch.articles);
+              if (batch.articles.length < 100) {
+                batchHasMore = false;
+                break;
+              }
+            } else {
+              batchHasMore = false;
+              break;
+            }
+          }
+
+          if (!batchHasMore || serpApiService.apiKey === 'demoserpapikey') {
+            hasMore = false;
+          } else {
+            nextStart += chunkSize * 100;
+          }
         }
       }
 
@@ -209,6 +234,10 @@ class ScholarService {
         existingByTitle.set(normalizedTitle, pub);
       });
 
+      const bulkUpdateOps = [];
+      const newPubsToCreate = [];
+      const newAuthorsToCreate = [];
+
       for (const article of articles) {
         let dbPublication = null;
         if (article.citation_id) {
@@ -220,19 +249,27 @@ class ScholarService {
         }
 
         if (dbPublication) {
-          // Update citation count and link only
-          dbPublication.citations = article.cited_by?.value || dbPublication.citations || 0;
-          if (article.link && !dbPublication.paperURL) {
-            dbPublication.paperURL = article.link;
-          }
-          await dbPublication.save();
+          // Update citation count and link via bulk operations
+          bulkUpdateOps.push({
+            updateOne: {
+              filter: { _id: dbPublication._id },
+              update: {
+                $set: {
+                  citations: article.cited_by?.value || dbPublication.citations || 0,
+                  paperURL: article.link || dbPublication.paperURL || ''
+                }
+              }
+            }
+          });
         } else {
-          // Insert new publication
-          const cleanAuthors = article.authors || '';
-          dbPublication = await publicationRepository.create({
+          // Generate a new temporary ObjectId to link with authors
+          const tempPubId = new mongoose.Types.ObjectId();
+          
+          newPubsToCreate.push({
+            _id: tempPubId,
             userId,
             title: article.title,
-            authors: cleanAuthors,
+            authors: article.authors || '',
             publication: article.publication || '',
             year: article.year,
             citations: article.cited_by?.value || 0,
@@ -242,12 +279,11 @@ class ScholarService {
             publicationType: 'Article'
           });
 
-          // Insert publication authors relationships
-          if (cleanAuthors) {
-            const authorNames = cleanAuthors.split(',').map(name => name.trim());
+          if (article.authors) {
+            const authorNames = article.authors.split(',').map(name => name.trim());
             for (const name of authorNames) {
-              await publicationAuthorRepository.create({
-                publicationId: dbPublication._id,
+              newAuthorsToCreate.push({
+                publicationId: tempPubId,
                 name,
                 isCoAuthor: name.toLowerCase() !== data.author.name.toLowerCase()
               });
@@ -256,6 +292,20 @@ class ScholarService {
           importedPublicationsCount++;
         }
       }
+
+      // Execute bulk database updates and insertions in parallel
+      const dbPromises = [];
+      if (bulkUpdateOps.length > 0) {
+        dbPromises.push(publicationRepository.bulkUpdate(bulkUpdateOps));
+      }
+      if (newPubsToCreate.length > 0) {
+        dbPromises.push(publicationRepository.model.insertMany(newPubsToCreate));
+      }
+      if (newAuthorsToCreate.length > 0) {
+        dbPromises.push(publicationAuthorRepository.model.insertMany(newAuthorsToCreate));
+      }
+
+      await Promise.all(dbPromises);
 
       // --- STEP 3: Save Citations Graph History (60%) ---
       await updateProgress(65, 'Updating citations history graph...');
@@ -291,7 +341,6 @@ class ScholarService {
       // --- STEP 5: Generate Research Areas & Keywords (90%) ---
       await updateProgress(90, 'Normalizing keywords and research area tags...');
       
-      // Upsert research interests tags incrementally without overwriting completely
       if (interests.length > 0) {
         await researchAreaRepository.model.findOneAndUpdate(
           { userId, name: 'Primary Research Interests' },
@@ -299,13 +348,14 @@ class ScholarService {
           { upsert: true, new: true }
         );
 
-        for (const interest of interests) {
-          await keywordRepository.model.findOneAndUpdate(
+        // Run keyword upserts in parallel
+        await Promise.all(interests.map(interest => 
+          keywordRepository.model.findOneAndUpdate(
             { userId, name: interest },
             { $inc: { count: 1 } },
             { upsert: true }
-          );
-        }
+          )
+        ));
       }
 
       // --- STEP 6: Derived Analytics & Post-sync calculations (95%) ---
