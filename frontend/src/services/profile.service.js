@@ -75,6 +75,15 @@ class ProfileService {
     return await axiosInstance.post('/v1/profile/google-scholar/sync');
   }
 
+  // Upload any file (avatar/banner/etc.)
+  async uploadFile(formData) {
+    return await axiosInstance.post('/v1/profile/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  }
+
   // Soft delete account & profile
   async deleteProfile() {
     return await axiosInstance.delete('/v1/profile');

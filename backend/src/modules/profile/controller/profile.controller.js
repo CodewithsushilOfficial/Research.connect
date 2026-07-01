@@ -1,6 +1,7 @@
 const profileService = require('../service/profile.service');
 const asyncHandler = require('../../../common/middlewares/asyncHandler.middleware');
 const scholarService = require('../../scholar/service/scholar.service');
+const { ValidationError } = require('../../../common/errors/AppError');
 
 class ProfileController {
   // Retrieve public profile of a researcher by slug
@@ -119,6 +120,18 @@ class ProfileController {
   syncGoogleScholar = asyncHandler(async (req, res) => {
     const job = await scholarService.syncScholar(req.user._id);
     return res.success('Google Scholar sync task enqueued successfully.', job);
+  });
+
+  // Handle file uploads (avatar and cover image)
+  uploadFile = asyncHandler(async (req, res) => {
+    if (!req.file) {
+      throw new ValidationError('No file was uploaded.');
+    }
+    const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    return res.success('File uploaded successfully.', {
+      url: fileUrl,
+      filename: req.file.filename
+    });
   });
 
   // Soft delete researcher profile and user account

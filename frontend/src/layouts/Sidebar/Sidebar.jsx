@@ -66,17 +66,8 @@ const Sidebar = () => {
           {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
         </button>
 
-        {/* Sidebar Header / Logo */}
-        <div className={`p-6 border-b border-slate-200 dark:border-slate-800 flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
-          <div className="p-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-650 text-white flex items-center justify-center flex-shrink-0">
-            <Share2 className="w-5 h-5" />
-          </div>
-          {!isCollapsed && (
-            <span className="font-extrabold text-lg tracking-tight text-slate-850 dark:text-slate-100">
-              Research<span className="text-indigo-600 dark:text-indigo-400">Connect</span>
-            </span>
-          )}
-        </div>
+        {/* Sidebar Spacer (Logo removed) */}
+        <div className="h-14 flex items-center justify-center" />
 
         {/* Navigation List */}
         <div className="p-4 overflow-y-auto max-h-[calc(100vh-220px)] scrollbar-thin">

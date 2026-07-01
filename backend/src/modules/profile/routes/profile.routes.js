@@ -4,6 +4,10 @@ const profileController = require('../controller/profile.controller');
 const { authMiddleware } = require('../../../common/middlewares/auth.middleware');
 const { updateProfileValidator } = require('../validator/profile.validator');
 const { scholarSyncLimiter } = require('../../../config/rateLimiter');
+const upload = require('../../../common/utils/fileUpload');
+
+// File Upload Endpoint (for Profile avatars and banners)
+router.post('/upload', authMiddleware, upload.single('file'), profileController.uploadFile);
 
 // Profile detail retrieval for the logged in user (defined before dynamic slug to avoid collision)
 router.get('/me', authMiddleware, profileController.getProfile);

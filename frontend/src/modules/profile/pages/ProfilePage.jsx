@@ -18,7 +18,14 @@ import {
   Layers,
   ShieldCheck,
   User,
-  HeartHandshake
+  HeartHandshake,
+  TrendingUp,
+  BarChart2,
+  Database,
+  Download,
+  Eye,
+  Camera,
+  Users
 } from 'lucide-react';
 
 import profileService from '../../../services/profile.service';
@@ -110,6 +117,76 @@ const ProfilePage = () => {
     }
   };
 
+  const [showAllCoAuthors, setShowAllCoAuthors] = useState(false);
+
+  const handleUploadAvatar = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const loadingToast = toast.loading('Uploading profile image...');
+    try {
+      const uploadRes = await profileService.uploadFile(formData);
+      if (uploadRes.success) {
+        const imageUrl = uploadRes.data.url;
+        const res = await profileService.updateAvatar(imageUrl);
+        if (res.success) {
+          toast.success('Profile avatar updated successfully!', { id: loadingToast });
+          // Update Query cache and Redux state
+          queryClient.setQueryData(['profile', profileSlug], {
+            ...profileData,
+            data: { ...profile, profileImage: imageUrl }
+          });
+          if (isOwnProfile) {
+            dispatch(updateProfileState({ ...profile, profileImage: imageUrl }));
+            dispatch(updateUserState({
+              ...currentUser,
+              profileImage: imageUrl
+            }));
+          }
+          refetch();
+        } else {
+          toast.error('Failed to update avatar profile record', { id: loadingToast });
+        }
+      } else {
+        toast.error('Failed to upload file to server', { id: loadingToast });
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || 'Failed to upload profile photo', { id: loadingToast });
+    }
+  };
+
+  const handleUploadCover = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const loadingToast = toast.loading('Uploading cover banner...');
+    try {
+      const uploadRes = await profileService.uploadFile(formData);
+      if (uploadRes.success) {
+        const coverUrl = uploadRes.data.url;
+        const res = await profileService.updateBanner(coverUrl);
+        if (res.success) {
+          toast.success('Cover banner updated successfully!', { id: loadingToast });
+          // Update Query cache and Redux state
+          queryClient.setQueryData(['profile', profileSlug], {
+            ...profileData,
+            data: { ...profile, coverImage: coverUrl }
+          });
+          if (isOwnProfile) {
+            dispatch(updateProfileState({ ...profile, coverImage: coverUrl }));
+          }
+          refetch();
+        } else {
+          toast.error('Failed to update banner profile record', { id: loadingToast });
+        }
+      } else {
+        toast.error('Failed to upload file to server', { id: loadingToast });
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || 'Failed to upload cover banner', { id: loadingToast });
+    }
+  };
+
   const handleFollow = () => {
     toast.success('Successfully followed researcher!');
   };
@@ -164,6 +241,8 @@ const ProfilePage = () => {
         onShare={() => setIsShareOpen(true)}
         onFollow={handleFollow}
         onConnect={handleConnect}
+        onAvatarChange={handleUploadAvatar}
+        onCoverChange={handleUploadCover}
         isOwnProfile={isOwnProfile}
         onSync={() => navigate('/research-identity')}
       />
@@ -568,6 +647,53 @@ const ProfilePage = () => {
 
         {/* Right Sidebar Column */}
         <div className="space-y-6">
+          {/* Research Analytics & Metrics Sidebar Widget */}
+          <div className="bg-white border border-border rounded-2xl p-5 shadow-sm space-y-4">
+            <div>
+              <h4 className="text-xs font-black text-text-primary tracking-tight uppercase">Research Analytics & Metrics</h4>
+              <p className="text-[10px] text-text-secondary mt-0.5 font-bold uppercase tracking-wider">Academic Performance Indicators</p>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2.5">
+              {[
+                { label: 'Publications', value: profile?.metrics?.publicationsCount ?? 0, icon: FileText, color: 'text-blue-500 bg-blue-50/50 border border-blue-100/50' },
+                { label: 'Citations', value: profile?.metrics?.citationsCount ?? profile?.metrics?.totalCitations ?? 0, icon: TrendingUp, color: 'text-indigo-500 bg-indigo-50/50 border border-indigo-100/50' },
+                { label: 'h-index', value: profile?.metrics?.hIndex ?? 0, icon: Award, color: 'text-orange-500 bg-orange-50/50 border border-orange-100/50' },
+                { label: 'i10-index', value: profile?.metrics?.i10Index ?? 0, icon: BarChart2, color: 'text-emerald-500 bg-emerald-50/50 border border-emerald-100/50' },
+                { label: 'Experience (Y)', value: profile?.metrics?.experienceYears ?? profile?.metrics?.researchExperience ?? 0, icon: Calendar, color: 'text-purple-500 bg-purple-50/50 border border-purple-100/50' },
+                { label: 'Projects', value: profile?.metrics?.projectsCount ?? 0, icon: BookMarked, color: 'text-pink-500 bg-pink-50/50 border border-pink-100/50' },
+                { label: 'Patents', value: profile?.metrics?.patentsCount ?? 0, icon: ShieldCheck, color: 'text-teal-500 bg-teal-50/50 border border-teal-100/50' },
+                { label: 'Books', value: profile?.metrics?.booksCount ?? 0, icon: BookOpen, color: 'text-red-500 bg-red-50/50 border border-red-100/50' },
+                { label: 'Datasets', value: profile?.metrics?.datasetsCount ?? 0, icon: Database, color: 'text-yellow-500 bg-yellow-50/50 border border-yellow-100/50' },
+                { label: 'Downloads', value: profile?.metrics?.downloadsCount ?? 0, icon: Download, color: 'text-cyan-500 bg-cyan-50/50 border border-cyan-100/50' },
+                { label: 'Views', value: profile?.metrics?.viewsCount ?? 0, icon: Eye, color: 'text-rose-500 bg-rose-50/50 border border-rose-100/50' },
+                { label: 'Research Score', value: profile?.metrics?.researchScore ?? 0, icon: Activity, color: 'text-violet-500 bg-violet-50/50 border border-violet-100/50' }
+              ].map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div
+                    key={item.label}
+                    className="p-2.5 rounded-xl border border-border hover:border-slate-300 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all flex flex-col justify-between"
+                  >
+                    <div className="flex items-center justify-between gap-1.5">
+                      <span className="text-[9px] uppercase font-extrabold tracking-wider text-text-secondary truncate">
+                        {item.label}
+                      </span>
+                      <div className={`p-1 rounded-lg ${item.color} flex-shrink-0`}>
+                        <Icon className="w-3.5 h-3.5" />
+                      </div>
+                    </div>
+                    <div className="mt-2">
+                      <h5 className="text-sm font-black text-text-primary tracking-tight truncate">
+                        {item.value}
+                      </h5>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Profile Completion Card */}
           <ProfileCompletion profile={profile} user={profile} />
 
@@ -609,6 +735,51 @@ const ProfilePage = () => {
             </div>
           </div>
 
+          {/* Co-Authors Network Sidebar Widget */}
+          <div className="bg-white border border-border rounded-2xl p-5 shadow-sm space-y-4">
+            <div>
+              <h4 className="text-xs font-black text-text-primary tracking-tight uppercase">Co-Authors</h4>
+              <p className="text-[10px] text-text-secondary mt-0.5 font-bold uppercase tracking-wider">Academic Collaboration Network</p>
+            </div>
+            
+            {profile?.coAuthors && profile.coAuthors.length > 0 ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 gap-2.5">
+                  {(showAllCoAuthors ? profile.coAuthors : profile.coAuthors.slice(0, 5)).map((co) => (
+                    <div key={co._id || co.name} className="p-3 border border-border rounded-xl bg-bg-page/20 hover:bg-bg-page/45 transition-all flex items-start gap-2.5">
+                      {co.photo ? (
+                        <img src={co.photo} alt={co.name} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs uppercase flex-shrink-0">
+                          {co.name.charAt(0)}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-grow">
+                        <h5 className="text-xs font-black text-text-primary truncate">{co.name}</h5>
+                        <p className="text-[9px] text-text-secondary truncate font-semibold">{co.affiliation || 'Academic Researcher'}</p>
+                        {co.profileURL && (
+                          <a href={co.profileURL} target="_blank" rel="noopener noreferrer" className="text-[9px] text-primary font-bold hover:underline block mt-0.5">
+                            Scholar Profile &rarr;
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {profile.coAuthors.length > 5 && (
+                  <button
+                    onClick={() => setShowAllCoAuthors(!showAllCoAuthors)}
+                    className="w-full text-center py-2 border border-border bg-bg-page/30 hover:bg-bg-page/60 text-[10px] font-black text-text-secondary hover:text-text-primary uppercase tracking-wider rounded-xl transition-all active:scale-[0.98]"
+                  >
+                    {showAllCoAuthors ? 'Show Less' : `View All (${profile.coAuthors.length})`}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-text-secondary italic">No co-authors indexed yet.</p>
+            )}
+          </div>
+
           {/* AI recommendations */}
           <div className="bg-gradient-to-br from-slate-900 to-indigo-950 border border-slate-800 text-white rounded-2xl p-5 shadow-lg space-y-4">
             <div className="flex items-center gap-2 text-indigo-400">
@@ -638,11 +809,7 @@ const ProfilePage = () => {
 
       </div>
 
-      {/* Profile Metrics Overview Grid */}
-      <div className="space-y-4 pt-6 border-t border-border">
-        <h3 className="text-sm font-black text-text-primary tracking-tight">Research Analytics & Metrics</h3>
-        <ResearchMetrics metrics={profile?.metrics} />
-      </div>
+
 
       {/* Edit Profile Modal Dialog */}
       {isOwnProfile && (

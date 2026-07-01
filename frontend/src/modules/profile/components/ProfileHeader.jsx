@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { 
   MapPin, 
@@ -13,12 +13,38 @@ import {
   Linkedin, 
   Globe, 
   Database,
-  Bookmark
+  Bookmark,
+  Camera
 } from 'lucide-react';
 import ProfileAvatar from './ProfileAvatar';
 
-const ProfileHeader = ({ profile, user, onEdit, onShare, onConnect, onFollow, isFollowing = false, isConnected = false, isOwnProfile = false, onSync }) => {
+const ProfileHeader = ({ 
+  profile, 
+  user, 
+  onEdit, 
+  onShare, 
+  onConnect, 
+  onFollow, 
+  onAvatarChange,
+  onCoverChange,
+  isFollowing = false, 
+  isConnected = false, 
+  isOwnProfile = false, 
+  onSync 
+}) => {
   const defaultCover = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=1000';
+  const coverInputRef = useRef(null);
+
+  const handleCoverClick = () => {
+    coverInputRef.current?.click();
+  };
+
+  const handleCoverChange = (e) => {
+    const file = e.target.files[0];
+    if (file && onCoverChange) {
+      onCoverChange(file);
+    }
+  };
   
   const socialIcons = {
     googleScholar: { icon: GraduationCap, label: 'Google Scholar', color: 'hover:bg-blue-50 hover:text-blue-600' },
@@ -38,13 +64,33 @@ const ProfileHeader = ({ profile, user, onEdit, onShare, onConnect, onFollow, is
       className="bg-white rounded-3xl overflow-hidden border border-border shadow-sm"
     >
       {/* Cover Image */}
-      <div className="h-44 sm:h-60 relative w-full overflow-hidden">
+      <div className="h-44 sm:h-60 relative w-full overflow-hidden group">
         <img
           src={profile?.coverImage || defaultCover}
           alt="Profile Cover"
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+        
+        {isOwnProfile && (
+          <>
+            <button
+              type="button"
+              onClick={handleCoverClick}
+              className="absolute top-4 right-4 bg-black/60 hover:bg-black/80 text-white border border-white/20 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer backdrop-blur-sm transition-all active:scale-95 z-20"
+            >
+              <Camera className="w-3.5 h-3.5" />
+              <span>Change Cover</span>
+            </button>
+            <input 
+              type="file" 
+              ref={coverInputRef} 
+              onChange={handleCoverChange} 
+              accept="image/*" 
+              className="hidden" 
+            />
+          </>
+        )}
       </div>
 
       {/* Profile Details Area */}
@@ -53,7 +99,7 @@ const ProfileHeader = ({ profile, user, onEdit, onShare, onConnect, onFollow, is
         {/* Avatar */}
         <ProfileAvatar 
           imageUrl={profile?.profileImage || user?.profileImage} 
-          onEdit={onEdit} 
+          onAvatarChange={onAvatarChange} 
           editable={isOwnProfile}
         />
 
