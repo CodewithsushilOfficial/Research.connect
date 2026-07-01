@@ -8,8 +8,8 @@ const researchAreaRepository = require('../repository/research-area.repository')
 const keywordRepository = require('../repository/keyword.repository');
 const importRepository = require('../repository/import.repository');
 const importLogRepository = require('../repository/import-log.repository');
-const derivedAnalyticsRepository = require('./derived-analytics.repository');
-const syncHistoryRepository = require('./sync-history.repository');
+const derivedAnalyticsRepository = require('../repository/derived-analytics.repository');
+const syncHistoryRepository = require('../repository/sync-history.repository');
 
 const serpApiService = require('./serpapi.service');
 const importQueueService = require('./import-queue.service');
