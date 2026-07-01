@@ -1,11 +1,11 @@
 # Research Connect — Coding Standards & Guidelines
 
-This document outlines the coding standards, patterns, and constraints enforced across **Research Connect** codebase.
+This document outlines the coding standards, design patterns, and architectural constraints enforced across the **Research Connect** codebase.
 
 ---
 
 ## 🏛️ General Rules
-- **No Quick Fixes**: Code must be production-ready. No hardcoded credentials, duplicate functions, or debug snippets in committed files.
+- **No Quick Fixes**: Code must be production-ready. No hardcoded credentials, duplicate functions, or debug statements in committed files.
 - **Strict Separation of Concerns**: 
   - Controllers only process inputs and route delegation.
   - Services contain all business logic.
@@ -27,18 +27,21 @@ class MyRepository extends BaseRepository {
     super(MyModel);
   }
 }
+module.exports = new MyRepository();
 ```
 
 ### 2. Service Extensibility
 Every service should inherit from `BaseService` to inherit standard pagination, error checking, and transactions.
 ```javascript
 const { BaseService } = require('../../../common/service');
+const myRepository = require('../repository/my-feature.repository');
 
 class MyService extends BaseService {
-  constructor(myRepository) {
+  constructor() {
     super(myRepository);
   }
 }
+module.exports = new MyService();
 ```
 
 ### 3. Response Contracts
@@ -76,13 +79,28 @@ logger.auth.info("User logged in");     // Goes to auth.log
 logger.error("System failure", error);  // Goes to error.log
 ```
 
+### 5. Input Validation Pattern
+We enforce strict schema validations on all routes using `express-validator`. Validation logic resides in the `validator/` subfolder of each module:
+```javascript
+// validator/my-feature.validator.js
+const { body } = require('express-validator');
+const validationMiddleware = require('../../../common/middlewares/validation.middleware');
+
+exports.myDataValidator = [
+  body('email').isEmail().withMessage('Please provide a valid email'),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  validationMiddleware
+];
+```
+
 ---
 
 ## 🎨 Frontend Standards
 
 ### 1. Styling Constraints
 - Use **Tailwind CSS** classes. Do not write inline styles.
-- Theme constants like `primary`, `accent`, `bg-page`, `text-primary` are configured in `tailwind.config.js` and must be used for consistency.
+- Theme tokens like `primary`, `accent`, `bg-page`, `text-primary` are configured in `tailwind.config.js` and must be used for consistency.
+- Maintain responsive layouts supporting mobile (320px) up to ultra-wide desktop displays (1920px+).
 
 ### 2. Reusable UI Elements
 Never recreate buttons, inputs, tables, or modals from scratch. Always import from `components/common/...` to ensure accessibility and consistent design.
@@ -90,3 +108,9 @@ Never recreate buttons, inputs, tables, or modals from scratch. Always import fr
 ### 3. State Decoupling
 - Cache backend API data via **React Query**.
 - Use **Redux Toolkit** only for sync UI states (sidebar toggles, themes, notifications, global loading bars).
+
+### 4. API Client & Interceptors
+Always make API requests through the global `axiosInstance` helper (`frontend/src/api/axiosInstance.js`):
+- **Authorization**: Attaches Bearer JWT token from Redux store automatically.
+- **Refresh Token Rotation**: Detects expired access tokens (401), initiates a refresh request behind the scenes, and transparently retries the failed request.
+- **Global Error Toasts**: Intercepts non-success states and alerts the user using the Redux notification system.

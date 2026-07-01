@@ -2,15 +2,16 @@
 
 An enterprise-grade, production-ready **AI-Powered Research Discovery & Collaboration Platform** built using the MERN Stack (React, Node.js, Express, MongoDB). Designed with a clean **Feature-First Architecture**, strict design systems, and modern SaaS aesthetics.
 
-This documentation describes the foundation structure, system architecture, database models, and setup procedures established in **Phase 0**.
+This documentation describes the foundation structure, system architecture, database models, and setup procedures established through **Phase 1**.
 
 ### 📖 Technical Documentation Guides
 For in-depth explanations of specific features, refer to:
-- [Architecture Guide](file:///c:/Users/codew/Downloads/Research.connect/docs/architecture_guide.md)
-- [Folder Guide](file:///c:/Users/codew/Downloads/Research.connect/docs/folder_guide.md)
-- [Coding Standards & Guidelines](file:///c:/Users/codew/Downloads/Research.connect/docs/coding_standards.md)
-- [Installation Guide](file:///c:/Users/codew/Downloads/Research.connect/docs/installation_guide.md)
-- [Development Guide](file:///c:/Users/codew/Downloads/Research.connect/docs/development_guide.md)
+- [Architecture Guide](file:///c:/Users/codew/Downloads/Research.connect/docs/architecture_guide.md) — System layers, security mechanisms, and background jobs.
+- [Folder Guide](file:///c:/Users/codew/Downloads/Research.connect/docs/folder_guide.md) — Codebase layouts and file conventions.
+- [Coding Standards & Guidelines](file:///c:/Users/codew/Downloads/Research.connect/docs/coding_standards.md) — Coding conventions, repository, and service rules.
+- [Installation Guide](file:///c:/Users/codew/Downloads/Research.connect/docs/installation_guide.md) — Local environment installation and setup steps.
+- [Development Guide](file:///c:/Users/codew/Downloads/Research.connect/docs/development_guide.md) — Instructions for writing new routes and services.
+- [Database Schema Guide](file:///c:/Users/codew/Downloads/Research.connect/database_schema.md) — Collection definitions and schema details.
 
 ---
 
@@ -60,38 +61,47 @@ frontend/                 # React.js (Vite) Client
 │   ├── api/
 │   │   └── axiosInstance.js # Axios instance with interceptors and toast prompts
 │   ├── components/
-│   │   ├── common/
-│   │   │   ├── ComingSoon.jsx # Custom page redirect placeholder
-│   │   │   ├── Footer.jsx     # Responsive marketing footer
-│   │   │   └── Navbar.jsx     # Sticky navigation bar with mobile drawer
-│   │   └── ui/
-│   │       ├── Accordion.jsx  # Smooth animated toggle accordion
-│   │       ├── Button.jsx     # Motion-enhanced microinteraction buttons
-│   │       └── Card.jsx       # Elevation-hover cards and glassmorphic cards
+│   │   └── common/           # Reusable Atomic UI elements
+│   │       ├── buttons/      # Spinners-enabled buttons
+│   │       ├── cards/        # Glassmorphic elevation-hover cards
+│   │       ├── forms/        # Form wrappers
+│   │       ├── inputs/       # Custom inputs, checkboxes, and selectors
+│   │       ├── loaders/      # Page spinners and content skeletons
+│   │       ├── modals/       # Dialog drawers with backdrop locks
+│   │       └── tables/       # Pagination trackers and tables
 │   ├── layouts/
-│   │   └── MainLayout.jsx     # Layout shell wrapping header/footer
+│   │   ├── AuthLayout/       # Layout wrapper for registration & login pages
+│   │   ├── DashboardLayout/  # Sidebar-enabled wrapper for authenticated routes
+│   │   ├── LandingLayout/    # Layout shell for marketing landing views
+│   │   ├── Footer/           # Responsive page footer
+│   │   ├── Navbar/           # Responsive header bar
+│   │   └── Sidebar/          # Left navigation drawer
 │   ├── routes/
-│   │   └── AppRoutes.jsx      # Router configuration (Landing, Placeholders, 404)
-│   ├── store/
+│   │   ├── AppRoutes.jsx     # Router configuration (Landing, Auth, Protected Gates)
+│   │   ├── ProtectedRoute.jsx# Block unauthenticated sessions (redirects to /login)
+│   │   └── PublicRoute.jsx   # Prevents authenticated users from seeing auth pages
+│   ├── redux/                # Combined Redux Toolkit Store
 │   │   ├── slices/
 │   │   │   ├── appSlice.js    # Mobile menus & general loading state
+│   │   │   ├── authSlice.js   # Session authentication states
+│   │   │   ├── loadingSlice.js# Global loading spinner overlay
+│   │   │   ├── notificationSlice.js # Global alerts tracking
+│   │   │   ├── sessionSlice.js# Active device session configurations
 │   │   │   ├── themeSlice.js  # Theme toggles and cache
-│   │   │   └── notificationSlice.js # Global alerts tracking
-│   │   └── index.js           # Combined Redux Toolkit store
+│   │   │   └── userSlice.js   # User information models
+│   │   └── index.js           # Combined store entry point
+│   ├── services/             # Async API client calling files
+│   │   ├── auth.service.js   # Login, registration, OTP client logic
+│   │   └── profile.service.js# Bio and user updates API client
 │   ├── styles/
 │   │   └── index.css          # Tailwind directives and CSS variables
 │   ├── modules/               # Feature-First Modules
-│   │   ├── landing/           # Landing page feature folder
-│   │   │   ├── components/
-│   │   │   ├── pages/
-│   │   │   └── index.js
-│   │   ├── auth/              # Auth pages (Login, Register, Reset, OTP) [NEW]
-│   │   │   ├── pages/
-│   │   │   └── index.js
-│   │   ├── dashboard/         # Dashboard views & activity logs [NEW]
-│   │   │   └── pages/
-│   │   └── profile/           # Profile affiliation editors [NEW]
-│   │       └── pages/
+│   │   ├── landing/           # Landing page feature components and pages
+│   │   ├── auth/              # Auth pages (Login, Register, OTP verification, Reset)
+│   │   ├── dashboard/         # Dashboard UI, analytics graphs, and activity tracking
+│   │   ├── profile/           # Academic bio profile editor & scholar view
+│   │   ├── feed/              # Social media style research feed
+│   │   └── project/           # Collaborative workspace projects
 │   ├── App.jsx
 │   └── main.jsx
 ├── index.html
@@ -108,67 +118,33 @@ frontend/                 # React.js (Vite) Client
 ```text
 backend/                  # Node.js + Express.js Server
 ├── src/
-│   ├── config/
-│   │   └── database/
-│   │       ├── connection.js # Pool, auto-reconnect, and health check client
-│   │       ├── indexes.js    # Index audit sync engine
-│   │       └── seed.js       # Local database seed generator
-│   ├── common/
-│   │   ├── logger/
-│   │   │   └── winston.js    # JSON daily rotating logging manager
-│   │   ├── errors/
-│   │   │   └── AppError.js   # Centralized Operational Error hierarchy
-│   │   ├── responses/
-│   │   │   └── ApiResponse.js # Standardized JSON format builders
-│   │   ├── repository/
-│   │   │   └── base.repository.js # Generic CRUD Engine
-│   │   ├── middlewares/
-│   │   │   ├── requestId.middleware.js
-│   │   │   ├── logger.middleware.js
-│   │   │   ├── responseFormatter.middleware.js
-│   │   │   ├── security.middleware.js
-│   │   │   ├── validation.middleware.js
-│   │   │   ├── asyncHandler.middleware.js
-│   │   │   ├── notFound.middleware.js
-│   │   │   └── errorHandler.middleware.js # Multi-exception parser
-│   │   └── utils/
-│   │       ├── dateFormatter.js
-│   │       ├── hashHelper.js
-│   │       ├── otpGenerator.js
-│   │       ├── jwtHelper.js
-│   │       ├── fileUpload.js  # Multer image/PDF configurations
-│   │       └── emailHelper.js # Nodemailer dispatcher
-│   ├── models/                # Schema blueprints
-│   │   ├── User.js
-│   │   ├── Profile.js
-│   │   ├── Settings.js
-│   │   ├── Notification.js
-│   │   ├── Session.js
-│   │   ├── ActivityLog.js
-│   │   ├── RefreshToken.js
-│   │   ├── EmailOtp.js
-│   │   └── SecurityLog.js     # Security event logs [NEW]
-│   ├── modules/               # Feature-First Modules
-│   │   ├── landing/           # Landing API endpoints
-│   │   │   └── ...
-│   │   ├── auth/              # Authentication & 2FA [NEW]
-│   │   │   ├── controller/
-│   │   │   ├── service/
-│   │   │   ├── repository/
-│   │   │   ├── routes/
-│   │   │   ├── validator/
-│   │   │   ├── helper/
-│   │   │   └── dto/
-│   │   └── profile/           # Profile Affiliation editor [NEW]
-│   │       ├── controller/
-│   │       ├── service/
-│   │       ├── repository/
-│   │       ├── routes/
-│   │       ├── validator/
-│   │       └── dto/
-│   ├── app.js
-│   ├── server.js
-│   └── index.js
+│   ├── config/           # Setup and module configurations
+│   │   ├── database/     # Mongoose connections, indexes, and seeders
+│   │   ├── app.js        # Express app constants
+│   │   ├── cors.js       # CORS headers configuration
+│   │   ├── environment.js# Environment variable validation schema
+│   │   ├── logger.js     # Winston configurations
+│   │   ├── mongodb.js    # Database host validation
+│   │   ├── rateLimiter.js# Security rate limits mapping
+│   │   └── server.js     # Express connection parameters
+│   ├── common/           # Reusable base logic and utilities
+│   │   ├── errors/       # AppError hierarchy
+│   │   ├── logger/       # Winston daily rotating logging manager
+│   │   ├── responses/    # ApiResponse formatter
+│   │   ├── repository/   # BaseRepository class (Generic CRUD Engine)
+│   │   ├── service/      # BaseService class (Generic CRUD logic layer)
+│   │   ├── middlewares/  # Security, request ID, logger, validators, error handlers
+│   │   └── utils/        # JWT, bcrypt, OTP, and email (Nodemailer) helpers
+│   ├── models/           # Mongoose schemas (46 schemas including User, Profile, Session, etc.)
+│   ├── modules/          # Feature-First Isolated Modules
+│   │   ├── landing/      # Landing endpoints
+│   │   ├── authentication/# Register, verify, login, 2FA OTP, token refresh
+│   │   ├── profile/      # Bio updates & user synchronization
+│   │   ├── scholar/      # SerpAPI Google Scholar import background job workers
+│   │   └── feed/         # Feeds, publication CRUD, comments, follows, bookmarks
+│   ├── app.js            # Express app setup and middleware routing
+│   ├── server.js         # Server port listener and graceful shutdowns
+│   └── index.js          # Startup script
 ├── .env.example
 ├── .env
 └── package.json
@@ -205,63 +181,29 @@ Refer to [.agents/AGENTS.md](file:///c:/Users/codew/Downloads/Research.connect/.
 
 ## 🗄️ Database Schemas & Collection Blueprints
 
-### 1. `users` (Model: `User`)
-Manages authentication credentials and role flags.
-- **Fields**: `_id`, `firstName`, `lastName`, `fullName`, `email` (unique), `password` (select: false), `phone`, `role` (enum: `['researcher', 'admin']`), `researcherType` (enum: `['academic', 'corporate', 'medical', 'non_researcher']`), `organizationType` (enum: `['institution', 'company', 'hospital', 'organization']`), `status` (enum: `['pending', 'active', 'suspended']`), `emailVerified`, `isVerified`, `isActive`, `isBlocked`, `loginAttempts`, `lastLogin`, `lastLoginIP`, `lastLoginDevice`, `isDeleted`, `createdAt`, `updatedAt`.
-- **Indexes**: `email: 1` (unique), `status: 1`, `isDeleted: 1`, `createdAt: -1`.
-
-### 2. `profiles` (Model: `Profile`)
-Academic and professional affiliation handles mapped 1:1 to User.
-- **Fields**: `userId` (ObjectId, unique, ref: `User`), `bio`, `country`, `institution`, `department`, `designation`, `company`, `division`, `position`, `socialLinks` (`orcid`, `googleScholar`, `researchGate`, `linkedin`, `website`), `profileCompletion`, `isDeleted`, `createdAt`, `updatedAt`.
-- **Indexes**: `userId: 1` (unique), `institution: 1`, `company: 1`, `isDeleted: 1`.
-
-### 3. `settings` (Model: `Settings`)
-User preferences and theme details.
-- **Fields**: `userId` (ObjectId, unique, ref: `User`), `theme` (enum: `['light', 'dark', 'system']`), `language`, `notifications` (`email`, `push`, `weeklyDigest`), `privacy` (`profileVisible`, `showPublications`, `showStats`), `timezone`, `createdAt`, `updatedAt`.
-- **Indexes**: `userId: 1` (unique).
-
-### 4. `notifications` (Model: `Notification`)
-Push alerts and collaboration invites.
-- **Fields**: `userId` (ObjectId, ref: `User`), `title`, `message`, `type` (enum: `['info', 'success', 'warning', 'error', 'system', 'collaboration']`), `isRead`, `createdAt`.
-- **Indexes**: `userId: 1, isRead: 1`, `createdAt: -1`.
-
-### 5. `sessions` (Model: `Session`)
-Tracks active device and browser sessions.
-- **Fields**: `userId` (ObjectId, ref: `User`), `browser`, `device`, `os`, `ip`, `ipAddress`, `location`, `loginTime`, `logoutTime`, `rememberMe`, `active` (Boolean), `status` (enum: `['active', 'expired', 'revoked']`), `isDeleted`, `createdAt`, `updatedAt`.
-- **Indexes**: `userId: 1, active: 1`, `isDeleted: 1`.
-
-### 6. `activitylogs` (Model: `ActivityLog`)
-System audits.
-- **Fields**: `userId` (ObjectId, ref: `User`), `action`, `description`, `ipAddress`, `createdAt`.
-- **Indexes**: `userId: 1, action: 1`, `createdAt: -1`.
-
-### 7. `refreshtokens` (Model: `RefreshToken`)
-OAuth token rotation lifecycle tracking.
-- **Fields**: `userId` (ObjectId, ref: `User`), `token` (unique), `device`, `browser`, `expiresAt`, `expiry`, `isDeleted`, `createdAt`, `updatedAt`.
-- **Indexes**: `token: 1` (unique), `expiresAt: 1` (TTL auto-expiration), `isDeleted: 1`.
-
-### 8. `emailotps` (Model: `EmailOtp`)
-Passwords resets, 2FA verification, and registration codes.
-- **Fields**: `email`, `otp`, `purpose` (enum: `['registration', 'login', 'forgot_password']`), `attempts`, `expiresAt`, `expiry`, `verified`, `isDeleted`, `createdAt`, `updatedAt`.
-- **Indexes**: `email: 1, purpose: 1`, `expiresAt: 1` (TTL auto-expiration), `isDeleted: 1`.
-
-### 9. `securitylogs` (Model: `SecurityLog`) [NEW]
-Security critical event tracking.
-- **Fields**: `userId` (ref: `User`), `email`, `event`, `description`, `ipAddress`, `userAgent`, `device`, `browser`, `os`, `createdAt`, `updatedAt`.
-- **Indexes**: `userId: 1`, `email: 1`, `event: 1`, `createdAt: -1`.
+For a complete breakdown of all 46 Mongoose collections, refer to the [Database Schema Documentation](file:///c:/Users/codew/Downloads/Research.connect/database_schema.md). Key collections include:
+- **`users`**: Auth credentials, account status, role flags.
+- **`profiles`**: Biography, social links, institutional affiliations.
+- **`google_scholar_profiles`**: Cached Google Scholar API metrics (citations, h-index, etc.).
+- **`publications`**: Academic publications, citations, and abstracts.
+- **`sessions`**: Active device and browser logins.
+- **`security_logs`**: Critical events auditing (failed logins, token refreshes, blocked accounts).
+- **`bookmarks`**: Foldered research bookmarks.
 
 ---
 
 ## ⚙️ Generic CRUD Repository Engine
 
-All future repositories inherit from `BaseRepository` ([base.repository.js](file:///c:/Users/codew/Downloads/Research.connect/backend/src/common/repository/base.repository.js)), which provides:
+All repositories inherit from `BaseRepository` ([base.repository.js](file:///c:/Users/codew/Downloads/Research.connect/backend/src/common/repository/base.repository.js)), which provides standard database controls:
 - `create(data)` & `bulkInsert(dataArray)`
 - `findById(id, populate, select)` & `findOne(filter, populate, select)`
-- `find(filter, queryOptions, populate)` (supports sort, limit, skip pagination, and case-insensitive regex search)
+- `find(filter, queryOptions, populate)` (supports sorting, pagination, and regex search)
 - `update(id, updateData, options)` & `updateMany(filter, updateData, options)`
 - `delete(id)` (hard delete) & `softDelete(id, deletedBy)` (toggles `isDeleted`, sets timestamp)
 - `aggregate(pipeline)` & `count(filter)`
-- `bulkUpdate(operations)` (utilizes `bulkWrite` transactions)
+- `bulkUpdate(operations)` (uses Mongoose `bulkWrite` transactions)
+
+Similarly, all business services can inherit from `BaseService` ([base.service.js](file:///c:/Users/codew/Downloads/Research.connect/backend/src/common/service/base.service.js)) for standard validation, transaction wrappers, and response mapping.
 
 ---
 
@@ -272,14 +214,18 @@ All future repositories inherit from `BaseRepository` ([base.repository.js](file
 - MongoDB (Local instance or Atlas connection string)
 
 ### 1. Configure Environment Variables
-Create a `.env` file in the `backend/` directory using the configuration keys in `.env.example`:
+Create a `.env` file in the `backend/` directory using the keys in `.env.example`:
 ```env
 PORT=5000
 NODE_ENV=development
 CLIENT_URL=http://localhost:5173
+SERVER_URL=http://localhost:5000
 MONGO_URI=mongodb://localhost:27017/research_connect
 JWT_SECRET=supersecretjwtkeyforresearchconnect
 JWT_REFRESH_SECRET=supersecretjwtrefreshkeyforresearchconnect
+EMAIL_USER=demo@researchconnect.org
+EMAIL_PASS=demopassword
+SERP_API_KEY=your_serp_api_key_here
 ```
 
 ### 2. Install Packages
@@ -294,6 +240,7 @@ npm install
 ```
 
 ### 3. Seed Database
+Run the seeder script to initialize default indices and load testing profile data:
 ```bash
 cd ../backend
 npm run seed
@@ -312,30 +259,63 @@ npm run dev
 
 ## 🔬 API Endpoint Routes Summary
 
-All system details retrieve using endpoints mounted on `/api`:
+All system details are accessible using versioned endpoints under `/api`:
+
+### 1. Public Base Endpoints (`/api/*`)
 - **GET `/api`**: Welcome message, check online state.
 - **GET `/api/health`**: Server health metrics and system uptime.
-- **GET `/api/database`**: MongoDB connection status, client states, and active connection pool size.
-- **GET `/api/stats`**: Aggregated researcher count, universities, publications, and countries.
+- **GET `/api/database`**: MongoDB connection status and pool size.
+- **GET `/api/stats`**: Aggregated researcher, university, and publication counts.
 - **GET `/api/categories`**: Lists active academic disciplines and paper distributions.
-- **GET `/api/features`**: Returns platform modules list and placeholders state.
-- **GET `/api/version`**: Build version, current phase number, and phase title.
 
-### Phase 1: Authentication Endpoints (`/api/v1/auth`)
-- **POST `/register`**: Creates a pending researcher account, hashes password, generates 6-digit OTP, and triggers verification email.
-- **POST `/send-registration-otp`**: Resends email verification code (rate-limited by 60s cooldown).
-- **POST `/verify-registration-otp`**: Verifies registration OTP, activates the user, initializes default profile, logs a device session, and issues access & refresh tokens.
-- **POST `/login`**: Validates email/password credentials, tracks failed attempts (blocks user after 5 attempts), and triggers login 2FA OTP.
-- **POST `/send-login-otp`**: Resends login 2FA verification code.
-- **POST `/verify-login-otp`**: Verifies login OTP, registers session browser/OS/IP, and issues rotated tokens.
-- **POST `/forgot-password`**: Verifies user email and triggers password recovery OTP.
+### 2. Authentication Endpoints (`/api/v1/auth/*`)
+- **POST `/register`**: Creates a pending account, hashes password, and triggers email verification OTP.
+- **POST `/send-registration-otp`**: Resends email verification code (60s cooldown limit).
+- **POST `/verify-registration-otp`**: Verifies registration code, activates account, and issues access & refresh tokens.
+- **POST `/login`**: Validates credentials, checks brute-force limit (blocks account on 5 failures), and triggers login 2FA OTP.
+- **POST `/send-login-otp`**: Resends login verification code.
+- **POST `/verify-login-otp`**: Verifies 2FA login code and logs a device session.
+- **POST `/forgot-password`**: Triggers password recovery OTP.
 - **POST `/reset-password`**: Verifies recovery code, hashes new password, and revokes all active sessions & refresh tokens.
 - **POST `/refresh-token`**: Performs Refresh Token Rotation (RTR). Revokes all active user tokens if reuse is detected.
-- **POST `/logout`**: Revokes current device refresh token and flags session as inactive.
-- **POST `/logout-all`**: Requires JWT auth. Revokes all active refresh tokens and sessions for the researcher.
-- **GET `/me`**: Requires JWT auth. Returns current user details and their profile affiliation.
+- **POST `/logout`**: Revokes current device refresh token.
+- **POST `/logout-all`**: Revokes all active refresh tokens and sessions for the user.
+- **GET `/me`**: Returns current logged-in user details and profile.
 
-### Phase 1: Profile Endpoints (`/api/v1/profile`)
-- **GET `/`**: Requires JWT auth. Returns current authenticated researcher's profile.
-- **PUT `/` or PATCH `/`**: Requires JWT auth. Updates profile details, recalculates `profileCompletion` score, and synchronizes User model columns (names, phone, image).
-- **DELETE `/`**: Requires JWT auth. Soft deletes profile and user record.
+### 3. Profile Endpoints (`/api/v1/profile/*`)
+- **GET `/`**: Returns current authenticated researcher's profile.
+- **PUT `/` or PATCH `/`**: Updates profile bio, skills, social links, and affiliation, recalculating `profileCompletion` score.
+- **DELETE `/`**: Soft deletes profile and user record.
+
+### 4. Google Scholar Integration Endpoints (`/api/v1/*`)
+- **POST `/research-identity`**: Saves research identity profiles (e.g. ORCID, Google Scholar, ResearchGate, LinkedIn, GitHub).
+- **POST `/scholar/import`**: Enqueues a background job via SerpAPI to import Google Scholar metrics and publications (rate-limited).
+- **POST `/scholar/reimport`**: Forces a fresh re-import of Google Scholar profile metrics.
+- **POST `/scholar/sync`**: Syncs existing imported Scholar profile with the latest online metrics.
+- **GET `/scholar/import-status`** or `/scholar/import/status/:jobId`: Get import queue job status.
+- **GET `/scholar/profile`**: Get synced Google Scholar profile metrics.
+- **GET `/scholar/publications`**: Get imported publications list.
+- **GET `/scholar/coauthors`**: Get synced academic co-authors network.
+- **GET `/scholar/citations`**: Get citation graphs.
+- **GET `/scholar/analytics`**: Get citation trends and research area distribution.
+
+### 5. Research Feed & Social Endpoints (`/api/v1/*`)
+- **GET `/feed`**: Returns personalized research publication feed.
+- **GET `/feed/trending` / `/feed/recommended` / `/feed/latest` / `/feed/following`**: Feeds filtered by citation rate, AI recommendation models, recent date, and followed users.
+- **GET `/home`**: Summary view of feed, suggested profiles, and trending analytics.
+- **POST `/publication`**: Creates a manual research publication entry.
+- **PUT `/publication/:id`**: Edits a publication.
+- **DELETE `/publication/:id`**: Soft-deletes a publication.
+- **POST `/publication/like`**: Likes or unlikes a publication.
+- **POST `/publication/bookmark`**: Bookmarks a publication into a specific folder.
+- **POST `/bookmark/move`**: Moves bookmark to a different folder.
+- **GET `/bookmark/folders`**: Get all bookmarks folder list.
+- **POST `/publication/share`**: Records paper sharing metrics.
+- **POST `/publication/recommend`**: Recommends a publication.
+- **POST `/publication/comment`**: Adds a comment/reply to a publication.
+- **GET `/publication/:publicationId/comments`**: Retrieves the comment thread for a paper.
+- **POST `/follow/:userId`**: Follows or unfollows a researcher.
+- **GET `/suggested-researchers`**: Get platform suggestions of researchers to follow.
+- **GET `/publication/:id/similar`**: Fetch structurally or semantically similar publications.
+- **POST `/publication/ai-summary`**: Generates an AI-powered summary of the publication.
+- **GET `/search`**: Global text search across publications, users, and tags.

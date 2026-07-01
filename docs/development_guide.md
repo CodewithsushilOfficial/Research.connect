@@ -23,8 +23,9 @@ backend/src/modules/my-feature/
 │   └── my-feature.routes.js
 ├── validator/
 │   └── my-feature.validator.js
-├── index.js
-└── README.md
+├── dto/
+│   └── my-feature.dto.js
+└── index.js
 ```
 
 ### Step 2: Implement Repository
@@ -38,7 +39,6 @@ class MyRepository extends BaseRepository {
     super(MyModel);
   }
 }
-
 module.exports = new MyRepository();
 ```
 
@@ -53,7 +53,6 @@ class MyService extends BaseService {
     super(myRepository);
   }
 }
-
 module.exports = new MyService();
 ```
 
@@ -71,15 +70,31 @@ exports.getMyData = asyncHandler(async (req, res) => {
 ```
 
 ### Step 5: Configure Routes
-Map endpoints to controller functions:
+Map endpoints to controller functions and add validation:
 ```javascript
 const express = require('express');
 const router = express.Router();
 const controller = require('../controller/my-feature.controller');
+const validator = require('../validator/my-feature.validator');
+const { authMiddleware } = require('../../../common/middlewares/auth.middleware');
 
-router.get('/', controller.getMyData);
+// Apply auth middleware if endpoint requires login
+router.get('/', authMiddleware, validator.checkParams, controller.getMyData);
 
 module.exports = router;
+```
+
+### Step 6: Register Module in `app.js`
+Expose the router through the index file (`backend/src/modules/my-feature/index.js`):
+```javascript
+module.exports = {
+  routes: require('./routes/my-feature.routes')
+};
+```
+Then mount it in `backend/src/app.js`:
+```javascript
+const myFeatureModule = require('./modules/my-feature');
+app.use('/api/v1/my-feature', myFeatureModule.routes);
 ```
 
 ---
@@ -87,16 +102,21 @@ module.exports = router;
 ## 🎨 Implementing a New View (Frontend)
 
 To create a new view or panel:
-1. Register the route path inside `frontend/src/routes/AppRoutes.jsx` mapping to your component.
-2. Put the view page in `frontend/src/modules/<module_name>/pages/<ViewName>Page.jsx`.
-3. Wrap your page or group of pages using the layout components:
+
+1. **Create the View Page**: Put the view page in `frontend/src/modules/<module_name>/pages/<ViewName>Page.jsx`.
+2. **Register the Route**: Register the route path inside `frontend/src/routes/AppRoutes.jsx` mapping to your component.
+3. **Wrap in layout shells**:
    - Public pages: Wrap inside `<LandingLayout />`.
    - Admin/User account pages: Wrap inside `<DashboardLayout />`.
-4. Fetch dynamic data using React Query hooks, and call requests using the global Axios helper:
+4. **Make API Calls**: Use React Query hooks and call requests using the global Axios helper:
    ```javascript
    import axiosInstance from '@/api/axiosInstance';
-   // API call will automatically capture error states and display toasts
-   const data = await axiosInstance.get('/my-feature');
+   
+   // Fetch call using axiosInstance (which automatically attaches tokens and handles errors)
+   const fetchMyData = async () => {
+     const response = await axiosInstance.get('/v1/my-feature');
+     return response.data; // or response if formatted by interceptor
+   };
    ```
 
 ---
@@ -138,3 +158,12 @@ import MyView from '../modules/my-view';
   </ProtectedRoute>
 } />
 ```
+
+---
+
+## ⚙️ Implementing Background Jobs
+
+If your feature requires third-party API integration or CPU-heavy calculations that take longer than 5 seconds (like Google Scholar imports):
+1. **Enqueue in DB**: Record a job document in a queue/import collection.
+2. **Background Processing**: Enqueue the job using `ImportQueueService` so that the user receives an immediate `202 Accepted` response.
+3. **Job Polling**: Create a `GET /my-feature/status/:jobId` route for the client to poll the background job progress.

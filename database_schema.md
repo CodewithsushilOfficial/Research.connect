@@ -7,10 +7,10 @@ This document describes the complete database architecture for the **Research Co
 ## 🏛️ General Database Design Principles
 
 To ensure scalability, performance, and compatibility for millions of research records, all collections strictly adhere to the following rules:
-1. **Naming Conventions**: Collections use `snake_case` (e.g. `researcher_profiles`), and Mongoose models use `PascalCase` (e.g. `ResearcherProfile`).
+1. **Naming Conventions**: Collections use `snake_case` (e.g. `google_scholar_profiles`), and Mongoose models use `PascalCase` (e.g. `GoogleScholarProfile`).
 2. **Timestamps**: All schemas have `timestamps: true` enabled, automatically creating `createdAt` and `updatedAt` fields.
 3. **Soft Deletion**: Crucial collections support soft deletes through `isDeleted`, `deletedAt`, and `deletedBy` fields.
-4. **Audit Support**: Standard collections track authorship through `createdBy` and `updatedBy` fields.
+4. **Audit Support**: Standard collections track authorship through `createdBy`/`updatedBy` or `userId`.
 5. **Relationships**: Normalized references (`ObjectId`) are preferred over duplicate embedded records unless optimized for read-heavy caching.
 6. **Indexing**: Performance-critical query paths (filtering, sorting, and text searches) are covered by targeted indexes.
 
@@ -20,9 +20,25 @@ To ensure scalability, performance, and compatibility for millions of research r
 
 ```mermaid
 erDiagram
-    User ||--|| ResearcherProfile : "has (1:1)"
-    User ||--o{ Publication : "created by (1:N)"
-    ResearcherProfile }o--o{ Publication : "author portfolio (N:M)"
+    User ||--|| Profile : "has (1:1)"
+    User ||--|| Settings : "has (1:1)"
+    User ||--o{ Session : "logs (1:N)"
+    User ||--o{ SecurityLog : "audits (1:N)"
+    User ||--o{ RefreshToken : "authorizes (1:N)"
+    User ||--o{ GoogleScholarProfile : "imports (1:1)"
+    User ||--o{ Publication : "creates (1:N)"
+    User ||--o{ Bookmark : "bookmarks (1:N)"
+    User ||--o{ Comment : "writes (1:N)"
+    User ||--o{ Follow : "follows/followed (1:N)"
+    User ||--o{ Like : "likes (1:N)"
+    User ||--o{ Recommendation : "recommends (1:N)"
+    User ||--o{ Share : "shares (1:N)"
+
+    Publication ||--o{ Bookmark : "referenced in"
+    Publication ||--o{ Comment : "referenced in"
+    Publication ||--o{ Like : "referenced in"
+    Publication ||--o{ Recommendation : "referenced in"
+    Publication ||--o{ Share : "referenced in"
     
     User {
         ObjectId _id PK
@@ -31,241 +47,278 @@ erDiagram
         String email UK
         String password
         String role
+        String status
+        Boolean emailVerified
         Boolean isVerified
+        Number loginAttempts
+        Date lastLogin
     }
 
-    ResearcherProfile {
+    Profile {
         ObjectId _id PK
-        ObjectId user FK "User._id"
-        String title
+        ObjectId userId FK
         String bio
         String institution
         String department
-        String[] skills
-        Object stats "views, citations, reads, hIndex"
-        ObjectId[] publications FK "Publication._id[]"
+        Object socialLinks
+        Number profileCompletion
+        Map dataSourceTracking
+    }
+
+    GoogleScholarProfile {
+        ObjectId _id PK
+        ObjectId userId FK
+        String authorId UK
+        String name
+        String affiliation
+        Number totalCitations
+        Number hIndex
+        Number i10Index
+        String syncStatus
     }
 
     Publication {
         ObjectId _id PK
+        ObjectId userId FK
         String title
-        String abstract
-        Object[] authors "user FK (optional), fullName, institution, order"
-        String doi UK
-        String publicationType
-        Date publicationDate
-        String[] keywords
-        String[] researchAreas
-        Object stats "citations, views, downloads"
-        Double[] embedding "AI Vector"
-        ObjectId createdBy FK "User._id"
+        String authors
+        String journal
+        String conference
+        Number year
+        Number citations
+        String doi
+        Object aiAnalysis
         Boolean isDeleted
     }
+
+    Session {
+        ObjectId _id PK
+        ObjectId userId FK
+        String browser
+        String device
+        String os
+        String ipAddress
+        String status
+        Boolean active
+    }
+
+    SecurityLog {
+        ObjectId _id PK
+        ObjectId userId FK
+        String email
+        String event
+        String description
+        String ipAddress
+    }
 ```
 
 ---
 
-## 🗄️ Collections
+## 🗄️ Core Collections & Model Specs
 
-### 1. `users`
+### 1. `users` (Model: `User`)
+Manages user accounts, authorization roles, and account lock state.
 
-* **Model Name**: `User`
-* **Purpose**: Manages user accounts, authorization roles, authentication state, and token lifecycles.
-
-#### Schema Fields Table
-| Field Name | Type | Required | Defaults | Validations & Constraints | Description |
+| Field Name | Type | Required | Defaults | Constraints | Description |
 | :--- | :--- | :---: | :--- | :--- | :--- |
-| `_id` | ObjectId | Yes | Generated | Auto-generated by MongoDB | Primary key. |
 | `firstName` | String | Yes | — | Trimmed | The user's first name. |
 | `lastName` | String | Yes | — | Trimmed | The user's last name. |
-| `email` | String | Yes | — | Unique, lowercase, trimmed, email regex | Email address used for authentication. |
-| `password` | String | Yes | — | Min-length: 6, `select: false` (hidden by default) | BCrypt hashed password string. |
-| `role` | String | Yes | `'researcher'` | Enum: `['researcher', 'admin']` | User access level for routing gates. |
-| `isVerified` | Boolean | Yes | `false` | — | True if email has been verified. |
-| `verificationToken` | String | No | — | — | Token sent to verify email address. |
-| `verificationTokenExpires`| Date | No | — | — | Expiration timestamp of verification token. |
-| `passwordResetToken` | String | No | — | — | Token used for password recovery. |
-| `passwordResetExpires` | Date | No | — | — | Expiration timestamp of reset token. |
-| `refreshToken` | String | No | — | `select: false` | Store active refresh token for session refresh. |
+| `fullName` | String | No | — | Custom set via pre-save hook | Combined full name. |
+| `email` | String | Yes | — | Unique, lowercase, email regex | Email address used for authentication. |
+| `password` | String | Yes | — | Min-length: 6, `select: false` | BCrypt hashed password string. |
+| `phone` | String | No | `""` | Trimmed | Contact phone number. |
+| `role` | String | Yes | `'researcher'` | Enum: `['researcher', 'admin']` | Access authorization role. |
+| `researcherType` | String | No | `'academic'` | Enum: `['academic', 'corporate', 'medical', 'non_researcher']` | Sector categorization. |
+| `organizationType`| String | No | `'institution'`| Enum: `['institution', 'company', 'hospital', 'organization']` | Org categorization. |
+| `status` | String | Yes | `'pending'` | Enum: `['pending', 'active', 'suspended']` | Account activation state. |
+| `emailVerified` | Boolean | Yes | `false` | — | True if email registered has been validated. |
+| `isVerified` | Boolean | Yes | `false` | — | Sync helper for backwards compatibility. |
+| `isActive` | Boolean | Yes | `true` | — | Soft disable switch. |
+| `isBlocked` | Boolean | Yes | `false` | — | Set to true when login attempts exceed limit. |
+| `loginAttempts` | Number | Yes | `0` | Min: 0 | Current consecutive failed logins. |
+| `lastLogin` | Date | No | — | — | Timestamp of last success login. |
+| `lastLoginIP` | String | No | — | — | IP address of last success login. |
+| `lastLoginDevice` | String | No | — | — | Device details of last success login. |
+| `isDeleted` | Boolean | Yes | `false` | — | Soft deletion indicator. |
 
-#### Indexes
-* `email`: `1` (Unique index for high-speed user lookups and authentication verification).
-
-#### Example Document
-```json
-{
-  "_id": "60c72b2f9b1d8b23c4d4f701",
-  "firstName": "Alice",
-  "lastName": "Smith",
-  "email": "alice.smith@university.edu",
-  "role": "researcher",
-  "isVerified": true,
-  "createdAt": "2026-06-30T18:49:26.000Z",
-  "updatedAt": "2026-06-30T19:27:51.000Z"
-}
-```
+* **Indexes**: `{ email: 1 }` (Unique), `{ status: 1 }`, `{ isDeleted: 1 }`.
 
 ---
 
-### 2. `researcher_profiles`
+### 2. `profiles` (Model: `Profile`)
+Stores biography, affiliations, academic links, and details mapped 1:1 to a User.
 
-* **Model Name**: `ResearcherProfile`
-* **Purpose**: Stores academic portfolios, affiliations, citations, external links, and references to researcher publications.
-
-#### Schema Fields Table
-| Field Name | Type | Required | Defaults | Validations & Constraints | Description |
+| Field Name | Type | Required | Defaults | Constraints | Description |
 | :--- | :--- | :---: | :--- | :--- | :--- |
-| `user` | ObjectId | Yes | — | Unique, Reference to `User` | Maps the profile 1:1 to a user account. |
-| `title` | String | No | `""` | Trimmed | Academic/Professional title (e.g. Associate Professor). |
-| `bio` | String | No | `""` | Trimmed, Max-length: 500 | Short summary bio. |
-| `institution` | String | No | `""` | Trimmed | Institutional affiliation (e.g. Stanford University). |
-| `department` | String | No | `""` | Trimmed | Department affiliation (e.g. Computer Science). |
-| `skills` | [String] | No | `[]` | — | Expertise areas (e.g. `['NLP', 'Deep Learning']`). |
-| `socialLinks` | Object | No | `{}` | Subdocument schema | Academic research profiles links. |
-| `socialLinks.orcid` | String | No | `""` | Trimmed | ORCID identifier string. |
-| `socialLinks.googleScholar` | String | No | `""` | Trimmed | Google Scholar profile link. |
-| `socialLinks.researchGate` | String | No | `""` | Trimmed | ResearchGate profile link. |
-| `socialLinks.linkedin` | String | No | `""` | Trimmed | LinkedIn profile link. |
-| `socialLinks.website` | String | No | `""` | Trimmed | Personal homepage URL. |
-| `stats` | Object | Yes | `{}` | Subdocument schema | Cached stats for dashboard visualizations. |
-| `stats.views` | Number | Yes | `0` | Min: 0 | Profile view count. |
-| `stats.citations`| Number | Yes | `0` | Min: 0 | Total citation count (synced from Scholar/Scopus). |
-| `stats.reads` | Number | Yes | `0` | Min: 0 | Total publication reads. |
-| `stats.hIndex` | Number | Yes | `0` | Min: 0 | Calculated h-index metric. |
-| `publications` | [ObjectId] | No | `[]` | Reference to `Publication` array | List of publications authored by this researcher. |
-| `coAuthors` | [ObjectId] | No | `[]` | Reference to `User` array | References to registered platform co-authors. |
+| `userId` | ObjectId | Yes | — | Unique, Ref: `User` | Maps profile 1:1 to a user account. |
+| `bio` | String | No | `""` | Trimmed, Max: 1000 | Short biography of research interest. |
+| `country` | String | No | `""` | Trimmed | Residing country. |
+| `institution` | String | No | `""` | Trimmed | University or company name. |
+| `department` | String | No | `""` | Trimmed | Academic department. |
+| `designation` | String | No | `""` | Trimmed | Academic/Corporate title (e.g. Professor). |
+| `socialLinks` | Object | Yes | `{}` | Sub-schema | URLs of external identities. |
+| `socialLinks.orcid` | String | No | `""` | Trimmed | ORCID code link. |
+| `socialLinks.googleScholar` | String | No | `""` | Trimmed | Google Scholar citations link. |
+| `socialLinks.researchGate` | String | No | `""` | Trimmed | ResearchGate link. |
+| `socialLinks.linkedin` | String | No | `""` | Trimmed | LinkedIn URL. |
+| `socialLinks.website` | String | No | `""` | Trimmed | Personal portfolio homepage URL. |
+| `socialLinks.github` | String | No | `""` | Trimmed | GitHub profile URL. |
+| `profileCompletion`| Number | Yes | `0` | Min: 0, Max: 100 | Percentage score of profile completions. |
+| `dataSourceTracking`| Map | No | `{}` | Mapped keys to source tracking info | Tracks whether fields were modified by the user. |
+| `isDeleted` | Boolean | Yes | `false` | — | Soft deletion flag. |
 
-#### Indexes
-* `institution`: `1` (Allows rapid directory filtering by universities/companies).
-* `skills`: `1` (Allows rapid search of specialists based on expertise).
-
-#### Example Document
-```json
-{
-  "_id": "60c72b2f9b1d8b23c4d4f802",
-  "user": "60c72b2f9b1d8b23c4d4f701",
-  "title": "Associate Professor of Computer Science",
-  "bio": "Doing research in Deep Learning and Natural Language Processing.",
-  "institution": "Stanford University",
-  "department": "Computer Science",
-  "skills": ["Deep Learning", "NLP", "Python"],
-  "socialLinks": {
-    "orcid": "0000-0001-2345-6789",
-    "googleScholar": "https://scholar.google.com/citations?user=alice",
-    "linkedin": "https://linkedin.com/in/alicesmith"
-  },
-  "stats": {
-    "views": 150,
-    "citations": 4200,
-    "reads": 1050,
-    "hIndex": 18
-  },
-  "publications": [
-    "60c72b2f9b1d8b23c4d4f8a1"
-  ],
-  "coAuthors": [],
-  "createdAt": "2026-07-01T05:37:39.000Z",
-  "updatedAt": "2026-07-01T05:37:39.000Z"
-}
-```
+* **Indexes**: `{ userId: 1 }` (Unique), `{ institution: 1 }`, `{ isDeleted: 1 }`.
 
 ---
 
-### 3. `publications`
+### 3. `google_scholar_profiles` (Model: `GoogleScholarProfile`)
+Stores imported academic details synchronized from SerpAPI google_scholar_author engine.
 
-* **Model Name**: `Publication`
-* **Purpose**: Stores individual research articles, preprints, books, patents, citations, and semantic vector data.
-
-#### Schema Fields Table
-| Field Name | Type | Required | Defaults | Validations & Constraints | Description |
+| Field Name | Type | Required | Defaults | Constraints | Description |
 | :--- | :--- | :---: | :--- | :--- | :--- |
-| `title` | String | Yes | — | Trimmed | The title of the paper. |
-| `abstract` | String | No | `""` | Trimmed | Summary abstract of the paper. |
-| `authors` | [Object] | Yes | — | Min-length: 1, Sub-schema | Ordered array of authors. |
-| `authors.user` | ObjectId | No | — | Reference to `User` | Reference link if the author is registered on platform. |
-| `authors.fullName`| String | Yes | — | Trimmed | Display name of the author on the publication. |
-| `authors.institution`| String | No | `""` | Trimmed | Affiliated institution of the author. |
-| `authors.order` | Number | Yes | — | Min: 1 | Ordered sequence (1 for first author, etc.). |
-| `doi` | String | No | — | Unique, sparse, lowercase, DOI regex | Digital Object Identifier. |
-| `publicationType`| String | Yes | `'journal'` | Enum: `['journal', 'conference', 'book', 'preprint', 'patent', 'other']` | Type classification of the publication. |
-| `journal` | String | No | `""` | Trimmed | Journal publication venue. |
-| `conference` | String | No | `""` | Trimmed | Conference publication venue. |
-| `publisher` | String | No | `""` | Trimmed | Publishing house or provider. |
-| `publicationDate`| Date | Yes | — | — | Date of official publication release. |
-| `volume` | String | No | `""` | Trimmed | Volume number. |
-| `issue` | String | No | `""` | Trimmed | Issue number. |
-| `pages` | String | No | `""` | Trimmed | Page numbers range. |
-| `url` | String | No | `""` | URL regex | Publisher landing page link. |
-| `pdfUrl` | String | No | `""` | URL regex | Link to download the PDF file. |
-| `keywords` | [String] | No | `[]` | — | Keyword index tags for retrieval. |
-| `researchAreas` | [String] | No | `[]` | — | Academic domain subjects (e.g. `['Systems']`). |
-| `stats.citations`| Number | Yes | `0` | Min: 0 | Number of times this paper has been cited. |
-| `stats.views` | Number | Yes | `0` | Min: 0 | Metrics: view counts. |
-| `stats.downloads`| Number | Yes | `0` | Min: 0 | Metrics: PDF download counts. |
-| `embedding` | [Number] | No | — | — | AI generated semantic text vector array. |
-| `embeddingModel`| String | No | — | Trimmed | Model ID (e.g. `text-embedding-3-small`). |
-| `aiMetadata` | Mixed | No | `{}` | — | AI parser insights and confidence scores. |
-| `processedAt` | Date | No | — | — | Timestamp of embedding generation. |
-| `vectorVersion` | String | No | — | Trimmed | Re-indexing schema configuration tags. |
-| `createdBy` | ObjectId | Yes | — | Reference to `User` | User who created this publication entry. |
-| `updatedBy` | ObjectId | No | — | Reference to `User` | User who last updated this publication entry. |
-| `isDeleted` | Boolean | Yes | `false` | — | Soft deletion indicator flag. |
-| `deletedAt` | Date | No | — | — | Soft deletion timestamp. |
-| `deletedBy` | ObjectId | No | — | Reference to `User` | User who soft-deleted this record. |
+| `userId` | ObjectId | Yes | — | Ref: `User` | Owner of the imported data. |
+| `authorId` | String | Yes | — | Unique, index | 12-char Google Scholar author token. |
+| `profileURL` | String | No | `""` | — | Link to Scholar citation profile page. |
+| `name` | String | Yes | — | — | Name registered on Google Scholar. |
+| `affiliation` | String | No | `""` | — | Affiliation line retrieved. |
+| `verifiedEmail` | String | No | `""` | — | Domain verification verified on Google Scholar. |
+| `profileImage` | String | No | `""` | — | Link to Google citation profile thumbnail. |
+| `researchInterests`| [String] | No | `[]` | — | Interests tags. |
+| `totalCitations` | Number | Yes | `0` | Min: 0 | Sum of all publication citations. |
+| `hIndex` | Number | Yes | `0` | Min: 0 | Calculated h-index. |
+| `i10Index` | Number | Yes | `0` | Min: 0 | Calculated i10-index. |
+| `verified` | Boolean | Yes | `false` | — | Verified status flag. |
+| `lastImportedAt` | Date | No | — | — | Timestamp of last SerpAPI query success. |
+| `syncStatus` | String | Yes | `'pending'` | Enum: `['pending', 'running', 'completed', 'failed']` | Sync queue state. |
 
-#### Indexes
-* `keywords`: `1` (Enables tag based paper filters).
-* `researchAreas`: `1` (Enables classification filtering).
-* `publicationType`: `1` (Venue filters).
-* `publicationDate`: `-1` (Fast sorting by date).
-* `stats.citations`: `-1` (Fast sorting by citation counts / popularity).
-* `isDeleted`: `1` (Exclude deleted papers from active searches).
-* `doi`: `1` (Unique, sparse index, ignoring null/missing entries).
-* `authors.user`: `1` (Fast resolution of registered user authorship).
-* **Text Index** on `{ title: 'text', abstract: 'text', keywords: 'text' }` (Weighted: `title: 10`, `keywords: 5`, `abstract: 1` for global search bar).
+* **Indexes**: `{ authorId: 1 }` (Unique), `{ userId: 1 }`, `{ isDeleted: 1 }`.
 
-#### Example Document
-```json
-{
-  "_id": "60c72b2f9b1d8b23c4d4f8a1",
-  "title": "Attention Is All You Need",
-  "abstract": "We propose a new simple network architecture, the Transformer...",
-  "authors": [
-    {
-      "user": "60c72b2f9b1d8b23c4d4f701",
-      "fullName": "Ashish Vaswani",
-      "institution": "Google Brain",
-      "order": 1
-    },
-    {
-      "fullName": "Noam Shazeer",
-      "institution": "Google Brain",
-      "order": 2
-    }
-  ],
-  "doi": "10.48550/arxiv.1706.03762",
-  "publicationType": "preprint",
-  "publicationDate": "2017-06-12T00:00:00.000Z",
-  "url": "https://arxiv.org/abs/1706.03762",
-  "pdfUrl": "https://arxiv.org/pdf/1706.03762.pdf",
-  "keywords": ["attention", "transformer", "nlp"],
-  "researchAreas": ["Computer Science", "Artificial Intelligence"],
-  "stats": {
-    "citations": 120531,
-    "views": 450200,
-    "downloads": 310500
-  },
-  "embedding": [0.0125, -0.0045, 0.0892],
-  "embeddingModel": "text-embedding-3-small",
-  "aiMetadata": {
-    "extractionConfidence": 0.98,
-    "primaryKeywords": ["transformer", "deep learning"]
-  },
-  "processedAt": "2026-07-01T11:11:00.000Z",
-  "vectorVersion": "v1",
-  "createdBy": "60c72b2f9b1d8b23c4d4f701",
-  "isDeleted": false,
-  "createdAt": "2026-07-01T11:11:00.000Z",
-  "updatedAt": "2026-07-01T11:11:00.000Z"
-}
-```
+---
+
+### 4. `publications` (Model: `Publication`)
+Contains research items. Imported from Google Scholar or manually created.
+
+| Field Name | Type | Required | Defaults | Constraints | Description |
+| :--- | :--- | :---: | :--- | :--- | :--- |
+| `userId` | ObjectId | Yes | — | Ref: `User` | User who uploaded or holds the publication. |
+| `title` | String | Yes | — | Trimmed | Title of the research item. |
+| `authors` | String | No | `""` | — | Multi-author comma-separated string. |
+| `publication` | String | No | `""` | — | Conference / Journal name where published. |
+| `journal` | String | No | `""` | — | Journal venue. |
+| `conference` | String | No | `""` | — | Conference venue. |
+| `publisher` | String | No | `""` | — | Publishing house. |
+| `year` | Number | No | — | — | Year of publication release. |
+| `citations` | Number | Yes | `0` | — | Citation count from source. |
+| `citationId` | String | No | `""` | Index | Unique Google Scholar citation ID link. |
+| `paperURL` | String | No | `""` | — | Link to the publisher's site. |
+| `pdfURL` | String | No | `""` | — | Link to the full-text PDF document. |
+| `doi` | String | No | `""` | Trimmed | Digital Object Identifier. |
+| `abstract` | String | No | `""` | — | Plain text abstract/summary. |
+| `keywords` | [String] | No | `[]` | — | Keyword index tags. |
+| `publicationType`| String | Yes | `'Article'` | — | Type classification. |
+| `views` | Number | Yes | `0` | — | Platform view counts. |
+| `downloads` | Number | Yes | `0` | — | Platform PDF downloads. |
+| `readingTime` | Number | Yes | `5` | — | Estimated reading time in minutes. |
+| `researchScore` | Number | Yes | `20` | — | Impact score metric. |
+| `aiAnalysis` | Object | Yes | `{}` | Sub-schema | Deep AI analysis fields. |
+| `aiAnalysis.summary`| String | No | `""` | — | AI generated summarization. |
+| `aiAnalysis.researchGap`| String | No | `""` | — | AI identified research limitations. |
+| `aiAnalysis.futureWork`| String | No | `""` | — | Proposed directions. |
+| `aiAnalysis.noveltyScore`| Number | Yes | `5` | Min: 1, Max: 10 | AI scored originality. |
+| `isDeleted` | Boolean | Yes | `false` | — | Soft deletion indicator. |
+
+* **Indexes**: `{ userId: 1 }`, `{ citationId: 1 }`, `{ isDeleted: 1 }`.
+
+---
+
+### 5. `security_logs` (Model: `SecurityLog`)
+Logs critical events for security compliance auditing.
+
+| Field Name | Type | Required | Defaults | Constraints | Description |
+| :--- | :--- | :---: | :--- | :--- | :--- |
+| `userId` | ObjectId | No | — | Ref: `User` | User triggering the security event (if logged in). |
+| `email` | String | No | `""` | Trimmed | Email address linked to the event. |
+| `event` | String | Yes | — | Enum: `['login_success', 'login_failed', 'otp_sent', 'otp_verified', 'otp_failed', 'password_reset', 'token_refresh_reuse', 'account_blocked', 'logout']` | Event classification tag. |
+| `description` | String | Yes | — | — | Detailed explanation of the event. |
+| `ipAddress` | String | No | `""` | — | Client IP. |
+| `userAgent` | String | No | `""` | — | Browser User-Agent. |
+| `device` | String | No | `""` | — | Parsed device classification. |
+| `browser` | String | No | `""` | — | Parsed browser client. |
+| `os` | String | No | `""` | — | Operating system of client. |
+
+* **Indexes**: `{ userId: 1 }`, `{ email: 1 }`, `{ event: 1 }`, `{ createdAt: -1 }`.
+
+---
+
+### 6. `sessions` (Model: `Session`)
+Tracks active browser sessions for authentication validation.
+
+| Field Name | Type | Required | Defaults | Constraints | Description |
+| :--- | :--- | :---: | :--- | :--- | :--- |
+| `userId` | ObjectId | Yes | — | Ref: `User` | Owner of the session. |
+| `browser` | String | No | `'Unknown'` | — | Active browser client. |
+| `device` | String | No | `'Unknown'` | — | Device category (e.g. Mobile, Desktop). |
+| `os` | String | No | `'Unknown'` | — | Operating system name. |
+| `ipAddress` | String | No | `""` | — | Client IP. |
+| `location` | String | No | `""` | — | Geo-location (city, country) resolved. |
+| `loginTime` | Date | Yes | `Date.now` | — | Initial login timestamp. |
+| `logoutTime` | Date | No | — | — | Session end timestamp. |
+| `rememberMe` | Boolean | Yes | `false` | — | Keep token active for 30 days switch. |
+| `status` | String | Yes | `'active'` | Enum: `['active', 'expired', 'revoked']` | Session condition. |
+| `active` | Boolean | Yes | `true` | — | Utility boolean flag. |
+
+* **Indexes**: `{ userId: 1, active: 1 }`, `{ isDeleted: 1 }`.
+
+---
+
+### 7. `bookmarks` (Model: `Bookmark`)
+Allows researchers to organize publications in personal folders.
+
+| Field Name | Type | Required | Defaults | Constraints | Description |
+| :--- | :--- | :---: | :--- | :--- | :--- |
+| `userId` | ObjectId | Yes | — | Ref: `User` | Owner of the bookmark. |
+| `publicationId`| ObjectId | Yes | — | Ref: `Publication`| Target publication. |
+| `folder` | String | Yes | `'Unsorted'` | Trimmed | Folder label grouping (e.g. "ML Papers"). |
+| `notes` | String | No | `""` | — | Private annotation notes. |
+
+---
+
+### 8. `comments` (Model: `Comment`)
+Comments section on publications.
+
+| Field Name | Type | Required | Defaults | Constraints | Description |
+| :--- | :--- | :---: | :--- | :--- | :--- |
+| `publicationId`| ObjectId | Yes | — | Ref: `Publication`| Target publication. |
+| `userId` | ObjectId | Yes | — | Ref: `User` | Comment author. |
+| `content` | String | Yes | — | Trimmed, Max: 1500 | Comment text content. |
+| `parentId` | ObjectId | No | `null` | Ref: `Comment` | Threading parent ID (for replies). |
+| `likes` | [ObjectId] | No | `[]` | Ref: `User` array | Researchers who liked the comment. |
+| `isDeleted` | Boolean | Yes | `false` | — | Soft deletion indicator. |
+
+---
+
+### 9. `follows` (Model: `Follow`)
+Tracks relationships between users on the social feed.
+
+| Field Name | Type | Required | Defaults | Constraints | Description |
+| :--- | :--- | :---: | :--- | :--- | :--- |
+| `followerId` | ObjectId | Yes | — | Ref: `User` | User who clicked follow. |
+| `followingId` | ObjectId | Yes | — | Ref: `User` | User being followed. |
+
+* **Indexes**: `{ followerId: 1, followingId: 1 }` (Unique compound).
+
+---
+
+### 10. `email_otps` (Model: `EmailOtp`)
+OTP verification tokens cache with built-in auto-expiration.
+
+| Field Name | Type | Required | Defaults | Constraints | Description |
+| :--- | :--- | :---: | :--- | :--- | :--- |
+| `email` | String | Yes | — | Lowercase, trimmed | Target address. |
+| `otp` | String | Yes | — | 6-digit verification code | Hash string or plain. |
+| `purpose` | String | Yes | — | Enum: `['registration', 'login', 'forgot_password']` | Code context. |
+| `attempts` | Number | Yes | `0` | Min: 0 | Failure counter. Locked on 5. |
+| `expiresAt` | Date | Yes | — | TTL index | Auto deletes 10m after creation. |
+| `verified` | Boolean | Yes | `false` | — | Verification success toggle. |
+
+* **Indexes**: `{ expiresAt: 1 }` (TTL), `{ email: 1, purpose: 1 }`.
