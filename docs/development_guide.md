@@ -98,3 +98,43 @@ To create a new view or panel:
    // API call will automatically capture error states and display toasts
    const data = await axiosInstance.get('/my-feature');
    ```
+
+---
+
+## 🔒 Securing Endpoints & Routes (Phase 1)
+
+### Backend Endpoint Protection
+To protect backend endpoints, import `authMiddleware` and apply it to your express routes. You can optionally restrict access to specific roles using `hasRole`:
+
+```javascript
+const express = require('express');
+const router = express.Router();
+const controller = require('../controller/my-feature.controller');
+const { authMiddleware, hasRole } = require('../../../common/middlewares/auth.middleware');
+
+// Requires authenticated user
+router.get('/my-data', authMiddleware, controller.getMyData);
+
+// Requires administrative role
+router.post('/admin-action', authMiddleware, hasRole('admin'), controller.triggerAdminAction);
+
+module.exports = router;
+```
+
+### Frontend Page Protection
+To protect views and pages in the React SPA:
+- **Private Pages**: Wrap the Route element in `ProtectedRoute` (redirects unauthenticated users to `/login`).
+- **Public Auth Pages**: Wrap in `PublicRoute` (prevents logged-in researchers from entering register/login flows).
+
+```jsx
+import ProtectedRoute from './ProtectedRoute';
+import PublicRoute from './PublicRoute';
+import MyView from '../modules/my-view';
+
+// Inside AppRoutes.jsx
+<Route path="my-protected-view" element={
+  <ProtectedRoute>
+    <MyView />
+  </ProtectedRoute>
+} />
+```

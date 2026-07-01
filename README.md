@@ -81,18 +81,17 @@ frontend/                 # React.js (Vite) Client
 │   ├── styles/
 │   │   └── index.css          # Tailwind directives and CSS variables
 │   ├── modules/               # Feature-First Modules
-│   │   └── landing/           # Landing page feature folder
-│   │       ├── components/
-│   │       │   ├── Hero.jsx   # Header panel with search mock
-│   │       │   ├── Stats.jsx  # Database metric counters
-│   │       │   ├── Features.jsx # Interactive capabilities grid
-│   │       │   ├── Categories.jsx # Academic disciplines counters
-│   │       │   ├── FAQ.jsx
-│   │       │   ├── CTA.jsx
-│   │       │   └── Testimonials.jsx
-│   │       ├── pages/
-│   │       │   └── LandingPage.jsx # Assembled dashboard page
-│   │       └── index.js       # Sibling exports wrapper
+│   │   ├── landing/           # Landing page feature folder
+│   │   │   ├── components/
+│   │   │   ├── pages/
+│   │   │   └── index.js
+│   │   ├── auth/              # Auth pages (Login, Register, Reset, OTP) [NEW]
+│   │   │   ├── pages/
+│   │   │   └── index.js
+│   │   ├── dashboard/         # Dashboard views & activity logs [NEW]
+│   │   │   └── pages/
+│   │   └── profile/           # Profile affiliation editors [NEW]
+│   │       └── pages/
 │   ├── App.jsx
 │   └── main.jsx
 ├── index.html
@@ -147,16 +146,26 @@ backend/                  # Node.js + Express.js Server
 │   │   ├── Session.js
 │   │   ├── ActivityLog.js
 │   │   ├── RefreshToken.js
-│   │   └── EmailOtp.js
+│   │   ├── EmailOtp.js
+│   │   └── SecurityLog.js     # Security event logs [NEW]
 │   ├── modules/               # Feature-First Modules
-│   │   └── landing/           # Landing API endpoints
+│   │   ├── landing/           # Landing API endpoints
+│   │   │   └── ...
+│   │   ├── auth/              # Authentication & 2FA [NEW]
+│   │   │   ├── controller/
+│   │   │   ├── service/
+│   │   │   ├── repository/
+│   │   │   ├── routes/
+│   │   │   ├── validator/
+│   │   │   ├── helper/
+│   │   │   └── dto/
+│   │   └── profile/           # Profile Affiliation editor [NEW]
 │   │       ├── controller/
 │   │       ├── service/
 │   │       ├── repository/
 │   │       ├── routes/
 │   │       ├── validator/
-│   │       ├── dto/
-│   │       └── index.js
+│   │       └── dto/
 │   ├── app.js
 │   ├── server.js
 │   └── index.js
@@ -198,28 +207,28 @@ Refer to [.agents/AGENTS.md](file:///c:/Users/codew/Downloads/Research.connect/.
 
 ### 1. `users` (Model: `User`)
 Manages authentication credentials and role flags.
-- **Fields**: `_id`, `firstName`, `lastName`, `email` (unique), `password` (select: false), `phone`, `role` (enum: `['researcher', 'admin']`), `status` (enum: `['pending', 'active', 'suspended']`), `isActive`, `isVerified`, `profileImage`, `country`, `createdAt`, `updatedAt`.
-- **Indexes**: `email: 1` (unique), `createdAt: 1`.
+- **Fields**: `_id`, `firstName`, `lastName`, `fullName`, `email` (unique), `password` (select: false), `phone`, `role` (enum: `['researcher', 'admin']`), `researcherType` (enum: `['academic', 'corporate', 'medical', 'non_researcher']`), `organizationType` (enum: `['institution', 'company', 'hospital', 'organization']`), `status` (enum: `['pending', 'active', 'suspended']`), `emailVerified`, `isVerified`, `isActive`, `isBlocked`, `loginAttempts`, `lastLogin`, `lastLoginIP`, `lastLoginDevice`, `isDeleted`, `createdAt`, `updatedAt`.
+- **Indexes**: `email: 1` (unique), `status: 1`, `isDeleted: 1`, `createdAt: -1`.
 
 ### 2. `profiles` (Model: `Profile`)
-Academic portfolios and social handles mapped 1:1 to User.
-- **Fields**: `userId` (ObjectId, unique, ref: `User`), `bio`, `country`, `institution`, `department`, `designation`, `organization`, `socialLinks` (`orcid`, `googleScholar`, `researchGate`, `linkedin`, `website`), `profileCompletion`.
-- **Indexes**: `userId: 1` (unique), `institution: 1`.
+Academic and professional affiliation handles mapped 1:1 to User.
+- **Fields**: `userId` (ObjectId, unique, ref: `User`), `bio`, `country`, `institution`, `department`, `designation`, `company`, `division`, `position`, `socialLinks` (`orcid`, `googleScholar`, `researchGate`, `linkedin`, `website`), `profileCompletion`, `isDeleted`, `createdAt`, `updatedAt`.
+- **Indexes**: `userId: 1` (unique), `institution: 1`, `company: 1`, `isDeleted: 1`.
 
 ### 3. `settings` (Model: `Settings`)
 User preferences and theme details.
-- **Fields**: `userId` (ObjectId, unique, ref: `User`), `theme` (enum: `['light', 'dark', 'system']`), `language`, `notifications` (`email`, `push`, `weeklyDigest`), `privacy` (`profileVisible`, `showPublications`, `showStats`), `timezone`.
+- **Fields**: `userId` (ObjectId, unique, ref: `User`), `theme` (enum: `['light', 'dark', 'system']`), `language`, `notifications` (`email`, `push`, `weeklyDigest`), `privacy` (`profileVisible`, `showPublications`, `showStats`), `timezone`, `createdAt`, `updatedAt`.
 - **Indexes**: `userId: 1` (unique).
 
 ### 4. `notifications` (Model: `Notification`)
 Push alerts and collaboration invites.
-- **Fields**: `userId` (ObjectId, ref: `User`), `title`, `message`, `type` (enum: `['info', 'success', 'warning', 'error', 'system', 'collaboration']`), `isRead`.
+- **Fields**: `userId` (ObjectId, ref: `User`), `title`, `message`, `type` (enum: `['info', 'success', 'warning', 'error', 'system', 'collaboration']`), `isRead`, `createdAt`.
 - **Indexes**: `userId: 1, isRead: 1`, `createdAt: -1`.
 
 ### 5. `sessions` (Model: `Session`)
-Tracks device login metadata.
-- **Fields**: `userId` (ObjectId, ref: `User`), `browser`, `device`, `ipAddress`, `location`, `loginTime`, `logoutTime`, `status` (enum: `['active', 'expired', 'revoked']`).
-- **Indexes**: `userId: 1, status: 1`.
+Tracks active device and browser sessions.
+- **Fields**: `userId` (ObjectId, ref: `User`), `browser`, `device`, `os`, `ip`, `ipAddress`, `location`, `loginTime`, `logoutTime`, `rememberMe`, `active` (Boolean), `status` (enum: `['active', 'expired', 'revoked']`), `isDeleted`, `createdAt`, `updatedAt`.
+- **Indexes**: `userId: 1, active: 1`, `isDeleted: 1`.
 
 ### 6. `activitylogs` (Model: `ActivityLog`)
 System audits.
@@ -227,14 +236,19 @@ System audits.
 - **Indexes**: `userId: 1, action: 1`, `createdAt: -1`.
 
 ### 7. `refreshtokens` (Model: `RefreshToken`)
-OAuth token lifecycle tracking.
-- **Fields**: `userId` (ObjectId, ref: `User`), `token` (unique), `expiresAt`.
-- **Indexes**: `token: 1` (unique), `expiresAt: 1` (TTL auto-expiration).
+OAuth token rotation lifecycle tracking.
+- **Fields**: `userId` (ObjectId, ref: `User`), `token` (unique), `device`, `browser`, `expiresAt`, `expiry`, `isDeleted`, `createdAt`, `updatedAt`.
+- **Indexes**: `token: 1` (unique), `expiresAt: 1` (TTL auto-expiration), `isDeleted: 1`.
 
 ### 8. `emailotps` (Model: `EmailOtp`)
-Passwords resets and verification numbers.
-- **Fields**: `email`, `otp`, `purpose` (enum: `['email_verification', 'password_reset']`), `expiresAt`.
-- **Indexes**: `email: 1, purpose: 1`, `expiresAt: 1` (TTL auto-expiration).
+Passwords resets, 2FA verification, and registration codes.
+- **Fields**: `email`, `otp`, `purpose` (enum: `['registration', 'login', 'forgot_password']`), `attempts`, `expiresAt`, `expiry`, `verified`, `isDeleted`, `createdAt`, `updatedAt`.
+- **Indexes**: `email: 1, purpose: 1`, `expiresAt: 1` (TTL auto-expiration), `isDeleted: 1`.
+
+### 9. `securitylogs` (Model: `SecurityLog`) [NEW]
+Security critical event tracking.
+- **Fields**: `userId` (ref: `User`), `email`, `event`, `description`, `ipAddress`, `userAgent`, `device`, `browser`, `os`, `createdAt`, `updatedAt`.
+- **Indexes**: `userId: 1`, `email: 1`, `event: 1`, `createdAt: -1`.
 
 ---
 
@@ -306,3 +320,22 @@ All system details retrieve using endpoints mounted on `/api`:
 - **GET `/api/categories`**: Lists active academic disciplines and paper distributions.
 - **GET `/api/features`**: Returns platform modules list and placeholders state.
 - **GET `/api/version`**: Build version, current phase number, and phase title.
+
+### Phase 1: Authentication Endpoints (`/api/v1/auth`)
+- **POST `/register`**: Creates a pending researcher account, hashes password, generates 6-digit OTP, and triggers verification email.
+- **POST `/send-registration-otp`**: Resends email verification code (rate-limited by 60s cooldown).
+- **POST `/verify-registration-otp`**: Verifies registration OTP, activates the user, initializes default profile, logs a device session, and issues access & refresh tokens.
+- **POST `/login`**: Validates email/password credentials, tracks failed attempts (blocks user after 5 attempts), and triggers login 2FA OTP.
+- **POST `/send-login-otp`**: Resends login 2FA verification code.
+- **POST `/verify-login-otp`**: Verifies login OTP, registers session browser/OS/IP, and issues rotated tokens.
+- **POST `/forgot-password`**: Verifies user email and triggers password recovery OTP.
+- **POST `/reset-password`**: Verifies recovery code, hashes new password, and revokes all active sessions & refresh tokens.
+- **POST `/refresh-token`**: Performs Refresh Token Rotation (RTR). Revokes all active user tokens if reuse is detected.
+- **POST `/logout`**: Revokes current device refresh token and flags session as inactive.
+- **POST `/logout-all`**: Requires JWT auth. Revokes all active refresh tokens and sessions for the researcher.
+- **GET `/me`**: Requires JWT auth. Returns current user details and their profile affiliation.
+
+### Phase 1: Profile Endpoints (`/api/v1/profile`)
+- **GET `/`**: Requires JWT auth. Returns current authenticated researcher's profile.
+- **PUT `/` or PATCH `/`**: Requires JWT auth. Updates profile details, recalculates `profileCompletion` score, and synchronizes User model columns (names, phone, image).
+- **DELETE `/`**: Requires JWT auth. Soft deletes profile and user record.

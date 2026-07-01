@@ -38,9 +38,11 @@ backend/src/
 │   ├── responses/      # Standardized API response formatter (ApiResponse)
 │   ├── service/        # BaseService CRUD logic class
 │   └── utils/          # Token, hash, encryption, and date utilities
-├── models/             # Global base Mongoose Schemas (User, Profile, Settings)
+├── models/             # Global base Mongoose Schemas (User, Profile, Session, RefreshToken, EmailOtp, SecurityLog)
 ├── modules/            # Domain Feature Modules (Isolated directories)
-│   └── landing/        # Main landing page module
+│   ├── landing/        # Main landing page module
+│   ├── auth/           # Authentication, 2FA, and Token session module [NEW]
+│   └── profile/        # Researcher profile management [NEW]
 │       ├── controller/ # Controllers mapping route triggers
 │       ├── service/    # Business services and validation hooks
 │       ├── repository/ # Database access queries extending BaseRepository
@@ -78,8 +80,11 @@ frontend/src/
 │   ├── DashboardLayout/# Shell for internal pages
 │   ├── AuthLayout/     # Shell for login / register pages
 │   └── LandingLayout/  # Shell for website landing page
-├── modules/            # Domain modules (Landing, Search, Dashboard)
-│   └── landing/        # Landing page components, styles, and subviews
+├── modules/            # Domain modules
+│   ├── landing/        # Landing page components, styles, and subviews
+│   ├── auth/           # Authentication views (Login, Register, OTP) [NEW]
+│   ├── dashboard/      # Researcher Dashboard view [NEW]
+│   └── profile/        # Profile Affiliation editor [NEW]
 ├── redux/              # Redux Toolkit global store and slices
 ├── services/           # Async API client calls
 ├── constants/          # Static lists, select options, and error messages

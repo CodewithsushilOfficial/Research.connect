@@ -79,3 +79,15 @@ graph LR
 ### State Management Separation:
 - **Client Sync State (Redux)**: Global settings like dark mode themes, navigation menus, and simple notifications/toasts.
 - **Server Async State (React Query)**: Caches queries, handles pre-fetching, invalidates state on mutations, and reduces round-trip network overhead.
+
+---
+
+## 🔒 Phase 1 Security Architecture Details
+
+The Authentication module implements industry standard practices to protect research data and prevent unauthorized breaches:
+
+1. **HttpOnly Secure Cookies**: Refresh tokens are stored strictly in client cookies using the `HttpOnly`, `Secure` (production), and `SameSite=Lax` headers. This shields the tokens from malicious cross-site scripting (XSS) extractions.
+2. **Refresh Token Rotation (RTR)**: Every time a refresh token is exchanged, the server invalidates it, issues a new token, and saves it. If a previously exchanged token is presented:
+   - **Breach Detection**: The backend flags a potential replay attack, revokes all sessions/refresh tokens for that user immediately, and logs a security audit event.
+3. **Double Verification OTP (2FA)**: High-security endpoints (Registration completion, Account logins, Password resets) trigger a 6-digit verification code with a strict **10-minute expiration** and a maximum threshold of **5 failed attempts** before locking.
+4. **Brute Force Defense**: Login endpoints track consecutive failures (`loginAttempts`). Upon exceeding 5 attempts, the account is suspended (`isBlocked: true`), a Winston critical security event is dispatched, and a security email alert is sent to the researcher.
