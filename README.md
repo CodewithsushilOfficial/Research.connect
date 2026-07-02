@@ -302,7 +302,7 @@ All system details are accessible using versioned endpoints under `/api`:
 - **DELETE `/`**: Soft deletes profile and user record.
 
 ### 4. Google Scholar Integration Endpoints (`/api/v1/*`)
-- **POST `/research-identity`**: Saves research identity profiles (e.g. ORCID, Google Scholar, ResearchGate, LinkedIn).
+
 - **POST `/scholar/import`**: Enqueues a background job via SerpAPI to import Google Scholar metrics and publications (rate-limited).
 - **POST `/scholar/reimport`**: Forces a fresh re-import of Google Scholar profile metrics.
 - **POST `/scholar/sync`**: Syncs existing imported Scholar profile with the latest online metrics.
