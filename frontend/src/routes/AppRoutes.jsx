@@ -25,6 +25,9 @@ const PublicationCreatePage = React.lazy(() => import('../modules/publication/pa
 const PublicationDetailPage = React.lazy(() => import('../modules/publication/pages/PublicationDetailPage'));
 const PublicationsLibraryPage = React.lazy(() => import('../modules/publication/pages/PublicationsLibraryPage'));
 const PublicationEditPage = React.lazy(() => import('../modules/publication/pages/PublicationEditPage'));
+const PublicationReader = React.lazy(() => import('../modules/publication/pages/PublicationReader'));
+const PublicationAnalyticsPage = React.lazy(() => import('../modules/publication/pages/PublicationAnalyticsPage'));
+const SearchPage = React.lazy(() => import('../modules/search/pages/SearchPage'));
 const MessagesRoute = React.lazy(() => import('./MessagesRoute'));
 
 const AppRoutes = () => {
@@ -81,6 +84,11 @@ const AppRoutes = () => {
           <Route path="profile" element={<ProfileRedirect />} />
           <Route path="research-identity" element={<ResearchIdentityPage />} />
           <Route path="publications/create" element={<PublicationCreatePage />} />
+          <Route path="publications" element={<PublicationsLibraryPage />} />
+          <Route path="publications/drafts" element={<PublicationsLibraryPage />} />
+          <Route path="publications/published" element={<PublicationsLibraryPage />} />
+          <Route path="publications/trash" element={<PublicationsLibraryPage />} />
+          <Route path="publications/bookmarks" element={<PublicationsLibraryPage />} />
           <Route path="projects/create" element={<ComingSoon title="Create Project Coming Soon" />} />
           <Route path="datasets/create" element={<ComingSoon title="Share Dataset Coming Soon" />} />
           <Route path="questions/create" element={<ComingSoon title="Ask Question Coming Soon" />} />
@@ -91,7 +99,7 @@ const AppRoutes = () => {
           <Route path="events/create" element={<ComingSoon title="Create Event Coming Soon" />} />
           <Route path="publication/:slug/edit" element={<PublicationEditPage />} />
           <Route path="messages" element={<MessagesRoute />} />
-          <Route path="search" element={<ComingSoon title="Research Discovery Search Coming Soon" />} />
+          <Route path="search" element={<SearchPage />} />
           <Route path="settings" element={<ComingSoon title="System Settings Coming Soon" />} />
           <Route path="notifications" element={<ComingSoon title="Notifications Center Coming Soon" />} />
           <Route path="admin" element={<ComingSoon title="Administration Panel Coming Soon" />} />
@@ -108,6 +116,12 @@ const AppRoutes = () => {
           <Route path="/profile/:profileSlug/books" element={<ComingSoon title="Researcher Books Coming Soon" />} />
           <Route path="/profile/:profileSlug/analytics" element={<ComingSoon title="Researcher Analytics Coming Soon" />} />
           <Route path="/publication/:publicationSlug" element={<PublicationDetailPage />} />
+          {/* SEO-friendly canonical route — Phase 3 Publication Reader */}
+          <Route path="/publications/:slug" element={<PublicationReader />} />
+          {/* Phase 7 — Publication Analytics */}
+          <Route path="/publication/:slug/analytics" element={<PublicationAnalyticsPage />} />
+          {/* Phase 5 — Global Search (also accessible without auth) */}
+          <Route path="/search" element={<SearchPage />} />
         </Route>
 
         {/* 404 & Wildcard Fallback */}

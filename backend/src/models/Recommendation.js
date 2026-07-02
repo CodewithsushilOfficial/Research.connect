@@ -21,7 +21,8 @@ const RecommendationSchema = new Schema(
     }
   },
   {
-    timestamps: true
+    timestamps: true,
+    collection: 'publicationRecommendations'
   }
 );
 

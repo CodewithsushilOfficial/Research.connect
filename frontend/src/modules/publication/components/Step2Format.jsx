@@ -8,18 +8,18 @@ const FORMATS = [
   { name: 'Book Chapter', slug: 'book-chapter', description: 'Part of a compiled book publication.' },
   { name: 'Conference Paper', slug: 'conference-paper', description: 'Proceeding or meeting abstract.' },
   { name: 'Patent', slug: 'patent', description: 'Registered utility patent or application.' },
-  { name: 'Preprint', slug: 'preprint', description: 'Early-stage paper shared before review.' },
-  { name: 'Dataset', slug: 'dataset', description: 'Scientific data tables, repositories.' },
-  { name: 'Software', slug: 'software', description: 'Source code, package, or tool release.' },
-  { name: 'Technical Report', slug: 'technical-report', description: 'Institutional or agency whitepaper.' }
+  { name: 'Preprint', slug: 'preprint', description: 'Early-stage paper shared before review.' }
 ];
 
 const MORE_FORMATS = [
   { name: 'Presentation', slug: 'presentation' },
   { name: 'Poster', slug: 'poster' },
+  { name: 'Dataset', slug: 'dataset' },
   { name: 'Method', slug: 'method' },
   { name: 'Proposal', slug: 'proposal' },
+  { name: 'Technical Report', slug: 'technical-report' },
   { name: 'White Paper', slug: 'white-paper' },
+  { name: 'Software', slug: 'software' },
   { name: 'Survey', slug: 'survey' },
   { name: 'Case Study', slug: 'case-study' },
   { name: 'Review Article', slug: 'review-article' },

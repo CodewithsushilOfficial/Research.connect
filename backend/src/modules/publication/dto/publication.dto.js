@@ -29,6 +29,7 @@ class PublicationDTO {
       researchAreas: pubObj.researchAreas || [],
       researchAreasList: pubObj.researchAreasList || [],
       publicationType: pubObj.publicationType,
+      publicationFormat: pubObj.publicationFormat || '',
       researchType: pubObj.researchType || '',
       correspondingAuthor: pubObj.correspondingAuthor || '',
       institution: pubObj.institution || '',

@@ -48,7 +48,8 @@ const CoAuthorSchema = new Schema(
     }
   },
   {
-    timestamps: true
+    timestamps: true,
+    collection: 'coAuthors'
   }
 );
 

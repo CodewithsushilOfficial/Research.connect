@@ -102,6 +102,33 @@ const Step5Review = ({ formData, fileDetails }) => {
               </span>
             </div>
           )}
+
+          {formData.license && (
+            <div>
+              <span className="block text-[9px] font-bold tracking-wider text-slate-400 uppercase">License</span>
+              <span className="font-bold text-slate-800 block truncate mt-0.5">
+                {formData.license}
+              </span>
+            </div>
+          )}
+
+          {formData.funding && (
+            <div>
+              <span className="block text-[9px] font-bold tracking-wider text-slate-400 uppercase">Funding</span>
+              <span className="font-bold text-slate-800 block truncate mt-0.5">
+                {formData.funding}
+              </span>
+            </div>
+          )}
+
+          {formData.openAccess && (
+            <div>
+              <span className="block text-[9px] font-bold tracking-wider text-slate-400 uppercase">Access</span>
+              <span className="inline-flex items-center gap-1 font-bold text-emerald-600 mt-0.5 animate-pulse">
+                <span>Open Access</span>
+              </span>
+            </div>
+          )}
         </div>
 
         {/* File Section */}

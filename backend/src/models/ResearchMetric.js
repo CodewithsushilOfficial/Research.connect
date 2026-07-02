@@ -72,7 +72,8 @@ const ResearchMetricSchema = new Schema(
     }
   },
   {
-    timestamps: true
+    timestamps: true,
+    collection: 'researchMetrics'
   }
 );
 

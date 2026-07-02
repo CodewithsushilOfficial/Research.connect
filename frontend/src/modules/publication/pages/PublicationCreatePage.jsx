@@ -36,6 +36,7 @@ const PublicationCreatePage = () => {
     title: '',
     subtitle: '',
     publicationType: '',
+    publicationFormat: '',
     researchType: 'Original Research',
     abstract: '',
     authorsList: [],
@@ -51,6 +52,9 @@ const PublicationCreatePage = () => {
     issue: '',
     pages: '',
     language: 'English',
+    license: '',
+    funding: '',
+    openAccess: false,
     researchAreas: [],
     keywords: [],
     visibility: 'Public',
@@ -91,12 +95,10 @@ const PublicationCreatePage = () => {
     handleFieldChange('publicationType', slug);
     // Update URL parameter maintaining browser history
     setSearchParams({ publicationType: slug });
-    setStep(2);
   };
 
   const handleFormatSelect = (slug) => {
-    handleFieldChange('publicationType', slug); // Format overrides broad category
-    setStep(3);
+    handleFieldChange('publicationFormat', slug);
   };
 
   const handleUploadSuccess = ({ cloudinaryData, extractedMetadata, cacheId, originalName }) => {
@@ -169,8 +171,6 @@ const PublicationCreatePage = () => {
         return updated;
       });
     }
-
-    setStep(4);
   };
 
   const handleRemoveFile = () => {
@@ -343,7 +343,7 @@ const PublicationCreatePage = () => {
                 )}
                 {step === 2 && (
                   <Step2Format
-                    selectedFormat={formData.publicationType}
+                    selectedFormat={formData.publicationFormat}
                     onSelect={handleFormatSelect}
                   />
                 )}
@@ -419,7 +419,20 @@ const PublicationCreatePage = () => {
                   <span>Review Details</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
-              ) : null}
+              ) : (
+                <button
+                  type="button"
+                  disabled={
+                    (step === 1 && !formData.publicationType) ||
+                    (step === 2 && !formData.publicationFormat)
+                  }
+                  onClick={handleNext}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-750 text-white px-5 py-2.5 rounded-xl transition-all shadow-md shadow-blue-600/10 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
+                >
+                  <span>Continue</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
 

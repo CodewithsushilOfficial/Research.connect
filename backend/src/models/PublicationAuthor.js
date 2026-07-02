@@ -46,7 +46,8 @@ const PublicationAuthorSchema = new Schema(
     }
   },
   {
-    timestamps: true
+    timestamps: true,
+    collection: 'publicationAuthors'
   }
 );
 

@@ -18,7 +18,7 @@ const PublicationHistorySchema = new Schema(
     action: {
       type: String,
       required: true,
-      enum: ['create', 'update', 'publish', 'draft_save']
+      enum: ['create', 'update', 'publish', 'draft_save', 'delete', 'restore']
     },
     changes: {
       type: Schema.Types.Mixed,

@@ -21,8 +21,14 @@ const generateSlug = (title) => {
   // Limit title slug to around 80 characters, and clean trailing hyphens
   const cleanTitleSlug = titleSlug.substring(0, 80).replace(/-+$/, '') || 'research-paper';
 
-  // Append a 6-character unique ID
-  return `${cleanTitleSlug}-${nanoid(6)}`;
+  // Generate 4 random uppercase alphanumeric characters
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let suffix = 'RC';
+  for (let i = 0; i < 4; i++) {
+    suffix += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+
+  return `${cleanTitleSlug}-${suffix}`;
 };
 
 module.exports = {
