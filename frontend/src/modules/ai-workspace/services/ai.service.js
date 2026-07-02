@@ -1,6 +1,20 @@
 import axiosInstance from "../../../api/axiosInstance";
 
 class AiService {
+  constructor() {
+    this.activeController = null;
+  }
+
+  /**
+   * Stop the active AI generation stream
+   */
+  stopGeneration() {
+    if (this.activeController) {
+      this.activeController.abort();
+      this.activeController = null;
+    }
+  }
+
   /**
    * Helper to map workspace internal IDs to API endpoints
    */
@@ -62,6 +76,12 @@ class AiService {
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
     const token = localStorage.getItem("token");
 
+    if (this.activeController) {
+      this.activeController.abort();
+    }
+    this.activeController = new AbortController();
+    const signal = this.activeController.signal;
+
     try {
       // 1. Pre-upload any file attachments containing raw fileObjects
       const processedAttachments = [];
@@ -93,6 +113,7 @@ class AiService {
           contextLength,
           attachments: processedAttachments,
         }),
+        signal,
       });
 
       if (!response.ok) {
@@ -120,6 +141,7 @@ class AiService {
           try {
             const data = JSON.parse(jsonStr);
             if (data.error) {
+              this.activeController = null;
               if (onError) onError(new Error(data.error));
               return;
             }
@@ -127,6 +149,7 @@ class AiService {
               onChunk(data.chunk);
             }
             if (data.done && onDone) {
+              this.activeController = null;
               onDone(data.session);
             }
           } catch (e) {
@@ -135,6 +158,10 @@ class AiService {
         }
       }
     } catch (error) {
+      this.activeController = null;
+      if (error.name === "AbortError") {
+        return;
+      }
       if (onError) {
         onError(error);
       } else {

@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Paperclip, Send, Trash2, FileText, CheckCircle, HelpCircle, X } from "lucide-react";
+import { Paperclip, Send, Trash2, FileText, CheckCircle, HelpCircle, X, Square } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { useOutletContext } from "react-router-dom";
 import ModelSelector from "./ModelSelector";
+import aiService from "../services/ai.service";
 
 const PromptInput = ({
   value,
@@ -18,6 +20,17 @@ const PromptInput = ({
   const [attachments, setAttachments] = useState([]);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  const context = useOutletContext();
+  const { setLoading } = context || {};
+
+  const handleStop = () => {
+    aiService.stopGeneration();
+    if (setLoading) {
+      setLoading(false);
+    }
+    toast.success("Generation stopped.");
+  };
 
   // Auto-resize textarea height
   useEffect(() => {
@@ -208,15 +221,26 @@ const PromptInput = ({
             {charCount} chars | {wordCount} words
           </span>
 
-          <button
-            type="button"
-            onClick={handleSubmitForm}
-            disabled={loading || (!value.trim() && attachments.length === 0)}
-            className="flex items-center gap-2 bg-primary hover:bg-primary-hover disabled:opacity-40 text-white text-xs font-bold py-2.5 px-4.5 rounded-xl shadow-md shadow-primary/20 transition-all active:scale-[0.98]"
-          >
-            <span>{loading ? "Analyzing..." : "Generate"}</span>
-            <Send className={`w-3.5 h-3.5 ${loading ? "animate-bounce" : ""}`} />
-          </button>
+          {loading ? (
+            <button
+              type="button"
+              onClick={handleStop}
+              className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-2.5 px-4.5 rounded-xl shadow-md shadow-rose-500/20 transition-all active:scale-[0.98]"
+            >
+              <span>Stop</span>
+              <Square className="w-3.5 h-3.5 fill-white" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSubmitForm}
+              disabled={!value.trim() && attachments.length === 0}
+              className="flex items-center gap-2 bg-primary hover:bg-primary-hover disabled:opacity-40 text-white text-xs font-bold py-2.5 px-4.5 rounded-xl shadow-md shadow-primary/20 transition-all active:scale-[0.98]"
+            >
+              <span>Generate</span>
+              <Send className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
     </div>
