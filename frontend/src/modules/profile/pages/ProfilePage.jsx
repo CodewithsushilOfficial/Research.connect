@@ -894,7 +894,11 @@ const ProfilePage = () => {
             )}
           </div>
 
+<<<<<<< Updated upstream
       
+=======
+       
+>>>>>>> Stashed changes
         </div>
 
       </div>
