@@ -48,7 +48,6 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
       researchGate: profile?.socialLinks?.researchGate || '',
       linkedin: profile?.socialLinks?.linkedin || '',
       website: profile?.socialLinks?.website || '',
-   
       scopus: profile?.socialLinks?.scopus || '',
       twitter: profile?.socialLinks?.twitter || '',
       youtube: profile?.socialLinks?.youtube || ''
@@ -144,7 +143,7 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
           </div>
 
           {/* Modal Tabs */}
-          <div className="flex border-b border-border bg-bg-page/20 px-6 py-2 gap-2 overflow-x-auto scrollbar-none">
+          <div className="flex flex-shrink-0 border-b border-border bg-bg-page/20 px-6 py-2 gap-2 overflow-x-auto overflow-y-hidden scrollbar-none">
             {[
               { id: 'general', label: 'General & Bio' },
               { id: 'education', label: 'Academic & Jobs' },
@@ -343,7 +342,6 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
                 <Input label="Google Scholar Profile URL" icon={<Globe className="w-4 h-4 text-text-secondary" />} value={formData.socialLinks.googleScholar} onChange={val => handleSocialChange('googleScholar', val)} />
                 <Input label="ORCID Identifier (e.g. 0000-0002-1825-0097)" icon={<Award className="w-4 h-4 text-text-secondary" />} value={formData.socialLinks.orcid} onChange={val => handleSocialChange('orcid', val)} />
                 <Input label="LinkedIn Profile URL" icon={<Linkedin className="w-4 h-4 text-text-secondary" />} value={formData.socialLinks.linkedin} onChange={val => handleSocialChange('linkedin', val)} />
-            
                 <Input label="ResearchGate Profile URL" icon={<LinkIcon className="w-4 h-4 text-text-secondary" />} value={formData.socialLinks.researchGate} onChange={val => handleSocialChange('researchGate', val)} />
                 <Input label="Scopus Author ID" icon={<LinkIcon className="w-4 h-4 text-text-secondary" />} value={formData.socialLinks.scopus} onChange={val => handleSocialChange('scopus', val)} />
                 <Input label="Personal Website" icon={<Globe className="w-4 h-4 text-text-secondary" />} value={formData.socialLinks.website} onChange={val => handleSocialChange('website', val)} />

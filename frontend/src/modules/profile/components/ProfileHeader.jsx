@@ -49,7 +49,7 @@ const ProfileHeader = ({
   const socialIcons = {
     googleScholar: { icon: GraduationCap, label: 'Google Scholar', color: 'hover:bg-blue-50 hover:text-blue-600' },
     orcid: { icon: Award, label: 'ORCID', color: 'hover:bg-green-50 hover:text-green-600' },
-     linkedin: { icon: Linkedin, label: 'LinkedIn', color: 'hover:bg-blue-50 hover:text-blue-700' },
+    linkedin: { icon: Linkedin, label: 'LinkedIn', color: 'hover:bg-blue-50 hover:text-blue-700' },
     researchGate: { icon: Bookmark, label: 'ResearchGate', color: 'hover:bg-cyan-50 hover:text-cyan-600' },
     scopus: { icon: Database, label: 'Scopus', color: 'hover:bg-orange-50 hover:text-orange-600' },
     website: { icon: Globe, label: 'Website', color: 'hover:bg-purple-50 hover:text-purple-600' }
@@ -111,28 +111,6 @@ const ProfileHeader = ({
               {user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`}
             </h2>
             <CheckCircle className="w-5 h-5 text-primary fill-primary/10" title="Verified Researcher" />
-          </div>
-
-          {/* Social Links Row directly under the name */}
-          <div className="flex flex-wrap items-center gap-2 pt-0.5 pb-1">
-            {Object.entries(socialIcons).map(([key, config]) => {
-              const url = profile?.socialLinks?.[key];
-              if (!url) return null;
-              if (!['googleScholar', 'orcid','linkedin', 'scopus'].includes(key)) return null;
-              const Icon = config.icon;
-              return (
-                <a
-                  key={key}
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`p-1.5 border border-border bg-white rounded-lg text-text-secondary transition-all hover:scale-105 ${config.color}`}
-                  title={config.label}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                </a>
-              );
-            })}
           </div>
 
           {profile?.designation && (
