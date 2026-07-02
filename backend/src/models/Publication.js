@@ -9,12 +9,89 @@ const PublicationSchema = new Schema(
       required: true,
       index: true
     },
+    ownerId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      index: true
+    },
+    slug: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true
+    },
     title: {
       type: String,
       required: true,
       trim: true
     },
+    subtitle: {
+      type: String,
+      default: ''
+    },
     authors: {
+      type: String,
+      default: ''
+    },
+    researchType: {
+      type: String,
+      default: ''
+    },
+    correspondingAuthor: {
+      type: String,
+      default: ''
+    },
+    institution: {
+      type: String,
+      default: ''
+    },
+    department: {
+      type: String,
+      default: ''
+    },
+    publicationDate: {
+      type: Date
+    },
+    isbn: {
+      type: String,
+      default: ''
+    },
+    issn: {
+      type: String,
+      default: ''
+    },
+    language: {
+      type: String,
+      default: ''
+    },
+    researchAreas: [
+      {
+        type: String,
+        trim: true
+      }
+    ],
+    visibility: {
+      type: String,
+      enum: ['Draft', 'Private', 'Institution Only', 'Public'],
+      default: 'Public'
+    },
+    status: {
+      type: String,
+      enum: ['draft', 'published'],
+      default: 'published'
+    },
+    cloudinaryFileUrl: {
+      type: String,
+      default: ''
+    },
+    fileDetails: {
+      secure_url: { type: String, default: '' },
+      public_id: { type: String, default: '' },
+      resource_type: { type: String, default: '' },
+      bytes: { type: Number, default: 0 },
+      format: { type: String, default: '' }
+    },
+    thumbnail: {
       type: String,
       default: ''
     },
@@ -45,6 +122,11 @@ const PublicationSchema = new Schema(
       type: String,
       default: '',
       index: true
+    },
+    googleScholarPublicationId: {
+      type: String,
+      default: '',
+      trim: true
     },
     paperURL: {
       type: String,
@@ -127,8 +209,10 @@ const PublicationSchema = new Schema(
   }
 );
 
-PublicationSchema.index({ userId: 1 });
-PublicationSchema.index({ citationId: 1 });
+PublicationSchema.index({ doi: 1 }, { unique: true, sparse: true });
+PublicationSchema.index({ googleScholarPublicationId: 1 }, { unique: true, sparse: true });
+PublicationSchema.index({ publicationType: 1 });
+PublicationSchema.index({ createdAt: -1 });
 PublicationSchema.index({ isDeleted: 1 });
 
 const Publication = mongoose.model('Publication', PublicationSchema);
