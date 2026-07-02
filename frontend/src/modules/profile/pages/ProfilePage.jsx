@@ -6,8 +6,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { 
   BookOpen, 
-  MapPin, 
-  Globe, 
   Activity, 
   BookMarked,
   Award,
@@ -23,9 +21,8 @@ import {
   Database,
   Download,
   Eye,
-  Camera,
   Users,
-  Linkedin,
+  Linkedin
 } from 'lucide-react';
 
 import profileService from '../../../services/profile.service';
@@ -221,15 +218,15 @@ const ProfilePage = () => {
   }
 
   const tabs = [
-    { id: 'about', name: 'About' },
-    { id: 'timeline', name: 'Education & Experience' },
-    { id: 'publications', name: 'Publications' },
-    { id: 'projects', name: 'Projects' },
-    { id: 'skills', name: 'Skills' },
-    { id: 'patents', name: 'Patents' },
-    { id: 'books', name: 'Books' },
-    { id: 'awards', name: 'Awards & Certificates' },
-    { id: 'analytics', name: 'Research Analytics' }
+    { id: 'about', name: 'About', icon: User },
+    { id: 'timeline', name: 'Education & Experience', icon: Layers },
+    { id: 'publications', name: 'Publications', icon: FileText },
+    { id: 'projects', name: 'Projects', icon: BookMarked },
+    { id: 'skills', name: 'Skills', icon: HeartHandshake },
+    { id: 'patents', name: 'Patents', icon: ShieldCheck },
+    { id: 'books', name: 'Books', icon: BookOpen },
+    { id: 'awards', name: 'Awards & Certificates', icon: Award },
+    { id: 'analytics', name: 'Research Analytics', icon: BarChart2 }
   ];
 
   return (
@@ -255,20 +252,35 @@ const ProfilePage = () => {
         <div className="lg:col-span-2 space-y-6">
           
           {/* Tab Navigation */}
-          <div className="bg-white border border-border rounded-2xl p-2 flex gap-1 overflow-x-auto scrollbar-none">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-2.5 text-xs font-bold rounded-xl transition-all whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? 'bg-primary text-white shadow-sm'
-                    : 'text-text-secondary hover:bg-bg-page hover:text-text-primary'
-                }`}
-              >
-                {tab.name}
-              </button>
-            ))}
+          <div className="relative">
+            <div
+              role="tablist"
+              aria-label="Profile sections"
+              className="bg-white border border-border rounded-2xl p-2 flex flex-wrap gap-1"
+            >
+              {tabs.map((tab) => {
+                const TabIcon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    role="tab"
+                    aria-selected={isActive}
+                    aria-controls={`tabpanel-${tab.id}`}
+                    id={`tab-${tab.id}`}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold rounded-xl transition-all whitespace-nowrap flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
+                      isActive
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'text-text-secondary hover:bg-bg-page hover:text-text-primary'
+                    }`}
+                  >
+                    <TabIcon className="w-3.5 h-3.5" />
+                    {tab.name}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Tab Content Panel */}
@@ -298,7 +310,7 @@ const ProfilePage = () => {
                         <div className="space-y-3 p-5 bg-bg-page/10 rounded-2xl border border-border/50">
                           <div className="flex justify-between items-center text-xs py-2 border-b border-border/30">
                             <span className="font-extrabold text-text-secondary">Full Name</span>
-                            <span className="font-semibold text-text-primary">{profile?.displayName || user?.fullName || `${profile?.firstName || ''} ${profile?.lastName || ''}`}</span>
+                            <span className="font-semibold text-text-primary">{profile?.displayName || profile?.fullName || `${profile?.firstName || ''} ${profile?.lastName || ''}`}</span>
                           </div>
                           <div className="flex justify-between items-center text-xs py-2 border-b border-border/30">
                             <span className="font-extrabold text-text-secondary">Date of Birth</span>
@@ -322,7 +334,7 @@ const ProfilePage = () => {
                           </div>
                           <div className="flex justify-between items-center text-xs py-2">
                             <span className="font-extrabold text-text-secondary">Email ID</span>
-                            <span className="font-semibold text-text-primary truncate ml-2 max-w-[180px] sm:max-w-xs">{profile?.email || user?.email || 'N/A'}</span>
+                            <span className="font-semibold text-text-primary truncate ml-2 max-w-[180px] sm:max-w-xs">{profile?.email || 'N/A'}</span>
                           </div>
                         </div>
 
@@ -332,8 +344,8 @@ const ProfilePage = () => {
                             { label: 'Google Scholar ID', key: 'googleScholar', icon: BookOpen, color: 'text-blue-500 bg-blue-50' },
                             { label: 'ORCID', key: 'orcid', icon: Award, color: 'text-green-500 bg-green-50' },
                             { label: 'SCOPUS AUTHOR ID', key: 'scopus', icon: Database, color: 'text-orange-500 bg-orange-50' },
-                            { label: 'LinkedIn', key: 'linkedin', icon: Linkedin, color: 'text-blue-600 bg-blue-50' },
-                            ].map((network) => {
+                            { label: 'LinkedIn', key: 'linkedin', icon: Linkedin, color: 'text-blue-600 bg-blue-50' }
+                          ].map((network) => {
                             const rawValue = profile?.socialLinks?.[network.key] || '';
                             let valDisplay = rawValue;
                             if (rawValue && rawValue.startsWith('http')) {
@@ -719,7 +731,7 @@ const ProfilePage = () => {
                                 <img src={co.photo} alt={co.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
                               ) : (
                                 <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs uppercase flex-shrink-0">
-                                  {co.name.charAt(0)}
+                                  {co.name?.charAt(0) || '?'}
                                 </div>
                               )}
                               <div className="min-w-0">
@@ -865,7 +877,7 @@ const ProfilePage = () => {
                         <img src={co.photo} alt={co.name} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
                       ) : (
                         <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs uppercase flex-shrink-0">
-                          {co.name.charAt(0)}
+                          {co.name?.charAt(0) || '?'}
                         </div>
                       )}
                       <div className="min-w-0 flex-grow">
@@ -893,6 +905,7 @@ const ProfilePage = () => {
               <p className="text-xs text-text-secondary italic">No co-authors indexed yet.</p>
             )}
           </div>
+
         </div>
 
       </div>
