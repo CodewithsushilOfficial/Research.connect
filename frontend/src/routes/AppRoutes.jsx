@@ -26,6 +26,7 @@ import PublicationCreatePage from '../modules/publication/pages/PublicationCreat
 import PublicationDetailPage from '../modules/publication/pages/PublicationDetailPage';
 import PublicationsLibraryPage from '../modules/publication/pages/PublicationsLibraryPage';
 import PublicationEditPage from '../modules/publication/pages/PublicationEditPage';
+import MessagesRoute from './MessagesRoute';
 
 const AppRoutes = () => {
   return (
@@ -86,6 +87,7 @@ const AppRoutes = () => {
         <Route path="articles/create" element={<ComingSoon title="Write Article Coming Soon" />} />
         <Route path="events/create" element={<ComingSoon title="Create Event Coming Soon" />} />
         <Route path="publication/:slug/edit" element={<PublicationEditPage />} />
+        <Route path="messages" element={<MessagesRoute />} />
         <Route path="search" element={<ComingSoon title="Research Discovery Search Coming Soon" />} />
         <Route path="settings" element={<ComingSoon title="System Settings Coming Soon" />} />
         <Route path="notifications" element={<ComingSoon title="Notifications Center Coming Soon" />} />

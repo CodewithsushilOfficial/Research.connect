@@ -617,8 +617,7 @@ const HomeFeed = () => {
                     </button>
                     <button 
                       onClick={() => {
-                        toast.success(`Message channel created with ${res.name}`);
-                        navigate('/messages');
+                        navigate(`/messages?participantId=${res.userId}`);
                       }}
                       className="flex-1 py-1.5 bg-white hover:bg-[#2563EB] border border-[#E2E8F0] hover:border-[#2563EB] text-[#475569] hover:text-white font-bold text-[10px] rounded-lg transition-all duration-200 transform hover:scale-[1.03] active:scale-95 hover:shadow shadow-sm flex items-center justify-center gap-1"
                     >
