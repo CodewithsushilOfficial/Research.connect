@@ -1307,7 +1307,7 @@ const HomeFeed = () => {
                 The next-generation, AI-driven academic collaboration and discovery network. Empowering researchers worldwide to connect, share, and accelerate global innovation.
               </p>
               <div className="flex gap-3 pt-2">
-                {['twitter', 'github', 'linkedin', 'database'].map((social, idx) => (
+                {['twitter', 'linkedin', 'database'].map((social, idx) => (
                   <a 
                     key={idx} 
                     href="#" 

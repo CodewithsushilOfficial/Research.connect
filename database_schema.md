@@ -162,7 +162,6 @@ Stores biography, affiliations, academic links, and details mapped 1:1 to a User
 | `socialLinks.researchGate` | String | No | `""` | Trimmed | ResearchGate link. |
 | `socialLinks.linkedin` | String | No | `""` | Trimmed | LinkedIn URL. |
 | `socialLinks.website` | String | No | `""` | Trimmed | Personal portfolio homepage URL. |
-| `socialLinks.github` | String | No | `""` | Trimmed | GitHub profile URL. |
 | `profileCompletion`| Number | Yes | `0` | Min: 0, Max: 100 | Percentage score of profile completions. |
 | `dataSourceTracking`| Map | No | `{}` | Mapped keys to source tracking info | Tracks whether fields were modified by the user. |
 | `isDeleted` | Boolean | Yes | `false` | — | Soft deletion flag. |

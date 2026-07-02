@@ -98,7 +98,7 @@ class ProfileService {
 
     // Build default Social Links if none exists
     const socialLinks = socialLinksObj || profile.socialLinks || {
-      orcid: '', googleScholar: '', researchGate: '', linkedin: '', website: '', github: '', scopus: ''
+      orcid: '', googleScholar: '', researchGate: '', linkedin: '', website: '', scopus: ''
     };
 
     // Calculate profile completion rate & research score dynamically if they don't exist

@@ -55,7 +55,6 @@ async function test() {
         socialLinks: {
           googleScholar: validUrl,
           orcid: '0000-0002-1825-0097',
-          github: 'https://github.com/scholar-tester',
           linkedin: 'https://linkedin.com/in/scholar-tester'
         }
       });
