@@ -11,7 +11,7 @@ import { toggleLikeInFeed, toggleBookmarkInFeed } from '../../../redux/slices/fe
 import { addCommentToStore, setComments, toggleLikeCommentSuccess } from '../../../redux/slices/commentSlice';
 import { moveBookmarkInStore } from '../../../redux/slices/bookmarkSlice';
 import { toast } from 'react-hot-toast';
-import axios from 'axios';
+import feedService from '@/services/feed.service';
 import AiAnalysisModal from '../modals/AiAnalysisModal';
 import BookmarkFoldersModal from '../modals/BookmarkFoldersModal';
 
@@ -51,13 +51,10 @@ const PublicationCard = ({ pub }) => {
 
   const fetchComments = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:5000/api/v1/publication/${pub._id}/comments`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.data.success) {
-        setCommentsList(res.data.data.docs);
-        dispatch(setComments({ publicationId: pub._id, comments: res.data.data.docs }));
+      const res = await feedService.getComments(pub._id);
+      if (res.success) {
+        setCommentsList(res.data.docs);
+        dispatch(setComments({ publicationId: pub._id, comments: res.data.docs }));
       }
     } catch (err) {
       console.error('Error fetching comments:', err);
@@ -66,11 +63,8 @@ const PublicationCard = ({ pub }) => {
 
   const handleLike = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.post('http://localhost:5000/api/v1/publication/like', { publicationId: pub._id }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.data.success) {
+      const res = await feedService.toggleLike(pub._id);
+      if (res.success) {
         dispatch(toggleLikeInFeed(pub._id));
         toast.success(pub.liked ? 'Removed from liked' : 'Added to liked publications');
       }
@@ -81,14 +75,8 @@ const PublicationCard = ({ pub }) => {
 
   const handleSelectBookmarkFolder = async (folderName) => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.post('http://localhost:5000/api/v1/publication/bookmark', { 
-        publicationId: pub._id,
-        folderName
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.data.success) {
+      const res = await feedService.toggleBookmark(pub._id, folderName);
+      if (res.success) {
         dispatch(toggleBookmarkInFeed(pub._id));
         dispatch(moveBookmarkInStore({ publicationId: pub._id, folderName }));
         setIsBookmarkModalOpen(false);
@@ -104,15 +92,9 @@ const PublicationCard = ({ pub }) => {
     if (!newCommentText.trim()) return;
 
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.post('http://localhost:5000/api/v1/publication/comment', {
-        publicationId: pub._id,
-        text: newCommentText.trim()
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await feedService.addComment(pub._id, newCommentText.trim());
 
-      if (res.data.success) {
+      if (res.success) {
         setNewCommentText('');
         toast.success('Comment posted!');
         // Reload comments
@@ -127,16 +109,9 @@ const PublicationCard = ({ pub }) => {
     if (!replyText.trim()) return;
 
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.post('http://localhost:5000/api/v1/publication/comment', {
-        publicationId: pub._id,
-        text: replyText.trim(),
-        parentId: commentId
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await feedService.addComment(pub._id, replyText.trim(), commentId);
 
-      if (res.data.success) {
+      if (res.success) {
         setReplyText('');
         setActiveReplyId(null);
         toast.success('Reply posted!');
@@ -149,16 +124,13 @@ const PublicationCard = ({ pub }) => {
 
   const handleLikeComment = async (commentId) => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.post(`http://localhost:5000/api/v1/comment/${commentId}/like`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.data.success) {
+      const res = await feedService.toggleLikeComment(commentId);
+      if (res.success) {
         dispatch(toggleLikeCommentSuccess({
           publicationId: pub._id,
           commentId,
-          likesCount: res.data.data.likesCount,
-          liked: res.data.data.liked,
+          likesCount: res.data.likesCount,
+          liked: res.data.liked,
           userId: user?._id
         }));
         fetchComments();

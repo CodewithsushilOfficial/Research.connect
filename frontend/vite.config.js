@@ -20,7 +20,7 @@ export default defineConfig(({ mode }) => {
       port: resolvedPort ,
       proxy: {
         '/api': {
-          target: env.VITE_API_BASE_URL || 'http://localhost:5000',
+          target: env.VITE_API_BASE_URL || 'http://127.0.0.1:5000',
           changeOrigin: true,
         },
       },
