@@ -46,7 +46,38 @@ class AuthService {
   }
 
   async getMe() {
-    return await axiosInstance.get('/v1/auth/me');
+    try {
+      return await axiosInstance.get('/v1/auth/me');
+    } catch (err) {
+      // If backend is not running during local development, provide a safe mock
+      // so the UI can render and be tested without an active API server.
+      // Preserve original error for non-development environments.
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('auth.getMe: backend unreachable, returning dev mock user');
+        return {
+          success: true,
+          data: {
+            user: {
+              id: 'dev-user',
+              _id: 'dev-user',
+              firstName: 'Tejas',
+              lastName: 'Patil',
+              email: 'tejas@example.com',
+              researcherType: 'academic',
+              country: 'India',
+              phone: ''
+            },
+            profile: {
+              profileCompletion: 60,
+              institution: 'Research Connect University',
+              department: 'Computer Science',
+              designation: 'Researcher'
+            }
+          }
+        };
+      }
+      throw err;
+    }
   }
 }
 

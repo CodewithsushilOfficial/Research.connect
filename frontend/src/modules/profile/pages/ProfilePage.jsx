@@ -302,7 +302,7 @@ const ProfilePage = () => {
             )}
 
             {/* Submit button */}
-            <div className="flex justify-end pt-4 border-t border-border">
+            <div className="flex flex-col gap-4 pt-4 border-t border-border">
               <Button
                 type="submit"
                 variant="primary"

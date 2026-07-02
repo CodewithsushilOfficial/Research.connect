@@ -18,6 +18,9 @@ import ForgotPasswordPage from '../modules/auth/pages/ForgotPasswordPage';
 import ResetPasswordPage from '../modules/auth/pages/ResetPasswordPage';
 import SuccessPage from '../modules/auth/pages/SuccessPage';
 import DashboardPage from '../modules/dashboard/pages/DashboardPage';
+import PublishResearchPage from '../modules/dashboard/pages/PublishResearchPage/PublishResearchPage';
+import PublicationListPage from '../modules/dashboard/pages/PublicationListPage/PublicationListPage';
+import SettingsPage from '../modules/dashboard/pages/SettingsPage/SettingsPage';
 import ProfilePage from '../modules/profile/pages/ProfilePage';
 
 const AppRoutes = () => {
@@ -69,13 +72,20 @@ const AppRoutes = () => {
         </ProtectedRoute>
       }>
         <Route path="dashboard" element={<DashboardPage />} />
+        <Route path="publish-research" element={<PublishResearchPage />} />
+        <Route path="publication" element={<PublicationListPage />} />
         <Route path="profile" element={<ProfilePage />} />
-        <Route path="publication" element={<ComingSoon title="Publication Management Coming Soon" />} />
-        <Route path="search" element={<ComingSoon title="Research Discovery Search Coming Soon" />} />
-        <Route path="settings" element={<ComingSoon title="System Settings Coming Soon" />} />
-        <Route path="notifications" element={<ComingSoon title="Notifications Center Coming Soon" />} />
-        <Route path="admin" element={<ComingSoon title="Administration Panel Coming Soon" />} />
-        <Route path="analytics" element={<ComingSoon title="System Analytics Coming Soon" />} />
+        <Route path="settings" element={<SettingsPage />} />
+        <Route path="discovery" element={<ComingSoon title="Discovery Feed Coming Soon" message="Discovery Feed will surface the latest research, recommended papers, and trending topics tailored to your interests." />} />
+        <Route path="projects" element={<ComingSoon title="Projects Coming Soon" message="Projects will let you manage research workspaces, milestones, and team collaborations in one place." />} />
+        <Route path="collaborations" element={<ComingSoon title="Collaborations Coming Soon" message="Collaborations will centralize joint research work, shared proposals, and partnership tools." />} />
+        <Route path="messages" element={<ComingSoon title="Messages Coming Soon" message="Messages will let you collaborate directly with colleagues, share updates, and manage research conversations." />} />
+        <Route path="notifications" element={<ComingSoon title="Notifications Center Coming Soon" message="Notifications will surface collaboration invites, system alerts, and research updates in one place." />} />
+        <Route path="bookmarks" element={<ComingSoon title="Bookmarks Coming Soon" message="Bookmarks will save publications, profiles, and important items for quick access later." />} />
+        <Route path="following" element={<ComingSoon title="Following Coming Soon" message="Following will help you track researchers, topics, and projects that matter to you." />} />
+        <Route path="followers" element={<ComingSoon title="Followers Coming Soon" message="Followers will show you who is following your profile, publications, and activity." />} />
+        <Route path="admin" element={<ComingSoon title="Administration Panel Coming Soon" message="Administration tools will give you access control, user management, and audit logs when enabled." />} />
+        <Route path="analytics" element={<ComingSoon title="System Analytics Coming Soon" message="Analytics will deliver research insights, usage metrics, and performance dashboards for your work." />} />
       </Route>
 
       {/* 404 & Wildcard Fallback */}

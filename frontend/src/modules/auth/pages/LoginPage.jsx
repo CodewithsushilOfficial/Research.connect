@@ -39,6 +39,9 @@ const LoginPage = () => {
         dispatch(setOtpEmail(response.data.email));
         dispatch(setOtpPurpose('login'));
         navigate('/otp');
+      } else if (response.success && !response.data?.requiresOtp) {
+        toast.success('Login succeeded. Redirecting...', { duration: 3000 });
+        navigate('/dashboard');
       }
     } catch (error) {
       // Error handled by axios interceptor toast

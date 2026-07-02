@@ -1,9 +1,18 @@
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
+const apiRoot = import.meta.env.VITE_API_BASE_URL?.trim() || '';
+const normalizedApiRoot = apiRoot.replace(/\/+$/, '');
+const baseURL = normalizedApiRoot
+  ? normalizedApiRoot.endsWith('/api')
+    ? normalizedApiRoot
+    : `${normalizedApiRoot}/api`
+  : '/api';
+
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  baseURL,
   timeout: 30000,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
@@ -52,15 +61,14 @@ axiosInstance.interceptors.response.use(
     };
 
     if (status === 401) {
-      // Token expired or invalid - redirect to login / clear local storage
+      // Token expired or invalid - clear stored auth and show user-facing error
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      
+      toast.error(error.response?.data?.message || 'Session expired. Please log in again.', toastStyle);
+
       // Prevent infinite loop if we are already attempting refresh or on login page
       if (!originalRequest._retry && !window.location.pathname.includes('/login')) {
         originalRequest._retry = true;
-        toast.error('Session expired. Please log in again.', toastStyle);
-        // Dispatch redirect to login in real implementation or route
         setTimeout(() => {
           window.location.href = '/login';
         }, 1500);

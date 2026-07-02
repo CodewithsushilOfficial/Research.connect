@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar, ArrowLeft } from 'lucide-react';
 import Button from '../common/buttons/Button';
 
-const ComingSoon = ({ title = 'Feature Coming Soon' }) => {
+const ComingSoon = ({ title = 'Feature Coming Soon', message = 'This module is under development and will include powerful collaboration tools, messaging, and analytics soon.' }) => {
   const navigate = useNavigate();
 
   return (
@@ -21,9 +21,13 @@ const ComingSoon = ({ title = 'Feature Coming Soon' }) => {
         <h1 className="text-3xl font-extrabold text-text-primary tracking-tight mb-3">
           {title}
         </h1>
-        <p className="text-sm text-text-secondary mb-8 leading-relaxed">
+        <p className="text-sm text-text-secondary mb-4 leading-relaxed">
           We are currently working hard to deliver this module. The architecture and schemas have been successfully created. Stay tuned for details in the next phase!
         </p>
+        <div className="mb-6 rounded-2xl border border-border bg-bg-card p-4 text-left">
+          <h3 className="text-sm font-semibold text-text-primary mb-2">Message Center</h3>
+          <p className="text-sm text-text-secondary leading-relaxed">{message}</p>
+        </div>
         <div className="flex flex-col gap-3">
           <Button
             variant="primary"

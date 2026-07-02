@@ -21,14 +21,20 @@ import {
   Compass 
 } from 'lucide-react';
 import authService from '../../../services/auth.service';
+import dashboardService from '../../../services/dashboard.service';
 import { setCredentials, logoutSuccess } from '../../../redux/slices/authSlice';
 import Button from '../../../components/common/buttons/Button';
+import PublishResearchPaper from '../../../components/common/buttons/PublishResearchPaper/PublishResearchPaper';
 
 const DashboardPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user, profile } = useSelector((state) => state.auth);
   const [fetching, setFetching] = useState(false);
+  const [metrics, setMetrics] = useState({ publications: 0, citations: 0, hIndex: 0, i10Index: 0 });
+  const [recommended, setRecommended] = useState([]);
+  const [trendingPubs, setTrendingPubs] = useState([]);
+  const [loadingDashboard, setLoadingDashboard] = useState(true);
 
   // Sync latest user and profile state from backend
   useEffect(() => {
@@ -50,7 +56,26 @@ const DashboardPage = () => {
       }
     };
 
+    const fetchDashboard = async () => {
+      setLoadingDashboard(true);
+      try {
+        const [ovr, rec, pubs] = await Promise.all([
+          dashboardService.getOverview(),
+          dashboardService.getRecommendedResearchers(),
+          dashboardService.getTrendingPublications()
+        ]);
+        if (ovr?.success && ovr.data?.metrics) setMetrics(ovr.data.metrics);
+        if (rec?.success && rec.data?.researchers) setRecommended(rec.data.researchers);
+        if (pubs?.success && pubs.data?.publications) setTrendingPubs(pubs.data.publications);
+      } catch (err) {
+        console.error('Failed to load dashboard data', err);
+      } finally {
+        setLoadingDashboard(false);
+      }
+    };
+
     fetchLatestData();
+    fetchDashboard();
   }, [dispatch]);
 
   const handleLogout = async () => {
@@ -106,20 +131,7 @@ const DashboardPage = () => {
         </div>
         
         <div className="flex gap-2">
-          <Button 
-            variant="secondary" 
-            onClick={() => navigate('/profile')}
-            icon={<Edit3 className="w-4 h-4" />}
-          >
-            Edit Profile
-          </Button>
-          <Button 
-            variant="danger" 
-            onClick={handleLogout}
-            icon={<LogOut className="w-4 h-4" />}
-          >
-            Logout
-          </Button>
+          <PublishResearchPaper onClick={() => navigate('/publish-research')} />
         </div>
       </div>
 
@@ -155,6 +167,34 @@ const DashboardPage = () => {
               <span className="text-xs text-blue-100 font-medium mt-1">Publications synced</span>
             </div>
           </motion.div>
+
+            {/* Recommended Colleagues */}
+            <div className="mt-4">
+              <h3 className="text-lg font-bold text-text-primary tracking-tight mb-2">Recommended Colleagues</h3>
+              <div className="flex gap-3 overflow-x-auto py-2">
+                {loadingDashboard ? (
+                  <div className="text-sm text-text-secondary">Loading recommendations...</div>
+                ) : recommended.length === 0 ? (
+                  <div className="bg-white rounded-2xl p-6 border border-border shadow-sm w-full text-center">No recommendations yet</div>
+                ) : (
+                  recommended.map(r => (
+                    <div key={r.id} className="bg-white border border-border rounded-2xl p-3 min-w-[220px]">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-sm font-semibold">{(r.name || '').split(' ').map(n=>n[0]).slice(0,2).join('')}</div>
+                        <div>
+                          <div className="font-semibold text-sm">{r.name}</div>
+                          <div className="text-xs text-text-secondary">{r.title} • {r.institution}</div>
+                        </div>
+                      </div>
+                      <div className="mt-3 flex gap-2">
+                        <button onClick={() => { toast.success(`Connection request sent to ${r.name}`); }} className="px-3 py-1 bg-primary text-white rounded-lg text-xs">Connect</button>
+                        <button onClick={() => navigate(`/profile?id=${encodeURIComponent(r.id)}`)} className="px-3 py-1 border border-border rounded-lg text-xs">View</button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
 
           {/* User Information */}
           <div className="bg-white rounded-2xl p-6 border border-border shadow-sm space-y-4">
@@ -207,6 +247,28 @@ const DashboardPage = () => {
 
         {/* Profile Completion & Quick Actions */}
         <div className="space-y-6">
+          {/* Academic Metrics */}
+          <div className="bg-white rounded-2xl p-4 border border-border shadow-sm">
+            <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider">Academic Metrics</h3>
+            <div className="grid grid-cols-2 gap-3 mt-3">
+              <div className="p-3 bg-bg-page rounded-lg text-center">
+                <div className="text-sm text-text-secondary">PUBLICATIONS</div>
+                <div className="text-2xl font-bold text-text-primary">{metrics.publications}</div>
+              </div>
+              <div className="p-3 bg-bg-page rounded-lg text-center">
+                <div className="text-sm text-text-secondary">CITATIONS</div>
+                <div className="text-2xl font-bold text-text-primary">{metrics.citations}</div>
+              </div>
+              <div className="p-3 bg-bg-page rounded-lg text-center">
+                <div className="text-sm text-text-secondary">H-INDEX</div>
+                <div className="text-2xl font-bold text-text-primary">{metrics.hIndex}</div>
+              </div>
+              <div className="p-3 bg-bg-page rounded-lg text-center">
+                <div className="text-sm text-text-secondary">I10-INDEX</div>
+                <div className="text-2xl font-bold text-text-primary">{metrics.i10Index}</div>
+              </div>
+            </div>
+          </div>
           
           {/* Profile Completion Tracker */}
           <div className="bg-white rounded-2xl p-6 border border-border shadow-sm flex flex-col items-center text-center">

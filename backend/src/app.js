@@ -14,6 +14,7 @@ const errorHandlerMiddleware = require('./common/middlewares/errorHandler.middle
 const landingModule = require('./modules/landing');
 const authModule = require('./modules/auth');
 const profileModule = require('./modules/profile');
+const dashboardModule = require('./modules/dashboard');
 
 const app = express();
 
@@ -44,6 +45,7 @@ app.use(responseFormatterMiddleware);
 app.use('/api', landingModule.routes);
 app.use('/api/v1/auth', authModule.routes);
 app.use('/api/v1/profile', profileModule.routes);
+app.use('/api/v1/dashboard', dashboardModule.routes);
 
 // Default root redirect to /api
 app.get('/', (req, res) => {

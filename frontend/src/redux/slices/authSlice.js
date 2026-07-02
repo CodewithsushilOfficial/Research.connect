@@ -3,12 +3,15 @@ import { createSlice } from '@reduxjs/toolkit';
 const token = localStorage.getItem('token') || null;
 let user = null;
 let profile = null;
+let publicationCount = 0;
 
 try {
   const savedUser = localStorage.getItem('user');
   if (savedUser) user = JSON.parse(savedUser);
   const savedProfile = localStorage.getItem('profile');
   if (savedProfile) profile = JSON.parse(savedProfile);
+  const savedPublicationCount = localStorage.getItem('publicationCount');
+  publicationCount = savedPublicationCount ? parseInt(savedPublicationCount, 10) || 0 : 0;
 } catch (e) {
   console.error('Error parsing stored auth data:', e);
 }
@@ -21,7 +24,8 @@ const initialState = {
   loading: false,
   error: null,
   otpEmail: localStorage.getItem('otpEmail') || null,
-  otpPurpose: localStorage.getItem('otpPurpose') || null
+  otpPurpose: localStorage.getItem('otpPurpose') || null,
+  publicationCount
 };
 
 const authSlice = createSlice({
@@ -74,6 +78,10 @@ const authSlice = createSlice({
         localStorage.removeItem('otpPurpose');
       }
     },
+    setPublicationCount(state, action) {
+      state.publicationCount = action.payload;
+      localStorage.setItem('publicationCount', action.payload.toString());
+    },
     setError(state, action) {
       state.error = action.payload;
       state.loading = false;
@@ -86,6 +94,7 @@ const authSlice = createSlice({
       state.error = null;
       state.otpEmail = null;
       state.otpPurpose = null;
+      state.publicationCount = 0;
       state.loading = false;
 
       localStorage.removeItem('token');
@@ -93,6 +102,7 @@ const authSlice = createSlice({
       localStorage.removeItem('profile');
       localStorage.removeItem('otpEmail');
       localStorage.removeItem('otpPurpose');
+      localStorage.removeItem('publicationCount');
     }
   }
 });
@@ -104,6 +114,7 @@ export const {
   updateUserState,
   setOtpEmail,
   setOtpPurpose,
+  setPublicationCount,
   setError,
   logoutSuccess
 } = authSlice.actions;

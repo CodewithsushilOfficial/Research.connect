@@ -5,14 +5,14 @@ import { toast } from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import { Share2, Lock, RefreshCw, Check } from 'lucide-react';
 import authService from '../../../services/auth.service';
-import { setCredentials, setOtpEmail } from '../../../redux/slices/authSlice';
+import { setCredentials } from '../../../redux/slices/authSlice';
 import Button from '../../../components/common/buttons/Button';
 
 const OtpVerificationPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   
-  const { otpEmail, otpPurpose } = useSelector((state) => state.auth);
+  const { otpEmail, otpPurpose, isAuthenticated } = useSelector((state) => state.auth);
   
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
@@ -21,13 +21,13 @@ const OtpVerificationPage = () => {
   
   const inputRefs = useRef([]);
 
-  // Redirect if no email is loaded in state
+  // Redirect to login only when this page has no pending OTP and the user is not authenticated
   useEffect(() => {
-    if (!otpEmail) {
+    if (!otpEmail && !isAuthenticated) {
       toast.error('Session expired. Please restart registration or login.');
       navigate('/login');
     }
-  }, [otpEmail, navigate]);
+  }, [otpEmail, isAuthenticated, navigate]);
 
   // Cooldown countdown timer
   useEffect(() => {
@@ -129,10 +129,11 @@ const OtpVerificationPage = () => {
       if (response && response.success) {
         toast.success(response.message || 'Verification successful!');
         dispatch(setCredentials(response.data));
-        
-        // Redirect based on whether user was pending (registration completion redirect to success page)
-        // Or if it was simple login redirect to dashboard
-        if (purpose === 'registration' || response.message?.toLowerCase().includes('registration') || response.message?.toLowerCase().includes('verified')) {
+
+        // Redirect based on the OTP flow purpose:
+        // - registration completes the onboarding flow
+        // - login goes straight to the dashboard
+        if (purpose === 'registration') {
           navigate('/success');
         } else {
           navigate('/dashboard');

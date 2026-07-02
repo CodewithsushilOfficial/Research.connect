@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Search, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
 import Button from '../../../components/common/buttons/Button';
@@ -6,10 +7,12 @@ import Button from '../../../components/common/buttons/Button';
 const Hero = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
+  const navigate = useNavigate();
+
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (searchQuery) {
-      alert(`Simulation search triggered for: "${searchQuery}". Semantics index logic will launch in Phase 3.`);
+      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
     }
   };
 
