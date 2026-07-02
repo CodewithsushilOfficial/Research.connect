@@ -5,7 +5,6 @@ import { motion as motionFramer, AnimatePresence as AnimatePresenceFramer } from
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { 
-  Sparkles, 
   BookOpen, 
   MapPin, 
   Globe, 
@@ -895,31 +894,7 @@ const ProfilePage = () => {
             )}
           </div>
 
-          {/* AI recommendations */}
-          <div className="bg-gradient-to-br from-slate-900 to-indigo-950 border border-slate-800 text-white rounded-2xl p-5 shadow-lg space-y-4">
-            <div className="flex items-center gap-2 text-indigo-400">
-              <Sparkles className="w-4 h-4 animate-pulse" />
-              <h4 className="text-xs font-bold uppercase tracking-wider">AI Recommendations</h4>
-            </div>
-
-            <div className="space-y-3 pt-2">
-              <div className="space-y-1">
-                <p className="text-[10px] text-slate-400 font-bold uppercase">NLP Matches</p>
-                <div className="text-[11px] font-semibold text-slate-200">
-                  <p className="hover:underline cursor-pointer">Dr. Sarah Connor (Stanford)</p>
-                  <p className="hover:underline cursor-pointer">Prof. Alan Turing (Cambridge)</p>
-                </div>
-              </div>
-
-              <div className="space-y-1 pt-1.5 border-t border-slate-800">
-                <p className="text-[10px] text-slate-400 font-bold uppercase">Relevant Journals</p>
-                <div className="text-[11px] font-semibold text-slate-200">
-                  <p className="hover:underline cursor-pointer">IEEE Transactions on Pattern Analysis</p>
-                  <p className="hover:underline cursor-pointer">Nature Machine Intelligence</p>
-                </div>
-              </div>
-            </div>
-          </div>
+      
         </div>
 
       </div>
