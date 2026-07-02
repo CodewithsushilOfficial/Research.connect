@@ -18,7 +18,6 @@ import OtpVerificationPage from '../modules/authentication/pages/OtpVerification
 import ForgotPasswordPage from '../modules/authentication/pages/ForgotPasswordPage';
 import ResetPasswordPage from '../modules/authentication/pages/ResetPasswordPage';
 import SuccessPage from '../modules/authentication/pages/SuccessPage';
-import AiWorkspacePage from '../modules/ai-workspace/pages/AiWorkspacePage';
 import ProfilePage from '../modules/profile/pages/ProfilePage';
 import ResearchIdentityPage from '../modules/profile/pages/ResearchIdentityPage';
 import ProfileRedirect from '../modules/profile/components/ProfileRedirect';
@@ -27,6 +26,22 @@ import PublicationDetailPage from '../modules/publication/pages/PublicationDetai
 import PublicationsLibraryPage from '../modules/publication/pages/PublicationsLibraryPage';
 import PublicationEditPage from '../modules/publication/pages/PublicationEditPage';
 import MessagesRoute from './MessagesRoute';
+
+// AI Workspace Lazy Components
+const AIWorkspace = React.lazy(() => import('../modules/ai-workspace/pages/AIWorkspace'));
+const LiteratureReview = React.lazy(() => import('../modules/ai-workspace/pages/LiteratureReview'));
+const ResearchAssistant = React.lazy(() => import('../modules/ai-workspace/pages/ResearchAssistant'));
+const PaperSummary = React.lazy(() => import('../modules/ai-workspace/pages/PaperSummary'));
+const CitationGenerator = React.lazy(() => import('../modules/ai-workspace/pages/CitationGenerator'));
+const ResearchGap = React.lazy(() => import('../modules/ai-workspace/pages/ResearchGap'));
+const MethodologyGenerator = React.lazy(() => import('../modules/ai-workspace/pages/MethodologyGenerator'));
+const PaperReviewer = React.lazy(() => import('../modules/ai-workspace/pages/PaperReviewer'));
+const ProposalGenerator = React.lazy(() => import('../modules/ai-workspace/pages/ProposalGenerator'));
+const ThesisAssistant = React.lazy(() => import('../modules/ai-workspace/pages/ThesisAssistant'));
+const PDFChat = React.lazy(() => import('../modules/ai-workspace/pages/PDFChat'));
+const DatasetFinder = React.lazy(() => import('../modules/ai-workspace/pages/DatasetFinder'));
+const JournalRecommendation = React.lazy(() => import('../modules/ai-workspace/pages/JournalRecommendation'));
+const ConferenceRecommendation = React.lazy(() => import('../modules/ai-workspace/pages/ConferenceRecommendation'));
 
 const AppRoutes = () => {
   return (
@@ -74,7 +89,6 @@ const AppRoutes = () => {
           <DashboardLayout />
         </ProtectedRoute>
       }>
-        <Route path="ai-workspace" element={<AiWorkspacePage />} />
         <Route path="profile" element={<ProfileRedirect />} />
         <Route path="research-identity" element={<ResearchIdentityPage />} />
         <Route path="publications/create" element={<PublicationCreatePage />} />
@@ -95,8 +109,32 @@ const AppRoutes = () => {
         <Route path="analytics" element={<ComingSoon title="System Analytics Coming Soon" />} />
       </Route>
 
-      {/* Public Profile Route */}
+      {/* Public Profile & AI Workspace Route */}
       <Route element={<DashboardLayout />}>
+        <Route path="ai-workspace" element={
+          <React.Suspense fallback={
+            <div className="flex items-center justify-center min-h-[400px]">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-650"></div>
+            </div>
+          }>
+            <AIWorkspace />
+          </React.Suspense>
+        }>
+          <Route index element={<Navigate to="literature-review" replace />} />
+          <Route path="literature-review" element={<LiteratureReview />} />
+          <Route path="research-assistant" element={<ResearchAssistant />} />
+          <Route path="paper-summary" element={<PaperSummary />} />
+          <Route path="citation-generator" element={<CitationGenerator />} />
+          <Route path="research-gap" element={<ResearchGap />} />
+          <Route path="methodology-generator" element={<MethodologyGenerator />} />
+          <Route path="paper-reviewer" element={<PaperReviewer />} />
+          <Route path="proposal-generator" element={<ProposalGenerator />} />
+          <Route path="thesis-assistant" element={<ThesisAssistant />} />
+          <Route path="pdf-chat" element={<PDFChat />} />
+          <Route path="dataset-finder" element={<DatasetFinder />} />
+          <Route path="journal-recommendation" element={<JournalRecommendation />} />
+          <Route path="conference-recommendation" element={<ConferenceRecommendation />} />
+        </Route>
         <Route path="/profile/:profileSlug" element={<ProfilePage />} />
         <Route path="/profile/:profileSlug/publications" element={<PublicationsLibraryPage />} />
         <Route path="/profile/:profileSlug/projects" element={<ComingSoon title="Researcher Projects Coming Soon" />} />

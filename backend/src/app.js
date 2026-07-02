@@ -18,6 +18,7 @@ const scholarModule = require("./modules/scholar");
 const feedModule = require("./modules/feed");
 const publicationModule = require("./modules/publication");
 const messageModule = require("./modules/message");
+const aiModule = require("./modules/ai");
 
 const app = express();
 
@@ -61,6 +62,7 @@ app.use("/api/v1", scholarModule.routes);
 app.use("/api/v1", feedModule.routes);
 app.use("/api/v1/publications", publicationModule.routes);
 app.use("/api/v1/messages", messageModule.routes);
+app.use("/api/v1/ai", aiModule.routes);
 
 // Default root redirect to /api
 app.get("/", (req, res) => {

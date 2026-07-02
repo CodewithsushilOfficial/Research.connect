@@ -11,6 +11,10 @@ const startServer = async () => {
     // 1. Establish Database Connection
     await connectDB();
 
+    // Seed AI Templates
+    const seederService = require('./modules/ai/services/seeder.service');
+    await seederService.seedTemplates();
+
     // 2. Sync database indexes
     if (process.env.NODE_ENV !== 'test') {
       await syncDatabaseIndexes();

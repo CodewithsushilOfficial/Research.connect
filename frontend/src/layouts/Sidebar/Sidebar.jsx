@@ -7,7 +7,8 @@ import {
   Home, User, Compass, FileText, Briefcase, 
   Users, MessageSquare, Bell, Bookmark, UserCheck, 
   UserPlus, Settings, LogOut, Upload, ChevronLeft, 
-  ChevronRight, Share2, BarChart2, Globe, Database, HelpCircle
+  ChevronRight, Share2, BarChart2, Globe, Database, HelpCircle,
+  Brain
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -19,6 +20,7 @@ const Sidebar = () => {
 
   const links = [
     { name: 'Home Feed', path: '/', icon: Home },
+    { name: 'AI Workspace', path: '/ai-workspace', icon: Brain },
     { name: 'Profile', path: user?.profileSlug ? `/profile/${user.profileSlug}` : '/profile', icon: User },
     { name: 'Research Identity', path: '/research-identity', icon: Globe },
     { name: 'Publications', path: user?.profileSlug ? `/profile/${user.profileSlug}/publications` : '/profile', icon: FileText },
