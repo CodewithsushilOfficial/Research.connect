@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useEffect, useRef } from 'react';
 
 const Checkbox = forwardRef(({
   label,
@@ -7,13 +7,34 @@ const Checkbox = forwardRef(({
   required = false,
   className = '',
   disabled = false,
+  indeterminate = false, // New feature prop
   ...props
 }, ref) => {
+  // Create an internal ref to access the DOM node for the indeterminate assignment
+  const internalRef = useRef(null);
+
+  // Sync the external forwarded ref with our internal ref
+  useEffect(() => {
+    if (!ref) return;
+    if (typeof ref === 'function') {
+      ref(internalRef.current);
+    } else {
+      ref.current = internalRef.current;
+    }
+  }, [ref]);
+
+  // Handle the imperative DOM assignment for the indeterminate property
+  useEffect(() => {
+    if (internalRef.current) {
+      internalRef.current.indeterminate = indeterminate;
+    }
+  }, [indeterminate]);
+
   return (
     <div className={`flex flex-col space-y-1 ${className}`}>
-      <label className="inline-flex items-start gap-2.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+      <label className={`inline-flex items-start gap-2.5 cursor-pointer ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
         <input
-          ref={ref}
+          ref={internalRef}
           type="checkbox"
           name={name}
           disabled={disabled}

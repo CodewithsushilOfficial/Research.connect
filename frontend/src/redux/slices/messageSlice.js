@@ -1,52 +1,84 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import messageService from '../../services/message.service';
 
 const initialState = {
-  conversations: [
-    {
-      id: 'conv_1',
-      type: 'one_to_one',
-      name: 'Sarah Jenkins',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
-      status: 'online',
-      messages: [
-        { senderId: 'sarah', text: 'Hi, I saw your latest paper on attention models. Excellent work!', time: '10:30 AM' },
-        { senderId: 'me', text: 'Thank you Sarah! I really appreciate your feedback.', time: '10:32 AM' }
-      ]
-    },
-    {
-      id: 'conv_2',
-      type: 'group',
-      name: 'Quantum Chemistry Lab',
-      avatar: 'https://images.unsplash.com/photo-1532187643603-ba119ca4109e?w=150',
-      messages: [
-        { senderId: 'david', text: 'Did anyone get the error mitigation script to run?', time: 'Yesterday' },
-        { senderId: 'elena', text: 'Yes, ZNE compiling worked well for me on 50 qubits.', time: 'Yesterday' }
-      ]
-    }
-  ],
-  activeConversationId: 'conv_1',
+  conversations: [],
+  messagesByConversation: {},
+  activeConversationId: null,
   chatOpen: false,
   meetingActive: false,
-  meetingRoomId: ''
+  meetingRoomId: '',
+  loading: false,
+  sending: false,
+  error: null
 };
+
+export const fetchConversations = createAsyncThunk(
+  'message/fetchConversations',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await messageService.getConversations();
+      return response.data || [];
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  }
+);
+
+export const createConversation = createAsyncThunk(
+  'message/createConversation',
+  async (participantId, { rejectWithValue }) => {
+    try {
+      const response = await messageService.createConversation(participantId);
+      return response.data || null;
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  }
+);
+
+export const fetchMessages = createAsyncThunk(
+  'message/fetchMessages',
+  async (conversationId, { rejectWithValue }) => {
+    try {
+      const response = await messageService.getMessages(conversationId);
+      return { conversationId, messages: response.data || [] };
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  }
+);
+
+export const sendMessageToConversation = createAsyncThunk(
+  'message/sendMessageToConversation',
+  async ({ conversationId, content, attachments = [] }, { rejectWithValue }) => {
+    try {
+      const response = await messageService.sendMessage(conversationId, content, attachments);
+      return { conversationId, message: response.data || null };
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  }
+);
+
+export const markConversationRead = createAsyncThunk(
+  'message/markConversationRead',
+  async (conversationId, { rejectWithValue }) => {
+    try {
+      await messageService.markConversationRead(conversationId);
+      return conversationId;
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  }
+);
 
 const messageSlice = createSlice({
   name: 'message',
   initialState,
   reducers: {
-    setConversations(state, action) {
-      state.conversations = action.payload;
-    },
     setActiveConversationId(state, action) {
       state.activeConversationId = action.payload;
-    },
-    sendMessage(state, action) {
-      const { convId, text, senderId = 'me', attachment } = action.payload;
-      const conversation = state.conversations.find(c => c.id === convId);
-      if (conversation) {
-        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        conversation.messages.push({ senderId, text, time, attachment });
-      }
     },
     setChatOpen(state, action) {
       state.chatOpen = action.payload;
@@ -57,13 +89,62 @@ const messageSlice = createSlice({
     setMeetingRoomId(state, action) {
       state.meetingRoomId = action.payload;
     }
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchConversations.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchConversations.fulfilled, (state, action) => {
+        const payload = action.payload;
+        state.conversations = Array.isArray(payload)
+          ? payload
+          : payload?.docs || [];
+        state.loading = false;
+        if (!state.activeConversationId && state.conversations.length) {
+          state.activeConversationId = state.conversations[0]._id || state.conversations[0].id;
+        }
+      })
+      .addCase(fetchConversations.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || 'Failed to load conversations';
+      })
+      .addCase(createConversation.fulfilled, (state, action) => {
+        const conversation = action.payload;
+        if (conversation) {
+          state.conversations = [conversation, ...state.conversations.filter((item) => (item._id || item.id) !== (conversation._id || conversation.id))];
+          state.activeConversationId = conversation._id || conversation.id;
+        }
+      })
+      .addCase(fetchMessages.fulfilled, (state, action) => {
+        const { conversationId, messages } = action.payload;
+        const normalizedMessages = Array.isArray(messages) ? messages : messages?.docs || [];
+        state.messagesByConversation[conversationId] = normalizedMessages;
+      })
+      .addCase(sendMessageToConversation.pending, (state) => {
+        state.sending = true;
+      })
+      .addCase(sendMessageToConversation.fulfilled, (state, action) => {
+        const { conversationId, message } = action.payload;
+        if (message) {
+          const currentMessages = state.messagesByConversation[conversationId] || [];
+          state.messagesByConversation[conversationId] = [...currentMessages, message];
+        }
+        state.sending = false;
+      })
+      .addCase(sendMessageToConversation.rejected, (state) => {
+        state.sending = false;
+        state.error = 'Failed to send message';
+      })
+      .addCase(markConversationRead.fulfilled, (state) => {
+        state.error = null;
+      });
   }
 });
 
 export const {
-  setConversations,
   setActiveConversationId,
-  sendMessage,
   setChatOpen,
   toggleMeeting,
   setMeetingRoomId
