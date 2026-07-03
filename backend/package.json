@@ -45,6 +45,7 @@
     "pdf2json": "^4.0.3",
     "pdfreader": "^3.0.8",
     "slugify": "^1.6.9",
+    "socket.io": "^4.8.3",
     "stopword": "^3.1.5",
     "tesseract.js": "^7.0.0",
     "uuid": "^14.0.1",
