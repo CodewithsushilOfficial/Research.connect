@@ -23,7 +23,10 @@ const AuthenticatedNavbar = () => {
   const { user, profile } = useSelector((state) => state.auth);
   const searchState = useSelector((state) => state.search);
   const queryClient = useQueryClient();
-
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestions, setSuggestions] = useState(null);
+  const [isSearchingSuggestions, setIsSearchingSuggestions] = useState(false);
+  
   // Fetch pending received connection requests
   const { data: receivedRequests } = useQuery({
     queryKey: ['connectionRequests', 'received'],
@@ -74,6 +77,8 @@ const AuthenticatedNavbar = () => {
   const notifRef = useRef(null);
   const reqRef = useRef(null);
   const searchContainerRef = useRef(null);
+
+  
 
   // Close dropdowns and suggestions on outside click
   useEffect(() => {
