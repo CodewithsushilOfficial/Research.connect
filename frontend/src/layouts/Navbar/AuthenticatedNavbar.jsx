@@ -7,7 +7,7 @@ import { setQuery } from '../../redux/slices/searchSlice';
 import { setChatOpen } from '../../redux/slices/messageSlice';
 import { 
   Bell, MessageSquare, UserPlus, Plus, ChevronDown, 
-  Search, LogOut, User, Compass,
+  Search, LogOut, User, Compass, X,
   FileText, Briefcase, Award, Settings, BookOpen, HelpCircle,
   Share2, Users, Bookmark
 } from 'lucide-react';
@@ -24,6 +24,7 @@ const AuthenticatedNavbar = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [reqOpen, setReqOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   const profileRef = useRef(null);
   const createRef = useRef(null);
@@ -79,15 +80,39 @@ const AuthenticatedNavbar = () => {
   return (
     <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm transition-all duration-300">
       <div className="max-w-[95%] xl:max-w-[92%] mx-auto px-2 sm:px-4 lg:px-6">
+        {mobileSearchOpen ? (
+          <div className="flex items-center h-16 gap-2 md:hidden">
+            <form onSubmit={handleSearchSubmit} className="flex-grow relative">
+              <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-slate-400">
+                <Search className="w-4 h-4" />
+              </div>
+              <input
+                autoFocus
+                type="text"
+                placeholder="Search researchers, papers..."
+                value={searchState.query}
+                onChange={handleSearchChange}
+                className="w-full pl-11 pr-4 py-2.5 rounded-full border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent text-slate-950 placeholder-slate-400"
+              />
+            </form>
+            <button
+              onClick={() => setMobileSearchOpen(false)}
+              className="flex-shrink-0 p-2.5 rounded-full hover:bg-slate-100 text-slate-500"
+              aria-label="Close search"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        ) : (
         <div className="flex items-center justify-between h-16 gap-4">
           
           {/* Logo */}
-          <div className="flex-shrink-0 flex items-center">
-            <Link to="/" className="flex items-center gap-2">
-              <span className="p-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex items-center justify-center">
+          <div className="flex-shrink-0 flex items-center -ml-2">
+            <Link to="/" className="flex items-center gap-1.5">
+              <span className="hidden sm:flex p-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white items-center justify-center">
                 <Share2 className="w-5 h-5" />
               </span>
-              <span className="font-bold text-xl tracking-tight text-slate-900 hidden sm:block">
+              <span className="font-bold text-sm sm:text-xl tracking-tight text-slate-900">
                 Research <span className="text-blue-600">Connect</span>
               </span>
             </Link>
@@ -115,13 +140,22 @@ const AuthenticatedNavbar = () => {
           </form>
 
           {/* Utility Buttons */}
-          <div className="flex items-center space-x-2 sm:space-x-3">
+          <div className="flex items-center space-x-0.5 sm:space-x-2">
             
+            {/* Mobile Search Trigger */}
+            <button
+              onClick={() => setMobileSearchOpen(true)}
+              className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 transition-all md:hidden"
+              aria-label="Search"
+            >
+              <Search className="w-5 h-5" />
+            </button>
+
             {/* Create Dropdown */}
             <div className="relative" ref={createRef}>
               <button
                 onClick={() => setCreateOpen(!createOpen)}
-                className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm px-3.5 py-2 rounded-lg shadow-sm active:scale-[0.98] transition-all"
+                className="flex items-center gap-0.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm px-2 sm:px-3.5 py-1.5 sm:py-2 rounded-lg shadow-sm active:scale-[0.98] transition-all"
               >
                 <Plus className="w-4 h-4" />
                 <span className="hidden sm:inline">Create</span>
@@ -161,7 +195,7 @@ const AuthenticatedNavbar = () => {
             </div>
 
             {/* Requests Popover */}
-            <div className="relative" ref={reqRef}>
+            <div className="relative hidden sm:block" ref={reqRef}>
               <button
                 onClick={() => setReqOpen(!reqOpen)}
                 className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 transition-all relative"
@@ -226,6 +260,14 @@ const AuthenticatedNavbar = () => {
                       </div>
                     ))}
                   </div>
+                  <div className="sm:hidden mt-3 pt-3 border-t border-slate-100">
+                    <button
+                      onClick={() => { setNotifOpen(false); setReqOpen(true); }}
+                      className="w-full flex items-center justify-center gap-1.5 text-xs font-bold text-slate-600 bg-slate-50 py-2 rounded-lg"
+                    >
+                      <UserPlus className="w-3.5 h-3.5" /> Requests
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -234,12 +276,12 @@ const AuthenticatedNavbar = () => {
             <div className="relative" ref={profileRef}>
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center gap-2 p-1 pr-2.5 rounded-full border border-slate-200 hover:border-blue-600 hover:bg-slate-50 focus:outline-none transition-all shadow-sm duration-200 group"
+                className="flex items-center gap-1.5 p-0.5 sm:p-1 pr-1.5 sm:pr-2.5 rounded-full border border-slate-200 hover:border-blue-600 hover:bg-slate-50 focus:outline-none transition-all shadow-sm duration-200 group"
               >
                 <img
                   src={profile?.profileImage || user?.profileImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"}
                   alt="Avatar"
-                  className="w-8 h-8 rounded-full object-cover ring-2 ring-transparent group-hover:ring-blue-100 transition-all shrink-0"
+                  className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover ring-2 ring-transparent group-hover:ring-blue-100 transition-all shrink-0"
                 />
                 <span className="hidden lg:block text-xs font-bold text-slate-700 group-hover:text-blue-600 max-w-[90px] truncate transition-colors duration-150">
                   {user?.fullName?.split(' ')[0] || 'Scholar'}
@@ -281,6 +323,7 @@ const AuthenticatedNavbar = () => {
           </div>
 
         </div>
+        )}
       </div>
     </nav>
   );
