@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useRef, useCallback, useEffect } f
 import { messagingApi } from '../services/messagingApi';
 import { eventBus } from '../services/eventBus';
 import { toast } from 'react-hot-toast';
-import { CURRENT_USER, MOCK_CONVERSATIONS, MOCK_MESSAGES_P0, MOCK_MESSAGES_P1 } from '../data/mockData';
+import { CURRENT_USER, MOCK_CONVERSATIONS, MOCK_MESSAGES_P0, MOCK_MESSAGES_P1, MOCK_USERS } from '../data/mockData';
 
 // ─── Context ─────────────────────────────────────────────────────────────────
 const MessagingContext = createContext(null);
@@ -48,6 +48,47 @@ export function MessagingProvider({ children }) {
   }, [loadConversations]);
 
   const createConversation = useCallback(async (participantId) => {
+    if (String(participantId).startsWith('user-')) {
+      const mockUser = MOCK_USERS[participantId];
+      if (!mockUser) {
+        throw new Error('User not found');
+      }
+
+      const existingConv = conversations.find(c =>
+        !c.isGroup && c.participants.some(p => p.id === participantId)
+      );
+      if (existingConv) {
+        setActiveConversationId(existingConv.id);
+        return existingConv;
+      }
+
+      const newMockConv = {
+        id: `conv-mock-${Date.now()}`,
+        isGroup: false,
+        participants: [CURRENT_USER, mockUser],
+        lastMessage: {
+          content: "Chat started",
+          timestamp: new Date().toISOString(),
+          senderName: 'You',
+        },
+        unreadCount: 0,
+      };
+
+      setConversations((prev) => [newMockConv, ...prev]);
+      setActiveConversationId(newMockConv.id);
+      setMessages((prev) => {
+        const next = new Map(prev);
+        next.set(newMockConv.id, []);
+        return next;
+      });
+      setMessagesMeta((prev) => {
+        const next = new Map(prev);
+        next.set(newMockConv.id, { page: 0, hasMore: false, isLoadingMore: false, isLoading: false });
+        return next;
+      });
+      return newMockConv;
+    }
+
     const conversation = await messagingApi.createConversation(participantId);
     setConversations((prev) => [
       conversation,
@@ -67,7 +108,7 @@ export function MessagingProvider({ children }) {
       return next;
     });
     return conversation;
-  }, []);
+  }, [conversations]);
 
   // ── Koi chat select karo ─────────────────────────────────────────────────
   const selectConversation = useCallback(async (convId) => {

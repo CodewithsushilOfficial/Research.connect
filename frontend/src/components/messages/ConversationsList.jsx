@@ -4,6 +4,7 @@ import { ConversationSkeleton } from './Skeletons';
 import ConversationItem from './ConversationItem';
 import { CURRENT_USER } from '../../data/mockData';
 import { MessageSquare, Search, X } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 export default function ConversationsList() {
   const {
@@ -11,10 +12,28 @@ export default function ConversationsList() {
     activeConversationId,
     selectConversation,
     isLoadingConversations,
-    loadConversations
+    loadConversations,
+    createConversation
   } = useMessaging();
 
   const [filterQuery, setFilterQuery] = useState('');
+  const [userIdInput, setUserIdInput] = useState('');
+  const [isStartingChat, setIsStartingChat] = useState(false);
+
+  const handleStartChat = async (e) => {
+    e.preventDefault();
+    if (!userIdInput.trim()) return;
+    setIsStartingChat(true);
+    try {
+      await createConversation(userIdInput.trim());
+      setUserIdInput('');
+      toast.success('Conversation started!');
+    } catch (err) {
+      toast.error(err.message || 'Failed to start chat. Check the User ID.');
+    } finally {
+      setIsStartingChat(false);
+    }
+  };
 
   const filteredConversations = conversations.filter(conv => {
     let displayName = '';
@@ -70,6 +89,28 @@ export default function ConversationsList() {
             </button>
           )}
         </div>
+      </div>
+
+      {/* Start Chat by User ID */}
+      <div className="px-5 py-3 border-b border-[#E8EDF5] bg-[#F8FAFC]/50 flex-shrink-0">
+        <form onSubmit={handleStartChat} className="flex gap-2">
+          <div className="flex-1 flex items-center bg-white rounded-xl px-3.5 py-2 border border-[#E2E8F0] focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400 transition-all duration-200 shadow-sm">
+            <input
+              type="text"
+              value={userIdInput}
+              onChange={(e) => setUserIdInput(e.target.value)}
+              placeholder="Start chat with user ID..."
+              className="w-full bg-transparent outline-none text-xs text-[#0F172A] placeholder-[#94A3B8]"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={isStartingChat}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm active:scale-95 transition-all flex-shrink-0 disabled:opacity-50"
+          >
+            {isStartingChat ? '...' : 'Chat'}
+          </button>
+        </form>
       </div>
 
       {/* List */}
