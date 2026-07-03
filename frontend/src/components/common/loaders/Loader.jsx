@@ -4,7 +4,8 @@ const Loader = ({
   size = 'md', // 'sm', 'md', 'lg'
   color = 'primary', // 'primary', 'white'
   fullPage = false,
-  className = ''
+  className = '',
+  label = '' // New Feature: Optional text label
 }) => {
   const sizeClasses = {
     sm: 'w-6 h-6 border-2',
@@ -13,16 +14,18 @@ const Loader = ({
   };
 
   const colorClasses = {
-    primary: 'border-primary/20 border-t-primary',
-    white: 'border-white/20 border-t-white'
+    primary: 'border-primary/20 border-t-primary text-primary',
+    white: 'border-white/20 border-t-white text-white'
   };
 
   const loaderElement = (
-    <div
-      className={`rounded-full animate-spin ${sizeClasses[size]} ${colorClasses[color]} ${className}`}
-      role="status"
-    >
-      <span className="sr-only">Loading...</span>
+    <div className={`flex flex-col items-center gap-3 ${className}`}>
+      <div
+        className={`rounded-full animate-spin ${sizeClasses[size]} ${colorClasses[color]}`}
+        role="status"
+        aria-label={label || "Loading..."}
+      />
+      {label && <span className={`text-sm font-medium ${colorClasses[color].split(' ').pop()}`}>{label}</span>}
     </div>
   );
 
@@ -34,6 +37,10 @@ const Loader = ({
     );
   }
 
+  return <div className="flex items-center justify-center">{loaderElement}</div>;
+};
+
+export default Loader;
   return <div className="flex items-center justify-center">{loaderElement}</div>;
 };
 
