@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useRef, useCallback, useEffect } f
 import { messagingApi } from '../services/messagingApi';
 import { eventBus } from '../services/eventBus';
 import { toast } from 'react-hot-toast';
-import { CURRENT_USER } from '../data/mockData';
+import { CURRENT_USER, MOCK_CONVERSATIONS, MOCK_MESSAGES_P0, MOCK_MESSAGES_P1 } from '../data/mockData';
 
 // ─── Context ─────────────────────────────────────────────────────────────────
 const MessagingContext = createContext(null);
@@ -30,9 +30,13 @@ export function MessagingProvider({ children }) {
     setIsLoadingConversations(true);
     try {
       const convs = await messagingApi.getConversations();
-      setConversations(convs);
+      if (!convs || convs.length === 0) {
+        setConversations(MOCK_CONVERSATIONS);
+      } else {
+        setConversations(convs);
+      }
     } catch {
-      toast.error('Failed to load conversations');
+      setConversations(MOCK_CONVERSATIONS);
     } finally {
       setIsLoadingConversations(false);
     }
@@ -83,10 +87,20 @@ export function MessagingProvider({ children }) {
         return next;
       });
       try {
-        const { messages: msgs, hasMore } = await messagingApi.getMessages(convId, 0);
+        let msgs = [];
+        let hasMore = false;
+        if (String(convId).startsWith('conv-')) {
+          msgs = MOCK_MESSAGES_P0[convId] || [];
+          hasMore = convId === 'conv-1';
+        } else {
+          const res = await messagingApi.getMessages(convId, 0);
+          msgs = res.messages;
+          hasMore = res.hasMore;
+        }
+
         setMessages((prev) => {
           const next = new Map(prev);
-          next.set(convId, [...msgs].reverse()); // chronological order
+          next.set(convId, String(convId).startsWith('conv-') ? [...msgs] : [...msgs].reverse()); // chronological order
           return next;
         });
         setMessagesMeta((prev) => {
@@ -118,10 +132,23 @@ export function MessagingProvider({ children }) {
     });
 
     try {
-      const { messages: olderMsgs, hasMore } = await messagingApi.getMessages(convId, nextPage);
+      let olderMsgs = [];
+      let hasMore = false;
+      if (String(convId).startsWith('conv-')) {
+        if (convId === 'conv-1' && nextPage === 1) {
+          olderMsgs = MOCK_MESSAGES_P1['conv-1'] || [];
+        }
+        hasMore = false;
+      } else {
+        const res = await messagingApi.getMessages(convId, nextPage);
+        olderMsgs = res.messages;
+        hasMore = res.hasMore;
+      }
+
       setMessages((prev) => {
         const next = new Map(prev);
-        next.set(convId, [...[...olderMsgs].reverse(), ...(prev.get(convId) || [])]);
+        const current = prev.get(convId) || [];
+        next.set(convId, String(convId).startsWith('conv-') ? [...olderMsgs, ...current] : [...[...olderMsgs].reverse(), ...current]);
         return next;
       });
       setMessagesMeta((prev) => {
@@ -164,7 +191,17 @@ export function MessagingProvider({ children }) {
     });
 
     try {
-      const realMsg = await messagingApi.sendMessage(convId, content, attachments);
+      let realMsg;
+      if (String(convId).startsWith('conv-')) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        realMsg = {
+          ...tempMsg,
+          id: `msg-${Date.now()}`,
+          pending: false,
+        };
+      } else {
+        realMsg = await messagingApi.sendMessage(convId, content, attachments);
+      }
 
       // 2. Server se confirm hone pe purana temp message asli wale se badal do
       setMessages((prev) => {
