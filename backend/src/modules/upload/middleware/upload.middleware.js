@@ -50,7 +50,7 @@ const validateUpload = (req, res, next) => {
   const purpose = req.body.purpose || req.query.purpose || '';
   const isImagePurpose = [
     'profile-avatar', 'profile-banner', 'publication-cover',
-    'project-image', 'community-banner', 'institution-logo', 'book-cover'
+    'project-image', 'institution-logo', 'book-cover'
   ].includes(purpose) || req.file.mimetype.startsWith('image/');
 
   if (isImagePurpose && req.file.size > 10 * 1024 * 1024) {

@@ -137,9 +137,12 @@ class AuthService {
     const otpCode = this._generateOtp();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
 
+    const otpSalt = await bcrypt.genSalt(10);
+    const hashedOtp = await bcrypt.hash(otpCode, otpSalt);
+
     await EmailOtp.create({
       email: email.toLowerCase(),
-      otp: otpCode,
+      otp: hashedOtp,
       purpose: 'registration',
       expiresAt
     });
@@ -168,9 +171,12 @@ class AuthService {
     const otpCode = this._generateOtp();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
+    const salt = await bcrypt.genSalt(10);
+    const hashedOtp = await bcrypt.hash(otpCode, salt);
+
     await EmailOtp.create({
       email: email.toLowerCase(),
-      otp: otpCode,
+      otp: hashedOtp,
       purpose: 'registration',
       expiresAt
     });
@@ -209,7 +215,8 @@ class AuthService {
     }
 
     // Code Verification
-    if (otpRecord.otp !== otpCode) {
+    const isOtpMatch = await bcrypt.compare(otpCode, otpRecord.otp);
+    if (!isOtpMatch) {
       otpRecord.attempts += 1;
       await otpRecord.save();
       throw new AppError('Invalid verification code. Please try again.', 400, 'INVALID_OTP');
@@ -222,6 +229,8 @@ class AuthService {
     // Activate User
     user.status = 'active';
     user.emailVerified = true;
+    user.otpVerified = true;
+    user.verifiedAt = new Date();
     user.isActive = true;
     await user.save();
 
@@ -267,6 +276,10 @@ class AuthService {
     const accessToken = signAccessToken({ userId: user._id, role: user.role, sessionId: session._id });
     const refreshTokenValue = signRefreshToken({ userId: user._id, sessionId: session._id });
     const refreshExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+    user.refreshToken = refreshTokenValue;
+    user.sessionId = session._id;
+    await user.save();
 
     await RefreshToken.create({
       userId: user._id,
@@ -324,9 +337,12 @@ class AuthService {
     const otpCode = this._generateOtp();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
+    const salt = await bcrypt.genSalt(10);
+    const hashedOtp = await bcrypt.hash(otpCode, salt);
+
     await EmailOtp.create({
       email: email.toLowerCase(),
-      otp: otpCode,
+      otp: hashedOtp,
       purpose: 'login',
       expiresAt
     });
@@ -354,9 +370,12 @@ class AuthService {
     const otpCode = this._generateOtp();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
+    const salt = await bcrypt.genSalt(10);
+    const hashedOtp = await bcrypt.hash(otpCode, salt);
+
     await EmailOtp.create({
       email: email.toLowerCase(),
-      otp: otpCode,
+      otp: hashedOtp,
       purpose: 'login',
       expiresAt
     });
@@ -392,7 +411,8 @@ class AuthService {
       throw new AppError('Too many failed verification attempts. Please request a new code.', 400, 'TOO_MANY_ATTEMPTS');
     }
 
-    if (otpRecord.otp !== otpCode) {
+    const isOtpMatch = await bcrypt.compare(otpCode, otpRecord.otp);
+    if (!isOtpMatch) {
       otpRecord.attempts += 1;
       await otpRecord.save();
       throw new AppError('Invalid verification code. Please try again.', 400, 'INVALID_OTP');
@@ -406,6 +426,9 @@ class AuthService {
     user.lastLogin = new Date();
     user.lastLoginIP = clientInfo.ip || '';
     user.lastLoginDevice = clientInfo.device || 'Unknown';
+    user.status = 'active';
+    user.otpVerified = true;
+    user.verifiedAt = new Date();
     await user.save();
 
     const profile = await Profile.findOne({ userId: user._id });
@@ -428,6 +451,10 @@ class AuthService {
     
     // Set token expiration (exactly 30 days)
     const refreshExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+    user.refreshToken = refreshTokenValue;
+    user.sessionId = session._id;
+    await user.save();
 
     await RefreshToken.create({
       userId: user._id,
@@ -456,9 +483,12 @@ class AuthService {
     const otpCode = this._generateOtp();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
+    const salt = await bcrypt.genSalt(10);
+    const hashedOtp = await bcrypt.hash(otpCode, salt);
+
     await EmailOtp.create({
       email: email.toLowerCase(),
-      otp: otpCode,
+      otp: hashedOtp,
       purpose: 'forgot_password',
       expiresAt
     });
@@ -494,7 +524,8 @@ class AuthService {
       throw new AppError('Too many failed verification attempts. Please request a new code.', 400, 'TOO_MANY_ATTEMPTS');
     }
 
-    if (otpRecord.otp !== otpCode) {
+    const isOtpMatch = await bcrypt.compare(otpCode, otpRecord.otp);
+    if (!isOtpMatch) {
       otpRecord.attempts += 1;
       await otpRecord.save();
       throw new AppError('Invalid verification code. Please try again.', 400, 'INVALID_OTP');

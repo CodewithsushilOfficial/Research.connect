@@ -49,8 +49,6 @@ const generateIdForPurpose = (purpose) => {
       return `RCPROJ_${ulid}`;
     case 'dataset':
       return `RCDATA_${ulid}`;
-    case 'community-banner':
-      return `RCCOMM_${ulid}`;
     case 'institution-logo':
       return `RCINST_${ulid}`;
     case 'patent-document':
@@ -76,7 +74,7 @@ const uploadFileInternal = async ({ file, userId, purpose, resourceId, useTransa
   const allowedPurposes = [
     'profile-avatar', 'profile-banner', 'publication-pdf', 'publication-cover',
     'dataset', 'poster', 'presentation', 'research-image', 'certificate',
-    'project-image', 'community-banner', 'institution-logo', 'research-document',
+    'project-image', 'institution-logo', 'research-document',
     'patent-document', 'book-cover', 'thesis'
   ];
 
@@ -88,7 +86,7 @@ const uploadFileInternal = async ({ file, userId, purpose, resourceId, useTransa
   let activeResourceId = resourceId || '';
   const requiresResourceId = [
     'publication-pdf', 'publication-cover', 'dataset', 'project-image',
-    'community-banner', 'institution-logo', 'patent-document', 'thesis'
+    'institution-logo', 'patent-document', 'thesis'
   ];
 
   if (!activeResourceId && requiresResourceId.includes(purpose)) {

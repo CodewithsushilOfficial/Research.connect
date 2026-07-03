@@ -23,7 +23,6 @@ const ProfileSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
     { name: 'Projects', path: `/profile/${profileSlug}/projects`, icon: Briefcase },
     { name: 'My Network', path: '/network', icon: Users },
     { name: 'Messages', path: `/profile/${profileSlug}/messages`, icon: MessageSquare },
-    { name: 'Communities', path: '/communities', icon: Users },
     { name: 'Followers', path: `/profile/${profileSlug}/followers`, icon: UserCheck },
     { name: 'Following', path: `/profile/${profileSlug}/following`, icon: UserPlus },
     { name: 'Analytics', path: `/profile/${profileSlug}/analytics`, icon: BarChart2 },

@@ -1,4 +1,5 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 const logger = require('./common/logger/winston');
 const { connectDB, closeDB } = require('./config/database/connection');
 const { syncDatabaseIndexes } = require('./config/database/indexes');

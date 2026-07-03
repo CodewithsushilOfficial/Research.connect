@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { setQuery } from '../../../redux/slices/searchSlice';
 import feedService from '../../../services/feed.service';
 import scholarService from '../../../services/scholar.service';
+import recommendationService from '../../../services/recommendation.service';
 import PublicationCard from '../../../components/common/cards/PublicationCard';
 import { 
   Sparkles, Award, Star, Compass, Calendar, 
@@ -22,7 +23,6 @@ const HomeFeed = () => {
   const queryClient = useQueryClient();
   
   const { user, profile } = useSelector((state) => state.auth);
-  const { communities } = useSelector((state) => state.community);
 
   const [activeTab, setActiveTab] = useState('recommended'); 
   const [refreshing, setRefreshing] = useState(false);
@@ -48,8 +48,8 @@ const HomeFeed = () => {
   const { data: suggestionsData, refetch: refetchSuggestions } = useQuery({
     queryKey: ['suggestedResearchers'],
     queryFn: async () => {
-      const res = await feedService.getSuggestedResearchers();
-      return res.success ? res.data?.data || [] : [];
+      const res = await recommendationService.getResearchers(5);
+      return res.success ? res.data?.docs || [] : [];
     },
     staleTime: 10 * 60 * 1000
   });
@@ -108,12 +108,6 @@ const HomeFeed = () => {
 
   const coAuthors = dbCoAuthors.length > 0 ? dbCoAuthors : fallbackCoAuthors;
 
-  const featuredCommunities = [
-    { id: '1', name: 'Artificial Intelligence & Deep Learning', members: 12450, icon: '🧠', description: 'Discuss neural networks, transformers, and the future of AGI.' },
-    { id: '2', name: 'Quantum Computing Pioneers', members: 3820, icon: '⚛️', description: 'Focusing on NISQ algorithms, qubits, and quantum hardware.' },
-    { id: '3', name: 'Bio-Informatics Research Circle', members: 5690, icon: '🧬', description: 'Applying computational methods to biological systems.' }
-  ];
-
   const citationsVal = scholarProfile ? (scholarProfile.totalCitations ?? scholarProfile.citations ?? 0) : 0;
   const hIndexVal = scholarProfile ? (scholarProfile.hIndex ?? 0) : 67;
   const i10IndexVal = scholarProfile ? (scholarProfile.i10Index ?? 0) : 596;
@@ -127,7 +121,6 @@ const HomeFeed = () => {
 
   // Fetch page data
   useEffect(() => {
-    if (activeTab === 'communities') return;
     
     // If activeTab changed but page is not 1 yet, do not fetch to avoid duplicate/stale requests.
     const isTabChanged = tabRef.current !== activeTab;
@@ -190,7 +183,7 @@ const HomeFeed = () => {
   useEffect(() => {
     const observer = new IntersectionObserver(
       entries => {
-        if (entries[0].isIntersecting && hasMore && !feedLoading && activeTab !== 'communities') {
+        if (entries[0].isIntersecting && hasMore && !feedLoading) {
           setPage(prev => prev + 1);
         }
       },
@@ -257,7 +250,7 @@ const HomeFeed = () => {
     };
   }, []);
 
-  const activeList = activeTab === 'communities' ? (communities || []) : accumulatedFeed;
+  const activeList = accumulatedFeed;
   const loading = feedLoading && page === 1;
 
   const handleRefresh = async () => {
@@ -573,7 +566,7 @@ const HomeFeed = () => {
             <p className="text-xs text-[#475569]/60 text-center py-2">No recommendations at this time.</p>
           ) : (
             suggestedResearchers.slice(0, 3).map((res, idx) => {
-              const matchPercent = 95 - idx * 4; // Mock compatibility percent
+              const matchPercent = res.matchPercentage || (90 - idx * 5);
               return (
                 <div key={idx} className="group border-b border-[#E2E8F0]/60 pb-3.5 last:border-0 last:pb-0 transition-all duration-200">
                   <div className="flex gap-3 min-w-0">
@@ -581,7 +574,7 @@ const HomeFeed = () => {
                       {res.avatar ? (
                         <img src={res.avatar} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <span>{res.name[0]}</span>
+                        <span>{res.name ? res.name[0] : 'S'}</span>
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -597,13 +590,8 @@ const HomeFeed = () => {
                         {res.designation || 'Scholar'} • {res.institution || 'Institute'}
                       </p>
                       <p className="text-[10px] text-[#475569]/80 truncate mt-1">
-                        Area: {res.mutualInterests?.[0] || 'AI & Machine Learning'}
+                        Reason: {res.reasons && res.reasons.length > 0 ? res.reasons.join(', ') : 'Suggested Match'}
                       </p>
-                      {res.mutualInterests?.length > 1 && (
-                        <span className="text-[8px] bg-[#EDE9FE] text-[#4F46E5] px-1.5 py-0.5 rounded font-black mt-1 inline-block">
-                          +{res.mutualInterests.length - 1} mutual interests
-                        </span>
-                      )}
                     </div>
                   </div>
                   
@@ -681,45 +669,7 @@ const HomeFeed = () => {
     );
   };
 
-  const renderJoinCommunity = () => {
-    return (
-      <div className="bg-[#FFFFFF] border border-[#E2E8F0] p-6 rounded-[18px] shadow-sm space-y-4 text-left">
-        <h3 className="font-bold text-xs text-[#475569] uppercase tracking-wider flex items-center gap-2">
-          <Users className="w-4 h-4 text-[#2563EB]" /> Join Community
-        </h3>
-        
-        <div className="space-y-4">
-          {featuredCommunities.map((comm) => (
-            <div key={comm.id} className="space-y-2.5 border-b border-[#E2E8F0]/40 pb-3 last:border-b-0 last:pb-0">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 bg-[#DBEAFE] text-[#2563EB] font-extrabold text-sm rounded-lg flex items-center justify-center shrink-0">
-                    {comm.icon}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <h4 className="font-bold text-xs text-[#0F172A] truncate leading-snug">{comm.name}</h4>
-                      <span className="text-[8px] font-black text-[#F59E0B] bg-[#FEF3C7] border border-[#FEF3C7] px-1.5 py-0.2 rounded-full uppercase tracking-wider">
-                        Trending
-                      </span>
-                    </div>
-                    <p className="text-[9px] text-[#475569] font-normal">{comm.members.toLocaleString()} members • {comm.researchArea || 'Computer Science'}</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => toast.success(`Joined ${comm.name}!`)}
-                  className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-[10px] px-3 py-1.5 rounded-lg shrink-0 transition-all duration-200 transform hover:scale-[1.03] active:scale-95 hover:shadow-sm"
-                >
-                  Join
-                </button>
-              </div>
-              <p className="text-[10px] text-[#475569]/85 leading-normal font-normal pl-10.5">{comm.description}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
+
 
   const renderGoogleScholarAnalytics = () => {
     // Dynamic values from MongoDB (loaded via scholarData query)
@@ -903,8 +853,7 @@ const HomeFeed = () => {
               { id: 'following', label: 'Following', icon: Users },
               { id: 'projects', label: 'Projects', icon: Briefcase },
               { id: 'questions', label: 'Q&A', icon: Compass },
-              { id: 'datasets', label: 'Datasets', icon: Database },
-              { id: 'communities', label: 'Communities', icon: Users }
+              { id: 'datasets', label: 'Datasets', icon: Database }
             ].map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -1050,30 +999,6 @@ const HomeFeed = () => {
                       </motion.div>
                     ))}
                   </div>
-                ) : activeTab === 'communities' ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {activeList.map(comm => (
-                      <motion.div
-                        key={comm.id}
-                        className="bg-white border border-slate-200 p-6 rounded-[18px] shadow-sm hover:shadow-lg transition-all text-left flex flex-col justify-between"
-                        whileHover={{ y: -2 }}
-                      >
-                        <div className="space-y-2">
-                          <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-605 flex items-center justify-center font-bold">
-                            <Users className="w-5 h-5" />
-                          </div>
-                          <h3 className="font-bold text-base text-slate-900 leading-snug">{comm.name}</h3>
-                          <p className="text-xs text-slate-500 font-normal">{comm.members} active researchers</p>
-                        </div>
-                        <button 
-                          onClick={() => toast.success(`Joined ${comm.name}!`)}
-                          className="mt-4 w-full py-2 bg-slate-50 hover:bg-blue-50 hover:text-blue-600 border border-slate-200 hover:border-blue-200 text-slate-750 rounded-xl text-xs font-bold transition-all"
-                        >
-                          Join Community
-                        </button>
-                      </motion.div>
-                    ))}
-                  </div>
                 ) : (
                   activeList.map(pub => (
                     <PublicationCard 
@@ -1086,19 +1011,17 @@ const HomeFeed = () => {
             )}
 
             {/* Intersection Observer scroll target */}
-            {activeTab !== 'communities' && (
-              <div ref={observerTarget} className="h-12 flex items-center justify-center pt-4">
-                {feedLoading && page > 1 && (
-                  <div className="flex items-center gap-2 text-xs font-bold text-slate-500 bg-white border border-slate-200 px-4 py-2 rounded-full shadow-sm">
-                    <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-                    <span>Loading more feeds...</span>
-                  </div>
-                )}
-                {!hasMore && accumulatedFeed.length > 0 && (
-                  <span className="text-xs font-semibold text-slate-400">You've reached the bottom of your feed</span>
-                )}
-              </div>
-            )}
+            <div ref={observerTarget} className="h-12 flex items-center justify-center pt-4">
+              {feedLoading && page > 1 && (
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-500 bg-white border border-slate-200 px-4 py-2 rounded-full shadow-sm">
+                  <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                  <span>Loading more feeds...</span>
+                </div>
+              )}
+              {!hasMore && accumulatedFeed.length > 0 && (
+                <span className="text-xs font-semibold text-slate-400">You've reached the bottom of your feed</span>
+              )}
+            </div>
           </div>
 
         </div>
@@ -1122,8 +1045,7 @@ const HomeFeed = () => {
           {/* 4. Top Co-authors */}
           {renderTopCoAuthors()}
 
-          {/* 5. Join Community */}
-          {renderJoinCommunity()}
+
 
           {/* 6. Google Scholar Analytics */}
           {renderGoogleScholarAnalytics()}

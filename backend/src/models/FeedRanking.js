@@ -4,7 +4,7 @@ const Schema = mongoose.Schema;
 /**
  * FeedRanking — Per-user computed ranking signal cache.
  * Stores precomputed context vectors for fast feed personalization.
- * Updated on follow/unfollow, profile changes, community joins, etc.
+ * Updated on follow/unfollow, profile changes, etc.
  */
 const FeedRankingSchema = new Schema(
   {
@@ -35,14 +35,6 @@ const FeedRankingSchema = new Schema(
       {
         type: Schema.Types.ObjectId,
         ref: 'User'
-      }
-    ],
-
-    // Community IDs the user has joined
-    communityIds: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: 'Community'
       }
     ],
 

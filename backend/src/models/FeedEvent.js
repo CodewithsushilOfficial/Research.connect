@@ -4,7 +4,7 @@ const Schema = mongoose.Schema;
 /**
  * FeedEvent — Central activity stream document.
  * Every system action that should appear in the feed generates one FeedEvent.
- * Supports multi-type activity: publications, follows, community posts,
+ * Supports multi-type activity: publications, follows,
  * conferences, funding, datasets, jobs, announcements, milestones.
  */
 const FeedEventSchema = new Schema(
@@ -30,8 +30,6 @@ const FeedEventSchema = new Schema(
         'book_published',
         'conference_joined',
         'conference_deadline',
-        'community_post',
-        'community_announcement',
         'research_question',
         'research_answer',
         'funding_opportunity',
@@ -55,8 +53,6 @@ const FeedEventSchema = new Schema(
         'Project',
         'Patent',
         'Conference',
-        'Community',
-        'CommunityPost',
         'Collaboration',
         'ResearchQuestion',
         'User',

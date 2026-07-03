@@ -34,8 +34,6 @@ const NotificationSchema = new Schema(
         'project_invitation',
         'collaboration_invitation',
         'mention',
-        'community_invitation',
-        'community_announcement',
         'system',
         'admin'
       ],
@@ -51,7 +49,7 @@ const NotificationSchema = new Schema(
     },
     targetType: {
       type: String,
-      enum: ['User', 'Publication', 'Dataset', 'Project', 'ConnectionRequest', 'Community', 'Comment', 'System'],
+      enum: ['User', 'Publication', 'Dataset', 'Project', 'ConnectionRequest', 'Comment', 'System'],
       required: true
     },
     targetId: {

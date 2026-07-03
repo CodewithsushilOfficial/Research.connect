@@ -23,6 +23,10 @@ router.post('/verify-login-otp', verifyOtpLimiter, verifyOtpValidator, authContr
 router.post('/forgot-password', authLimiter, sendOtpValidator, authController.forgotPassword);
 router.post('/reset-password', authLimiter, resetPasswordValidator, authController.resetPassword);
 
+router.post('/send-otp', otpLimiter, sendOtpValidator, authController.sendOtp);
+router.post('/verify-otp', verifyOtpLimiter, verifyOtpValidator, authController.verifyOtp);
+router.post('/resend-otp', otpLimiter, sendOtpValidator, authController.resendOtp);
+
 router.post('/refresh-token', authController.refreshAccessToken);
 router.post('/logout', authController.logout);
 

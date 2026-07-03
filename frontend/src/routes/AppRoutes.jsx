@@ -89,9 +89,7 @@ const AppRoutes = () => {
             </PublicRoute>
           } />
           <Route path="success" element={
-            <PublicRoute>
-              <SuccessPage />
-            </PublicRoute>
+            <SuccessPage />
           } />
         </Route>
 

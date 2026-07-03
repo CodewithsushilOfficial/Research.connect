@@ -507,7 +507,6 @@ class FeedService {
       userId,
       followingIds,
       connectionIds,
-      communityIds: [],
       collaborationIds: [],
       researchInterests: [...new Set(researchInterests.filter(Boolean))],
       institution: profile?.institution || '',

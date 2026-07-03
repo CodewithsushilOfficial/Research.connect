@@ -31,16 +31,7 @@ class RankingEngine {
     return 0;
   }
 
-  /**
-   * Event belongs to a community the viewer is in (+30)
-   */
-  scoreByCommunity(event, communityIds = []) {
-    const metaCommunity = event.metadata?.communityId?.toString();
-    if (metaCommunity && communityIds.map(String).includes(metaCommunity)) {
-      return 30;
-    }
-    return 0;
-  }
+
 
   /**
    * Event belongs to a collaboration the viewer is in (+25)
@@ -140,8 +131,6 @@ class RankingEngine {
     const boosts = {
       publication_uploaded: 10,
       citation_increased: 8,
-      community_post: 6,
-      community_announcement: 12,
       funding_opportunity: 15,
       academic_job: 10,
       award: 12,
@@ -152,7 +141,7 @@ class RankingEngine {
       dataset_uploaded: 5,
       researcher_followed: 4,
       research_question: 7,
-      research_answer: 7,
+      research_answer: 7
     };
     return boosts[event.eventType] || 3;
   }
@@ -163,7 +152,7 @@ class RankingEngine {
    * Compute the final relevance score for one event given user context.
    *
    * @param {Object} event — FeedEvent document (plain object)
-   * @param {Object} userContext — { followingIds, connectionIds, communityIds, collaborationIds,
+   * @param {Object} userContext — { followingIds, connectionIds, collaborationIds,
    *                                  researchInterests, institution, country }
    * @returns {number} finalScore
    */
@@ -171,7 +160,6 @@ class RankingEngine {
     const {
       followingIds = [],
       connectionIds = [],
-      communityIds = [],
       collaborationIds = [],
       researchInterests = [],
       institution = '',
@@ -181,7 +169,6 @@ class RankingEngine {
     const score =
       this.scoreByFollowing(event, followingIds) +
       this.scoreByConnection(event, connectionIds) +
-      this.scoreByCommunity(event, communityIds) +
       this.scoreByCollaboration(event, collaborationIds) +
       this.scoreByInstitution(event, institution) +
       this.scoreByCountry(event, country) +

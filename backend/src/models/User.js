@@ -53,12 +53,26 @@ const UserSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'active', 'suspended'],
+      enum: ['pending', 'verified', 'active', 'suspended'],
       default: 'pending'
     },
     emailVerified: {
       type: Boolean,
       default: false
+    },
+    otpVerified: {
+      type: Boolean,
+      default: false
+    },
+    verifiedAt: {
+      type: Date
+    },
+    refreshToken: {
+      type: String
+    },
+    sessionId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Session'
     },
     isActive: {
       type: Boolean,
