@@ -327,6 +327,7 @@ PublicationSchema.index(
       institution: 2,
     },
     default_language: 'english',
+    language_override: 'none',
   }
 );
 

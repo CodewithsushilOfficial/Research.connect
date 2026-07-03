@@ -104,8 +104,8 @@ class ImportQueueService {
 
         await this.log(job._id, job.userId, 'Import job completed successfully!', 'info');
       } catch (err) {
-        logger.error(`Error processing import job ${job._id}: ${err.message}`);
-        await this.log(job._id, job.userId, `Job failed: ${err.message}`, 'error');
+        logger.error(`Error processing import job ${job._id}: ${err.message}`, err);
+        await this.log(job._id, job.userId, `Job failed: ${err.message} \n ${err.stack}`, 'error');
 
         // Increment retry count
         job.retryCount += 1;
