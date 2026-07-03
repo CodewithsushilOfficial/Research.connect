@@ -5,7 +5,7 @@ import { Pin, Megaphone, User, Building2, ExternalLink } from 'lucide-react';
 const AnnouncementFeedCard = ({ event }) => {
   const meta = event.metadata || {};
   const actor = event.actor || {};
-  const isPinned = event.eventType === 'community_announcement';
+  const isPinned = false;
 
   return (
     <motion.div

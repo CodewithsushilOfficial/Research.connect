@@ -9,7 +9,7 @@ import NotificationFilters from '../components/NotificationFilters';
 
 const NotificationCenter = () => {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState('all'); // all, unread, mention, connection, publication, community, system
+  const [activeTab, setActiveTab] = useState('all');
   const [activeDateFilter, setActiveDateFilter] = useState('all'); // all, today, yesterday, week, month
   const [notificationsList, setNotificationsList] = useState([]);
   const [nextCursor, setNextCursor] = useState(null);

@@ -4,13 +4,11 @@ import {
   Sparkles, Users, Clock, TrendingUp, MessageSquare,
   Network, Bookmark, Globe, Flame
 } from 'lucide-react';
-
 const TABS = [
   { id: 'for-you',     label: 'For You',     icon: Sparkles },
   { id: 'following',   label: 'Following',   icon: Users },
   { id: 'trending',    label: 'Trending',    icon: Flame },
   { id: 'latest',      label: 'Latest',      icon: Clock },
-  { id: 'community',   label: 'Community',   icon: MessageSquare },
   { id: 'connections', label: 'Connections', icon: Network },
   { id: 'bookmarks',   label: 'Bookmarks',   icon: Bookmark },
 ];

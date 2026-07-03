@@ -44,7 +44,7 @@ const LatestFeed = () => {
               </div>
               <div>
                 <h1 className="text-lg font-bold text-text-primary">Latest Research</h1>
-                <p className="text-xs text-text-muted">Most recent activity from the community</p>
+                <p className="text-xs text-text-muted">Most recent activity from researchers</p>
               </div>
             </div>
             <button
@@ -64,7 +64,7 @@ const LatestFeed = () => {
           onRefresh={refresh}
           renderItem={(event) => <FeedEventCard key={String(event._id)} event={event} />}
           emptyTitle="No activity yet"
-          emptySubtitle="Be the first to publish research, share a dataset, or post in a community."
+          emptySubtitle="Be the first to publish research, share a dataset, or start a project."
         />
       </div>
     </div>

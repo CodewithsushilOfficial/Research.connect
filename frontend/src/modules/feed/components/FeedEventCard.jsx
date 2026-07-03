@@ -70,20 +70,17 @@ const FeedEventCard = ({ event, onInteraction }) => {
     return <JobFeedCard event={event} onInteraction={onInteraction} />;
   }
 
-  // Announcements (community or collaboration)
+  // Announcements (collaboration)
   if (
     entityType === 'Announcement' ||
-    eventType === 'community_announcement' ||
     eventType === 'milestone'
   ) {
     return <AnnouncementFeedCard event={event} onInteraction={onInteraction} />;
   }
 
-  // Community posts, research questions, answers, collaborations
+  // Research questions, answers, collaborations
   if (
-    entityType === 'CommunityPost' ||
     entityType === 'ResearchQuestion' ||
-    eventType === 'community_post' ||
     eventType === 'research_question' ||
     eventType === 'research_answer' ||
     eventType === 'research_collaboration'

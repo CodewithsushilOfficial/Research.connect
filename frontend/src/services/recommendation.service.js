@@ -13,11 +13,6 @@ class RecommendationService {
     return await axiosInstance.get(`/v1/recommendations/publications?${params}`);
   }
 
-  async getCommunities(limit = 5, cursor = '') {
-    const params = new URLSearchParams({ limit });
-    if (cursor) params.set('cursor', cursor);
-    return await axiosInstance.get(`/v1/recommendations/communities?${params}`);
-  }
 
   async getProjects(limit = 5, cursor = '') {
     const params = new URLSearchParams({ limit });

@@ -20,11 +20,9 @@ import SidebarConferences from '../components/SidebarConferences';
 import SidebarFunding from '../components/SidebarFunding';
 import SidebarJobs from '../components/SidebarJobs';
 
-// ─── Left Nav Links ──────────────────────────────────────────────────────────
 const NAV_LINKS = [
   { to: '/',              icon: Home,         label: 'Home' },
   { to: '/discover',      icon: Compass,      label: 'Discover' },
-  { to: '/communities',   icon: Users,        label: 'Communities' },
   { to: '/collaborations',icon: FolderOpen,   label: 'Projects' },
   { to: '/bookmarks',     icon: Bookmark,     label: 'Bookmarks' },
   { to: '/messages',      icon: MessageSquare,label: 'Messages' },
@@ -219,7 +217,7 @@ const HomeFeedV2 = () => {
               />
             )}
             emptyTitle="Your feed is empty"
-            emptySubtitle="Follow researchers and join communities to populate your feed."
+            emptySubtitle="Follow researchers to populate your feed."
           />
         </main>
 

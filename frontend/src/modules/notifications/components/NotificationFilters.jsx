@@ -7,7 +7,6 @@ const TABS = [
   { id: 'mention', name: 'Mentions' },
   { id: 'connection', name: 'Connections' },
   { id: 'publication', name: 'Publications' },
-  { id: 'community', name: 'Communities' },
   { id: 'system', name: 'System' }
 ];
 

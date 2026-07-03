@@ -39,10 +39,7 @@ const MyWorkspaces = React.lazy(() => import('../modules/collaborations/pages/My
 const WorkspaceOverview = React.lazy(() => import('../modules/collaborations/pages/WorkspaceOverview'));
 const CreateWorkspace = React.lazy(() => import('../modules/collaborations/pages/CreateWorkspace'));
 
-// Phase 7 — Communities
-const CommunityExplorer = React.lazy(() => import('../modules/communities/pages/CommunityExplorer'));
-const CommunityDetail = React.lazy(() => import('../modules/communities/pages/CommunityDetail'));
-const CreateCommunity = React.lazy(() => import('../modules/communities/pages/CreateCommunity'));
+
 
 // Phase 8 — Activity Feed & Academic Timeline
 const HomeFeedV2 = React.lazy(() => import('../modules/feed/pages/HomeFeedV2'));
@@ -111,9 +108,6 @@ const AppRoutes = () => {
           <Route path="projects/create" element={<ComingSoon title="Create Project Coming Soon" />} />
           <Route path="datasets/create" element={<ComingSoon title="Share Dataset Coming Soon" />} />
           <Route path="questions/create" element={<ComingSoon title="Ask Question Coming Soon" />} />
-          <Route path="communities/create" element={<CreateCommunity />} />
-          <Route path="communities" element={<CommunityExplorer />} />
-          <Route path="communities/:slug" element={<CommunityDetail />} />
           <Route path="collaborations/create" element={<CreateWorkspace />} />
           <Route path="collaborations" element={<MyWorkspaces />} />
           <Route path="collaborations/:slug" element={<WorkspaceOverview />} />

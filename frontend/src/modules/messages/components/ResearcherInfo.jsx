@@ -31,13 +31,7 @@ const ResearcherInfo = ({ participant, messages = [] }) => {
       fileSize: m.attachment.fileSize
     }));
 
-  const formatSize = (bytes) => {
-    if (!bytes) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-  };
+
 
   return (
     <div className="h-full bg-white border-l border-slate-200 w-80 p-5 flex flex-col gap-6 text-left overflow-y-auto shrink-0 select-none">
@@ -149,6 +143,13 @@ const ResearcherInfo = ({ participant, messages = [] }) => {
 
     </div>
   );
+};
+const formatSize = (bytes) => {
+  if (!bytes) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 };
 
 export default ResearcherInfo;
