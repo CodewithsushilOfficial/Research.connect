@@ -13,30 +13,30 @@ const {
 router.use(authMiddleware);
 
 router.post(
-  "/messages/conversations",
+  "/conversations",
   createConversationValidator,
   messageController.createConversation,
 );
 router.get(
-  "/messages/conversations",
+  "/conversations",
   messageQueryValidator,
   messageController.listConversations,
 );
 router.get(
-  "/messages/conversations/:conversationId/messages",
+  "/conversations/:conversationId/messages",
   messageQueryValidator,
   messageController.getMessages,
 );
 router.post(
-  "/messages/conversations/:conversationId/messages",
+  "/conversations/:conversationId/messages",
   sendMessageValidator,
   messageController.sendMessage,
 );
 router.post(
-  "/messages/conversations/:conversationId/read",
+  "/conversations/:conversationId/read",
   messageController.markConversationRead,
 );
-router.get("/messages/unread-count", messageController.getUnreadCount);
-router.delete("/messages/:messageId", messageController.deleteMessage);
+router.get("/unread-count", messageController.getUnreadCount);
+router.delete("/:messageId", messageController.deleteMessage);
 
 module.exports = router;

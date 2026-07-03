@@ -32,8 +32,6 @@ const FeedSchema = new Schema(
   }
 );
 
-FeedSchema.index({ userId: 1 });
-
 const Feed = mongoose.model('Feed', FeedSchema);
 
 module.exports = Feed;

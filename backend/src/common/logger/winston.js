@@ -20,8 +20,9 @@ const consoleFormat = winston.format.combine(
 const logDirectory = path.join(process.cwd(), 'logs');
 
 const createCategoryLogger = (categoryName) => {
+  const isProduction = process.env.NODE_ENV === 'production';
   return winston.createLogger({
-    level: 'debug',
+    level: isProduction ? 'info' : 'debug',
     format: logFormat,
     defaultMeta: { service: 'research-connect', category: categoryName },
     transports: [

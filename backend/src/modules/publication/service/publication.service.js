@@ -15,6 +15,7 @@ const PublicationHistory = require('../../../models/PublicationHistory');
 const ActivityLog = require('../../../models/ActivityLog');
 const profileService = require('../../profile/service/profile.service');
 const { generateSlug } = require('../helper/slug.helper');
+const cloudinaryService = require('./cloudinary.service');
 const { NotFoundError, ValidationError, ForbiddenError } = require('../../../common/errors/AppError');
 
 class PublicationService {
@@ -79,9 +80,9 @@ class PublicationService {
 
       // Check duplicate by DOI or Google Scholar ID
       const duplicateConditions = [];
-      if (data.doi) duplicateConditions.push({ doi: data.doi.trim() });
+      if (data.doi && data.doi.trim()) duplicateConditions.push({ doi: data.doi.trim() });
       const scholarId = data.googleScholarPublicationId || data.citationId;
-      if (scholarId) duplicateConditions.push({ googleScholarPublicationId: scholarId.trim() });
+      if (scholarId && scholarId.trim()) duplicateConditions.push({ googleScholarPublicationId: scholarId.trim() });
 
       let existingPub = null;
       if (duplicateConditions.length > 0) {
@@ -92,14 +93,17 @@ class PublicationService {
         });
       }
 
-      if (!existingPub) {
+      if (!existingPub && data.title) {
         // Check title duplicate for user
         const cleanTitle = data.title.toLowerCase().replace(/[^a-z0-9]/g, '');
         const userPublications = await Publication.find({ userId, isDeleted: { $ne: true } });
         existingPub = userPublications.find(p => p.title.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanTitle);
       }
 
-      if (existingPub) {
+      // Bypass merge/update for manual file uploads to allow uploading the same PDF multiple times
+      const isManualUpload = !!(data.fileDetails && data.fileDetails.secure_url);
+
+      if (existingPub && !isManualUpload) {
         // If it's a real duplicate manually uploaded that has a PDF attached, throw validation error
         if (existingPub.status === 'published' && existingPub.cloudinaryFileUrl && !isDraft) {
           throw new ValidationError('A publication with this title, DOI, or Scholar ID already exists in your library.');
@@ -111,8 +115,9 @@ class PublicationService {
         const updatableFields = [
           'title', 'subtitle', 'abstract', 'doi', 'isbn', 'issn',
           'journal', 'conference', 'publisher', 'volume', 'issue', 'pages',
-          'publicationDate', 'language', 'visibility', 'publicationType',
-          'researchType', 'correspondingAuthor', 'institution', 'department', 'thumbnail'
+          'publicationDate', 'language', 'visibility', 'publicationType', 'publicationFormat',
+          'researchType', 'correspondingAuthor', 'institution', 'department', 'thumbnail',
+          'license', 'funding', 'openAccess'
         ];
 
         updatableFields.forEach(field => {
@@ -134,6 +139,15 @@ class PublicationService {
         if (data.fileDetails && data.fileDetails.secure_url) {
           existingPub.cloudinaryFileUrl = data.fileDetails.secure_url;
           existingPub.pdfURL = data.fileDetails.secure_url;
+          existingPub.fileDetails = {
+            secure_url: data.fileDetails.secure_url || '',
+            public_id: data.fileDetails.public_id || '',
+            resource_type: data.fileDetails.resource_type || '',
+            bytes: data.fileDetails.bytes || 0,
+            format: data.fileDetails.format || '',
+            pages: data.fileDetails.pages || 0,
+            asset_id: data.fileDetails.asset_id || ''
+          };
 
           await PublicationFile.deleteMany({ publicationId: existingPub._id });
           const fileDoc = new PublicationFile({
@@ -142,7 +156,9 @@ class PublicationService {
             public_id: data.fileDetails.public_id,
             resource_type: data.fileDetails.resource_type || 'raw',
             bytes: data.fileDetails.bytes || 0,
-            format: data.fileDetails.format || ''
+            format: data.fileDetails.format || '',
+            pages: data.fileDetails.pages || 0,
+            asset_id: data.fileDetails.asset_id || ''
           });
           await fileDoc.save({ session });
         }
@@ -198,9 +214,40 @@ class PublicationService {
         return existingPub;
       }
 
-      // 2. Generate slug and basic metadata
-      const slug = generateSlug(data.title);
-      
+      // Check and prevent E11000 duplicate key error on unique indexes (doi and googleScholarPublicationId)
+      // for new publication records.
+      let finalDoi = data.doi ? data.doi.trim() : '';
+      if (finalDoi) {
+        const duplicateDoi = await Publication.findOne({ doi: finalDoi, isDeleted: { $ne: true } }).lean();
+        if (duplicateDoi) {
+          finalDoi = undefined; // Unset duplicate DOI to prevent collision
+        }
+      }
+
+      let finalScholarId = scholarId ? scholarId.trim() : '';
+      if (finalScholarId) {
+        const duplicateScholar = await Publication.findOne({ googleScholarPublicationId: finalScholarId, isDeleted: { $ne: true } }).lean();
+        if (duplicateScholar) {
+          finalScholarId = undefined; // Unset duplicate Scholar ID to prevent collision
+        }
+      }
+
+      // 2. Generate unique slug with DB collision check.
+      // If "machine-learning-survey" already exists: try "machine-learning-survey-RC1", then "-RC2", etc.
+      let slug = generateSlug(data.title);
+      const baseSlug = slug;
+      let slugAttempt = 0;
+      let slugIsUnique = false;
+      while (!slugIsUnique && slugAttempt < 10) {
+        const existing = await Publication.findOne({ slug }).lean();
+        if (!existing) {
+          slugIsUnique = true;
+        } else {
+          slugAttempt++;
+          slug = `${baseSlug}-RC${slugAttempt}`;
+        }
+      }
+
       const abstractWords = data.abstract ? data.abstract.split(/\s+/).length : 0;
       const readingTime = Math.max(1, Math.ceil(abstractWords / 150));
       const researchScore = isDraft ? 0 : (20 + Math.floor(Math.random() * 10));
@@ -213,6 +260,10 @@ class PublicationService {
       const pubPayload = {
         userId,
         ownerId: userId,
+        // publicationId from the upload endpoint (RCPUB_ ULID format)
+        // If the client passes it back after the upload step, use it.
+        // Otherwise the model default (() => generatePublicationId()) generates a new one.
+        ...(data.publicationId ? { publicationId: data.publicationId } : {}),
         slug,
         title: data.title,
         subtitle: data.subtitle || '',
@@ -223,11 +274,11 @@ class PublicationService {
         publisher: data.publisher || '',
         year: data.year || (data.publicationDate ? new Date(data.publicationDate).getFullYear() : new Date().getFullYear()),
         publicationDate: data.publicationDate || new Date(),
-        doi: data.doi || '',
+        doi: finalDoi || '',
         isbn: data.isbn || '',
         issn: data.issn || '',
-        googleScholarPublicationId: scholarId || '',
-        citationId: scholarId || '',
+        googleScholarPublicationId: finalScholarId || '',
+        citationId: finalScholarId || '',
         volume: data.volume || '',
         issue: data.issue || '',
         pages: data.pages || '',
@@ -235,6 +286,7 @@ class PublicationService {
         keywords: data.keywords || [],
         researchAreas: data.researchAreas || [],
         publicationType: data.publicationType,
+        publicationFormat: data.publicationFormat || '',
         researchType: data.researchType || '',
         correspondingAuthor: data.correspondingAuthor || '',
         institution: data.institution || '',
@@ -246,7 +298,19 @@ class PublicationService {
         pdfURL: data.fileDetails?.secure_url || '', // for compatibility
         thumbnail: data.thumbnail || '',
         readingTime,
-        researchScore
+        researchScore,
+        license: data.license || '',
+        funding: data.funding || '',
+        openAccess: !!data.openAccess,
+        fileDetails: data.fileDetails ? {
+          secure_url: data.fileDetails.secure_url || '',
+          public_id: data.fileDetails.public_id || '',
+          resource_type: data.fileDetails.resource_type || '',
+          bytes: data.fileDetails.bytes || 0,
+          format: data.fileDetails.format || '',
+          pages: data.fileDetails.pages || 0,
+          asset_id: data.fileDetails.asset_id || ''
+        } : undefined
       };
 
       const publication = new Publication(pubPayload);
@@ -284,7 +348,9 @@ class PublicationService {
           public_id: data.fileDetails.public_id,
           resource_type: data.fileDetails.resource_type || 'raw',
           bytes: data.fileDetails.bytes || 0,
-          format: data.fileDetails.format || ''
+          format: data.fileDetails.format || '',
+          pages: data.fileDetails.pages || 0,
+          asset_id: data.fileDetails.asset_id || ''
         });
         await fileDoc.save({ session });
       }
@@ -345,6 +411,19 @@ class PublicationService {
     } catch (error) {
       await session.abortTransaction();
       session.endSession();
+
+      // Cloudinary Rollback: delete the uploaded file if MongoDB transaction failed.
+      // This prevents orphan files in Cloudinary storage.
+      if (data.fileDetails && data.fileDetails.public_id) {
+        const resourceType = data.fileDetails.resource_type || 'raw';
+        try {
+          await cloudinaryService.deleteFile(data.fileDetails.public_id, resourceType);
+        } catch (rollbackErr) {
+          // Log but do not rethrow — we want the original DB error to bubble up
+          console.error('[CLOUDINARY ROLLBACK FAILED]:', rollbackErr.message);
+        }
+      }
+
       throw error;
     }
   }
@@ -361,7 +440,14 @@ class PublicationService {
    */
   async getPublicationBySlug(slug, clientInfo = {}) {
     // Find regardless of soft-delete status to allow owners to access deleted/draft/private documents
-    const publication = await Publication.findOne({ slug });
+    let publication;
+    const mongoose = require('mongoose');
+    if (slug && mongoose.Types.ObjectId.isValid(slug)) {
+      publication = await Publication.findById(slug).lean();
+    }
+    if (!publication) {
+      publication = await Publication.findOne({ slug }).lean();
+    }
     if (!publication) {
       throw new NotFoundError('Publication not found.');
     }
@@ -369,12 +455,12 @@ class PublicationService {
     // Hydrate sub-collections
     const PublicationMetadata = require('../../../models/PublicationMetadata');
     const [authors, files, keywords, researchAreas, metrics, metadata] = await Promise.all([
-      PublicationAuthor.find({ publicationId: publication._id }).sort({ order: 1 }),
-      PublicationFile.find({ publicationId: publication._id, isDeleted: { $ne: true } }),
-      PublicationKeyword.find({ publicationId: publication._id }),
-      PublicationResearchArea.find({ publicationId: publication._id }),
-      PublicationMetric.findOne({ publicationId: publication._id }),
-      PublicationMetadata.findOne({ publicationId: publication._id })
+      PublicationAuthor.find({ publicationId: publication._id }).sort({ order: 1 }).lean(),
+      PublicationFile.find({ publicationId: publication._id, isDeleted: { $ne: true } }).lean(),
+      PublicationKeyword.find({ publicationId: publication._id }).lean(),
+      PublicationResearchArea.find({ publicationId: publication._id }).lean(),
+      PublicationMetric.findOne({ publicationId: publication._id }).lean(),
+      PublicationMetadata.findOne({ publicationId: publication._id }).lean()
     ]);
 
     // Visibility / Draft / Soft-delete checks
@@ -403,39 +489,57 @@ class PublicationService {
       }
     }
 
-    // Record view analytics & view event if published
+    // Record view analytics & view event if published (with deduplication window of 15 minutes)
     if (publication.status === 'published' && !publication.isDeleted) {
       try {
-        await PublicationMetric.findOneAndUpdate(
-          { publicationId: publication._id },
-          { $inc: { views: 1 } },
-          { upsert: true }
-        );
-
-        publication.views = (publication.views || 0) + 1;
-        await publication.save();
-
-        await PublicationView.create({
+        const timeWindow = new Date(Date.now() - 15 * 60 * 1000);
+        const queryConditions = {
           publicationId: publication._id,
-          userId: clientInfo.userId || null,
-          ipAddress: clientInfo.ip || '',
-          userAgent: clientInfo.userAgent || ''
-        });
+          createdAt: { $gte: timeWindow }
+        };
 
-        await PublicationAnalytic.create({
-          publicationId: publication._id,
-          userId: clientInfo.userId || null,
-          eventType: 'view',
-          ipAddress: clientInfo.ip || '',
-          userAgent: clientInfo.userAgent || ''
-        });
+        if (clientInfo.userId) {
+          queryConditions.userId = clientInfo.userId;
+        } else if (clientInfo.ip) {
+          queryConditions.ipAddress = clientInfo.ip;
+        } else {
+          queryConditions._id = null;
+        }
+
+        const recentView = await PublicationView.findOne(queryConditions);
+
+        if (!recentView) {
+          await PublicationMetric.findOneAndUpdate(
+            { publicationId: publication._id },
+            { $inc: { views: 1 } },
+            { upsert: true }
+          );
+
+          await Publication.updateOne({ _id: publication._id }, { $inc: { views: 1 } });
+          publication.views = (publication.views || 0) + 1;
+
+          await PublicationView.create({
+            publicationId: publication._id,
+            userId: clientInfo.userId || null,
+            ipAddress: clientInfo.ip || '',
+            userAgent: clientInfo.userAgent || ''
+          });
+
+          await PublicationAnalytic.create({
+            publicationId: publication._id,
+            userId: clientInfo.userId || null,
+            eventType: 'view',
+            ipAddress: clientInfo.ip || '',
+            userAgent: clientInfo.userAgent || ''
+          });
+        }
       } catch (analyticsError) {
         console.error('[ANALYTICS LOG VIEW ERROR]:', analyticsError);
       }
     }
 
     return {
-      ...publication.toObject(),
+      ...publication,
       authorsList: authors,
       files,
       keywordsList: keywords.map(k => k.keyword),
@@ -451,7 +555,7 @@ class PublicationService {
    * Retrieve List of Publications with Pagination
    */
   async getPublications(filter = {}, queryOptions = {}) {
-    const { page = 1, limit = 10, sort = '-createdAt' } = queryOptions;
+    const { page = 1, limit = 10, sort = '-createdAt', search } = queryOptions;
     const skip = (page - 1) * limit;
 
     const baseFilter = { ...filter };
@@ -459,11 +563,45 @@ class PublicationService {
       baseFilter.isDeleted = { $ne: true };
     }
 
+    // Apply search query
+    if (search && search.trim()) {
+      const searchRegex = new RegExp(search.trim(), 'i');
+      baseFilter.$or = [
+        { title: searchRegex },
+        { doi: searchRegex },
+        { authors: searchRegex },
+        { journal: searchRegex },
+        { conference: searchRegex },
+        { publisher: searchRegex },
+        { keywords: searchRegex },
+        { researchAreas: searchRegex }
+      ];
+    }
+
+    // Determine sort
+    let sortOption = {};
+    if (sort === 'newest' || sort === '-createdAt') {
+      sortOption = { createdAt: -1 };
+    } else if (sort === 'oldest' || sort === 'createdAt') {
+      sortOption = { createdAt: 1 };
+    } else if (sort === 'most-viewed' || sort === '-views') {
+      sortOption = { views: -1 };
+    } else if (sort === 'most-downloaded' || sort === '-downloads') {
+      sortOption = { downloads: -1 };
+    } else if (sort === 'most-cited' || sort === '-citations') {
+      sortOption = { citations: -1 };
+    } else if (sort === 'alphabetical' || sort === 'title') {
+      sortOption = { title: 1 };
+    } else {
+      sortOption = typeof sort === 'string' ? { [sort.replace('-', '')]: sort.startsWith('-') ? -1 : 1 } : sort;
+    }
+
     const query = Publication.find(baseFilter)
       .populate('userId', 'firstName lastName fullName email profileImage institution department designation')
-      .sort(sort)
+      .sort(sortOption)
       .skip(skip)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .lean();
 
     const [docs, total] = await Promise.all([
       query,
@@ -498,19 +636,41 @@ class PublicationService {
     try {
       const isPublishingDraft = publication.status === 'draft' && updateData.status === 'published';
 
-      // Update fields
+      // Capture previous values of updatable fields for edit history tracking
       const updatableFields = [
         'title', 'subtitle', 'abstract', 'doi', 'isbn', 'issn',
         'journal', 'conference', 'publisher', 'volume', 'issue', 'pages',
-        'publicationDate', 'language', 'visibility', 'status', 'publicationType',
-        'researchType', 'correspondingAuthor', 'institution', 'department', 'thumbnail'
+        'publicationDate', 'language', 'visibility', 'status', 'publicationType', 'publicationFormat',
+        'researchType', 'correspondingAuthor', 'institution', 'department', 'thumbnail',
+        'license', 'funding', 'openAccess'
       ];
 
+      const previousValues = {};
+      const newValues = {};
+      const editedFields = [];
+
       updatableFields.forEach(field => {
-        if (updateData[field] !== undefined) {
+        if (updateData[field] !== undefined && updateData[field] !== publication[field]) {
+          previousValues[field] = publication[field];
+          newValues[field] = updateData[field];
+          editedFields.push(field);
           publication[field] = updateData[field];
         }
       });
+
+      // Special handling of arrays or sub-collections
+      if (updateData.keywords && JSON.stringify(updateData.keywords) !== JSON.stringify(publication.keywords)) {
+        previousValues.keywords = publication.keywords;
+        newValues.keywords = updateData.keywords;
+        editedFields.push('keywords');
+        publication.keywords = updateData.keywords;
+      }
+      if (updateData.researchAreas && JSON.stringify(updateData.researchAreas) !== JSON.stringify(publication.researchAreas)) {
+        previousValues.researchAreas = publication.researchAreas;
+        newValues.researchAreas = updateData.researchAreas;
+        editedFields.push('researchAreas');
+        publication.researchAreas = updateData.researchAreas;
+      }
 
       if (updateData.title && updateData.title !== publication.title) {
         publication.slug = generateSlug(updateData.title);
@@ -519,6 +679,15 @@ class PublicationService {
       if (updateData.fileDetails && updateData.fileDetails.secure_url) {
         publication.cloudinaryFileUrl = updateData.fileDetails.secure_url;
         publication.pdfURL = updateData.fileDetails.secure_url;
+        publication.fileDetails = {
+          secure_url: updateData.fileDetails.secure_url || '',
+          public_id: updateData.fileDetails.public_id || '',
+          resource_type: updateData.fileDetails.resource_type || '',
+          bytes: updateData.fileDetails.bytes || 0,
+          format: updateData.fileDetails.format || '',
+          pages: updateData.fileDetails.pages || 0,
+          asset_id: updateData.fileDetails.asset_id || ''
+        };
         
         await PublicationFile.deleteMany({ publicationId: id });
         const fileDoc = new PublicationFile({
@@ -527,21 +696,15 @@ class PublicationService {
           public_id: updateData.fileDetails.public_id,
           resource_type: updateData.fileDetails.resource_type || 'raw',
           bytes: updateData.fileDetails.bytes || 0,
-          format: updateData.fileDetails.format || ''
+          format: updateData.fileDetails.format || '',
+          pages: updateData.fileDetails.pages || 0,
+          asset_id: updateData.fileDetails.asset_id || ''
         });
         await fileDoc.save({ session });
       }
 
       if (updateData.authorsList) {
         publication.authors = updateData.authorsList.map(a => a.name).join(', ');
-      }
-
-      if (updateData.keywords) {
-        publication.keywords = updateData.keywords;
-      }
-
-      if (updateData.researchAreas) {
-        publication.researchAreas = updateData.researchAreas;
       }
 
       if (isPublishingDraft) {
@@ -571,7 +734,7 @@ class PublicationService {
         { upsert: true, session }
       );
 
-      // History log
+      // Log in PublicationHistory
       const historyDoc = new PublicationHistory({
         publicationId: id,
         userId,
@@ -579,6 +742,19 @@ class PublicationService {
         changes: updateData
       });
       await historyDoc.save({ session });
+
+      // Log in PublicationEdit if any fields were modified manually
+      if (editedFields.length > 0) {
+        const PublicationEdit = require('../../../models/PublicationEdit');
+        const editDoc = new PublicationEdit({
+          publicationId: id,
+          userId,
+          editedFields,
+          previousValues,
+          newValues
+        });
+        await editDoc.save({ session });
+      }
 
       // Activity timeline log
       if (isPublishingDraft) {
@@ -607,9 +783,9 @@ class PublicationService {
   }
 
   /**
-   * Delete publication
+   * Delete publication (Soft delete by default, permanent if already soft deleted)
    */
-  async deletePublication(id, userId) {
+  async deletePublication(id, userId, permanent = false) {
     const publication = await Publication.findById(id);
     if (!publication) {
       throw new NotFoundError('Publication not found.');
@@ -619,8 +795,8 @@ class PublicationService {
       throw new ForbiddenError('You are not authorized to delete this publication.');
     }
 
-    if (publication.isDeleted) {
-      // Already soft deleted -> delete permanently!
+    // Permanent delete if already soft deleted, or if permanent is explicitly requested
+    if (publication.isDeleted || permanent) {
       await Publication.deleteOne({ _id: id });
       await PublicationFile.deleteMany({ publicationId: id });
       await PublicationAuthor.deleteMany({ publicationId: id });
@@ -628,11 +804,40 @@ class PublicationService {
       await PublicationResearchArea.deleteMany({ publicationId: id });
       await PublicationMetric.deleteMany({ publicationId: id });
       await PublicationAnalytic.deleteMany({ publicationId: id });
+      await PublicationView.deleteMany({ publicationId: id });
+      await PublicationDownload.deleteMany({ publicationId: id });
+      await PublicationBookmark.deleteMany({ publicationId: id });
+      await PublicationComment.deleteMany({ publicationId: id });
+      await PublicationHistory.deleteMany({ publicationId: id });
+
+      const PublicationMetadata = require('../../../models/PublicationMetadata');
+      if (PublicationMetadata) {
+        await PublicationMetadata.deleteMany({ publicationId: id });
+      }
+
+      const PublicationReader = require('../../../models/PublicationReader');
+      if (PublicationReader) {
+        await PublicationReader.deleteMany({ publicationId: id });
+      }
+
+      const PublicationEdit = require('../../../models/PublicationEdit');
+      if (PublicationEdit) {
+        await PublicationEdit.deleteMany({ publicationId: id });
+      }
     } else {
+      // Soft Delete only
       publication.isDeleted = true;
       publication.deletedAt = new Date();
       publication.deletedBy = userId;
       await publication.save();
+
+      // Log in history
+      await PublicationHistory.create({
+        publicationId: id,
+        userId,
+        action: 'delete',
+        changes: { isDeleted: true }
+      });
     }
 
     // Recalculate metrics
@@ -677,7 +882,7 @@ class PublicationService {
    * Increment file download analytic and metric
    */
   async trackDownload(id, clientInfo = {}) {
-    const publication = await Publication.findById(id);
+    const publication = await Publication.findById(id).lean();
     if (!publication) {
       throw new NotFoundError('Publication not found.');
     }
@@ -688,8 +893,8 @@ class PublicationService {
       { upsert: true }
     );
 
+    await Publication.updateOne({ _id: id }, { $inc: { downloads: 1 } });
     publication.downloads = (publication.downloads || 0) + 1;
-    await publication.save();
 
     await PublicationDownload.create({
       publicationId: id,
@@ -728,6 +933,700 @@ class PublicationService {
 
     const filter = { userId: user._id, status: 'published', isDeleted: { $ne: true } };
     return await this.getPublications(filter, queryOptions);
+  }
+
+  /**
+   * Aggregates 9 key metrics for a researcher's publications dashboard
+   */
+  async getPublicationStats(userId) {
+    const counts = await Publication.aggregate([
+      { $match: { userId: new mongoose.Types.ObjectId(userId), isDeleted: { $ne: true } } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          published: {
+            $sum: { $cond: [{ $eq: ['$status', 'published'] }, 1, 0] }
+          },
+          drafts: {
+            $sum: { $cond: [{ $eq: ['$status', 'draft'] }, 1, 0] }
+          },
+          privateCount: {
+            $sum: { $cond: [{ $eq: ['$visibility', 'Private'] }, 1, 0] }
+          },
+          publicCount: {
+            $sum: { $cond: [{ $eq: ['$visibility', 'Public'] }, 1, 0] }
+          },
+          views: { $sum: { $ifNull: ['$views', 0] } },
+          downloads: { $sum: { $ifNull: ['$downloads', 0] } },
+          citations: { $sum: { $ifNull: ['$citations', 0] } }
+        }
+      }
+    ]);
+
+    const bookmarksCount = await PublicationBookmark.countDocuments({ userId });
+
+    const stats = counts[0] || {
+      total: 0,
+      published: 0,
+      drafts: 0,
+      privateCount: 0,
+      publicCount: 0,
+      views: 0,
+      downloads: 0,
+      citations: 0
+    };
+
+    return {
+      totalPublications: stats.total || 0,
+      published: stats.published || 0,
+      drafts: stats.drafts || 0,
+      private: stats.privateCount || 0,
+      public: stats.publicCount || 0,
+      views: stats.views || 0,
+      downloads: stats.downloads || 0,
+      bookmarks: bookmarksCount,
+      citations: stats.citations || 0
+    };
+  }
+
+  /**
+   * Duplicates a publication and its related details, saving as a Draft
+   */
+  async duplicatePublication(id, userId) {
+    const publication = await Publication.findById(id).lean();
+    if (!publication) {
+      throw new NotFoundError('Publication not found.');
+    }
+    if (publication.userId.toString() !== userId.toString()) {
+      throw new ForbiddenError('You are not authorized to duplicate this publication.');
+    }
+
+    const { _id, createdAt, updatedAt, slug, publicationCode, doi, googleScholarPublicationId, citationId, views, downloads, citations, ...rest } = publication;
+
+    const newTitle = `${publication.title} (Copy)`;
+    const newSlug = generateSlug(newTitle);
+
+    const duplicated = new Publication({
+      ...rest,
+      title: newTitle,
+      slug: newSlug,
+      status: 'draft',
+      visibility: 'Draft',
+      userId,
+      ownerId: userId,
+      views: 0,
+      downloads: 0,
+      citations: 0,
+      researchScore: 0
+    });
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      await duplicated.save({ session });
+
+      const [authors, keywords, researchAreas, metadata] = await Promise.all([
+        PublicationAuthor.find({ publicationId: id }).lean(),
+        PublicationKeyword.find({ publicationId: id }).lean(),
+        PublicationResearchArea.find({ publicationId: id }).lean(),
+        mongoose.model('PublicationMetadata').findOne({ publicationId: id }).lean()
+      ]);
+
+      if (authors.length > 0) {
+        const duplicatedAuthors = authors.map(({ _id, createdAt, updatedAt, publicationId, ...author }) => ({
+          ...author,
+          publicationId: duplicated._id
+        }));
+        await PublicationAuthor.insertMany(duplicatedAuthors, { session });
+      }
+
+      if (keywords.length > 0) {
+        const duplicatedKeywords = keywords.map(({ _id, createdAt, updatedAt, publicationId, ...kw }) => ({
+          ...kw,
+          publicationId: duplicated._id
+        }));
+        await PublicationKeyword.insertMany(duplicatedKeywords, { session });
+      }
+
+      if (researchAreas.length > 0) {
+        const duplicatedAreas = researchAreas.map(({ _id, createdAt, updatedAt, publicationId, ...area }) => ({
+          ...area,
+          publicationId: duplicated._id
+        }));
+        await PublicationResearchArea.insertMany(duplicatedAreas, { session });
+      }
+
+      if (metadata) {
+        const PublicationMetadata = mongoose.model('PublicationMetadata');
+        const duplicatedMetadata = new PublicationMetadata({
+          publicationId: duplicated._id,
+          abstract: metadata.abstract || '',
+          references: metadata.references || [],
+          publisher: metadata.publisher || ''
+        });
+        await duplicatedMetadata.save({ session });
+      }
+
+      const metricDoc = new PublicationMetric({
+        publicationId: duplicated._id,
+        views: 0,
+        downloads: 0,
+        citations: 0,
+        shares: 0,
+        bookmarks: 0,
+        comments: 0
+      });
+      await metricDoc.save({ session });
+
+      const historyDoc = new PublicationHistory({
+        publicationId: duplicated._id,
+        userId,
+        action: 'draft_save',
+        changes: { duplicatedFrom: id }
+      });
+      await historyDoc.save({ session });
+
+      await session.commitTransaction();
+      session.endSession();
+
+      try {
+        await profileService.calculateAndSaveResearchMetrics(userId);
+      } catch (metricsError) {
+        console.error('[METRICS RECALCULATION ERROR]:', metricsError);
+      }
+
+      return duplicated;
+    } catch (e) {
+      await session.abortTransaction();
+      session.endSession();
+      throw e;
+    }
+  }
+
+  /**
+   * Toggles a user's bookmark for a publication
+   */
+  async toggleBookmark(userId, publicationId, folderName = 'General') {
+    const existing = await PublicationBookmark.findOne({ userId, publicationId });
+
+    if (existing) {
+      await PublicationBookmark.deleteOne({ userId, publicationId });
+      await PublicationMetric.findOneAndUpdate(
+        { publicationId },
+        { $inc: { bookmarks: -1 } }
+      );
+      return { bookmarked: false };
+    } else {
+      const bookmark = new PublicationBookmark({
+        userId,
+        publicationId,
+        folder: folderName
+      });
+      await bookmark.save();
+      await PublicationMetric.findOneAndUpdate(
+        { publicationId },
+        { $inc: { bookmarks: 1 } },
+        { upsert: true }
+      );
+      return { bookmarked: true, folderName };
+    }
+  }
+
+  /**
+   * Executes batch operations on selected publications
+   */
+  async bulkAction(userId, { action, ids, visibility }) {
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      throw new ValidationError('No publication IDs provided.');
+    }
+
+    const publications = await Publication.find({ _id: { $in: ids } });
+    const nonOwned = publications.filter(p => p.userId.toString() !== userId.toString());
+    if (nonOwned.length > 0) {
+      throw new ForbiddenError('You do not own all of the selected publications.');
+    }
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      if (action === 'delete') {
+        // Soft delete all
+        await Publication.updateMany(
+          { _id: { $in: ids } },
+          { $set: { isDeleted: true, deletedAt: new Date(), deletedBy: userId } },
+          { session }
+        );
+        const historyDocs = ids.map(id => ({
+          publicationId: id,
+          userId,
+          action: 'delete',
+          changes: { isDeleted: true }
+        }));
+        await PublicationHistory.insertMany(historyDocs, { session });
+      } else if (action === 'restore') {
+        await Publication.updateMany(
+          { _id: { $in: ids } },
+          { $set: { isDeleted: false, deletedAt: undefined, deletedBy: undefined } },
+          { session }
+        );
+        const historyDocs = ids.map(id => ({
+          publicationId: id,
+          userId,
+          action: 'restore',
+          changes: { isDeleted: false }
+        }));
+        await PublicationHistory.insertMany(historyDocs, { session });
+      } else if (action === 'permanent-delete') {
+        await Publication.deleteMany({ _id: { $in: ids } }, { session });
+        await PublicationFile.deleteMany({ publicationId: { $in: ids } }, { session });
+        await PublicationAuthor.deleteMany({ publicationId: { $in: ids } }, { session });
+        await PublicationKeyword.deleteMany({ publicationId: { $in: ids } }, { session });
+        await PublicationResearchArea.deleteMany({ publicationId: { $in: ids } }, { session });
+        await PublicationMetric.deleteMany({ publicationId: { $in: ids } }, { session });
+        await PublicationAnalytic.deleteMany({ publicationId: { $in: ids } }, { session });
+        await PublicationView.deleteMany({ publicationId: { $in: ids } }, { session });
+        await PublicationDownload.deleteMany({ publicationId: { $in: ids } }, { session });
+        await PublicationBookmark.deleteMany({ publicationId: { $in: ids } }, { session });
+        await PublicationComment.deleteMany({ publicationId: { $in: ids } }, { session });
+        await PublicationHistory.deleteMany({ publicationId: { $in: ids } }, { session });
+
+        const PublicationMetadata = require('../../../models/PublicationMetadata');
+        await PublicationMetadata.deleteMany({ publicationId: { $in: ids } }, { session });
+
+        const PublicationReader = require('../../../models/PublicationReader');
+        await PublicationReader.deleteMany({ publicationId: { $in: ids } }, { session });
+
+        const PublicationEdit = require('../../../models/PublicationEdit');
+        if (PublicationEdit) {
+          await PublicationEdit.deleteMany({ publicationId: { $in: ids } }, { session });
+        }
+      } else if (action === 'publish') {
+        await Publication.updateMany(
+          { _id: { $in: ids } },
+          { $set: { status: 'published', visibility: 'Public' } },
+          { session }
+        );
+        const historyDocs = ids.map(id => ({
+          publicationId: id,
+          userId,
+          action: 'publish',
+          changes: { status: 'published', visibility: 'Public' }
+        }));
+        await PublicationHistory.insertMany(historyDocs, { session });
+      } else if (action === 'move-draft') {
+        await Publication.updateMany(
+          { _id: { $in: ids } },
+          { $set: { status: 'draft', visibility: 'Draft' } },
+          { session }
+        );
+        const historyDocs = ids.map(id => ({
+          publicationId: id,
+          userId,
+          action: 'draft_save',
+          changes: { status: 'draft', visibility: 'Draft' }
+        }));
+        await PublicationHistory.insertMany(historyDocs, { session });
+      } else if (action === 'update-visibility') {
+        if (!visibility || !['Draft', 'Private', 'Institution Only', 'Public'].includes(visibility)) {
+          throw new ValidationError('Invalid visibility option.');
+        }
+        await Publication.updateMany(
+          { _id: { $in: ids } },
+          { $set: { visibility } },
+          { session }
+        );
+        const historyDocs = ids.map(id => ({
+          publicationId: id,
+          userId,
+          action: 'update',
+          changes: { visibility }
+        }));
+        await PublicationHistory.insertMany(historyDocs, { session });
+      }
+      await session.commitTransaction();
+      session.endSession();
+
+      await profileService.calculateAndSaveResearchMetrics(userId);
+      return { success: true, count: ids.length };
+    } catch (e) {
+      await session.abortTransaction();
+      session.endSession();
+      throw e;
+    }
+  }
+
+  /**
+   * Track view with deduplication (for POST /api/v1/publications/:id/view)
+   */
+  async trackView(id, clientInfo = {}) {
+    const publication = await Publication.findById(id);
+    if (!publication) {
+      throw new NotFoundError('Publication not found.');
+    }
+
+    const timeWindow = new Date(Date.now() - 15 * 60 * 1000);
+    const queryConditions = {
+      publicationId: id,
+      createdAt: { $gte: timeWindow }
+    };
+
+    if (clientInfo.userId) {
+      queryConditions.userId = clientInfo.userId;
+    } else if (clientInfo.ip) {
+      queryConditions.ipAddress = clientInfo.ip;
+    } else {
+      queryConditions._id = null;
+    }
+
+    const recentView = await PublicationView.findOne(queryConditions);
+    let incremented = false;
+
+    if (!recentView) {
+      await PublicationMetric.findOneAndUpdate(
+        { publicationId: id },
+        { $inc: { views: 1 } },
+        { upsert: true }
+      );
+      await Publication.updateOne({ _id: id }, { $inc: { views: 1 } });
+      
+      await PublicationView.create({
+        publicationId: id,
+        userId: clientInfo.userId || null,
+        ipAddress: clientInfo.ip || '',
+        userAgent: clientInfo.userAgent || ''
+      });
+
+      await PublicationAnalytic.create({
+        publicationId: id,
+        userId: clientInfo.userId || null,
+        eventType: 'view',
+        ipAddress: clientInfo.ip || '',
+        userAgent: clientInfo.userAgent || ''
+      });
+      
+      incremented = true;
+    }
+
+    const metric = await PublicationMetric.findOne({ publicationId: id }).lean();
+    return { 
+      views: metric?.views || 0,
+      incremented
+    };
+  }
+
+  /**
+   * Toggle recommendation
+   */
+  async toggleRecommendation(userId, publicationId) {
+    const publication = await Publication.findById(publicationId);
+    if (!publication) {
+      throw new NotFoundError('Publication not found.');
+    }
+
+    const Recommendation = require('../../../models/Recommendation');
+    const existing = await Recommendation.findOne({ userId, publicationId });
+
+    if (existing) {
+      await Recommendation.deleteOne({ userId, publicationId });
+      await PublicationMetric.findOneAndUpdate(
+        { publicationId },
+        { $inc: { recommendations: -1 } },
+        { upsert: true }
+      );
+      await Publication.updateOne({ _id: publicationId }, { $inc: { recommendations: -1 } });
+      
+      return { recommended: false };
+    } else {
+      const rec = new Recommendation({ userId, publicationId });
+      await rec.save();
+      await PublicationMetric.findOneAndUpdate(
+        { publicationId },
+        { $inc: { recommendations: 1 } },
+        { upsert: true }
+      );
+      await Publication.updateOne({ _id: publicationId }, { $inc: { recommendations: 1 } });
+      
+      return { recommended: true };
+    }
+  }
+
+  /**
+   * Track sharing event
+   */
+  async trackShare(userId, publicationId, platform = 'internal') {
+    const publication = await Publication.findById(publicationId);
+    if (!publication) {
+      throw new NotFoundError('Publication not found.');
+    }
+
+    const Share = require('../../../models/Share');
+    const share = new Share({ userId, publicationId, platform });
+    await share.save();
+
+    await PublicationMetric.findOneAndUpdate(
+      { publicationId },
+      { $inc: { shares: 1 } },
+      { upsert: true }
+    );
+
+    const metric = await PublicationMetric.findOne({ publicationId }).lean();
+    return { shares: metric?.shares || 0 };
+  }
+
+  /**
+   * Get related publications
+   */
+  async getRelatedPublications(publicationId, limit = 5) {
+    const publication = await Publication.findById(publicationId).lean();
+    if (!publication) {
+      throw new NotFoundError('Publication not found.');
+    }
+
+    const keywords = publication.keywords || [];
+    const researchAreas = publication.researchAreas || [];
+
+    const query = {
+      _id: { $ne: publicationId },
+      status: 'published',
+      visibility: 'Public',
+      isDeleted: { $ne: true }
+    };
+
+    if (keywords.length > 0 || researchAreas.length > 0) {
+      query.$or = [
+        { keywords: { $in: keywords } },
+        { researchAreas: { $in: researchAreas } }
+      ];
+    }
+
+    return await Publication.find(query)
+      .sort({ citations: -1, views: -1 })
+      .limit(Number(limit))
+      .lean();
+  }
+
+  /**
+   * Get related researchers
+   */
+  async getRelatedResearchers(publicationId, limit = 5) {
+    const publication = await Publication.findById(publicationId).lean();
+    if (!publication) {
+      throw new NotFoundError('Publication not found.');
+    }
+
+    const User = require('../../../models/User');
+    const Profile = require('../../../models/Profile');
+
+    const query = {
+      userId: { $ne: publication.userId },
+      isDeleted: { $ne: true }
+    };
+
+    if (publication.institution) {
+      query.institution = publication.institution;
+    }
+
+    let profiles = await Profile.find(query)
+      .populate('userId', 'firstName lastName fullName email profileImage institution department designation profileSlug username')
+      .limit(Number(limit))
+      .lean();
+
+    if (profiles.length < limit) {
+      const remainingLimit = limit - profiles.length;
+      const existingUserIds = profiles.map(p => p.userId?._id?.toString() || p.userId?.toString());
+      existingUserIds.push(publication.userId.toString());
+
+      const fallbackQuery = {
+        userId: { $nin: existingUserIds },
+        isDeleted: { $ne: true }
+      };
+
+      const fallbackProfiles = await Profile.find(fallbackQuery)
+        .populate('userId', 'firstName lastName fullName email profileImage institution department designation profileSlug username')
+        .limit(remainingLimit)
+        .lean();
+
+      profiles = [...profiles, ...fallbackProfiles];
+    }
+
+    return profiles;
+  }
+
+  /**
+   * Add a comment or reply to a publication
+   */
+  async addComment(userId, publicationId, content, parentId = null) {
+    if (!content || !content.trim()) {
+      throw new ValidationError('Comment content cannot be empty.');
+    }
+
+    const publication = await Publication.findById(publicationId);
+    if (!publication) {
+      throw new NotFoundError('Publication not found.');
+    }
+
+    if (parentId) {
+      const parent = await PublicationComment.findById(parentId);
+      if (!parent) {
+        throw new NotFoundError('Parent comment not found.');
+      }
+    }
+
+    const comment = new PublicationComment({
+      userId,
+      publicationId,
+      content: content.trim(),
+      parentId
+    });
+
+    await comment.save();
+
+    // Increment comment metrics count
+    await PublicationMetric.findOneAndUpdate(
+      { publicationId },
+      { $inc: { comments: 1 } },
+      { upsert: true }
+    );
+    await Publication.updateOne({ _id: publicationId }, { $inc: { comments: 1 } });
+
+    // Populate user details for returning comment
+    const populated = await PublicationComment.findById(comment._id)
+      .populate('userId', 'firstName lastName fullName email profileImage institution department designation profileSlug username')
+      .lean();
+
+    return populated;
+  }
+
+  /**
+   * Get all comments for a publication in a threaded tree format
+   */
+  async getComments(publicationId) {
+    const rawComments = await PublicationComment.find({ publicationId })
+      .populate('userId', 'firstName lastName fullName email profileImage institution department designation profileSlug username')
+      .sort({ createdAt: 1 })
+      .lean();
+
+    // Build comment map
+    const commentMap = {};
+    const rootComments = [];
+
+    rawComments.forEach(comment => {
+      comment.replies = [];
+      commentMap[comment._id.toString()] = comment;
+    });
+
+    rawComments.forEach(comment => {
+      if (comment.parentId) {
+        const parent = commentMap[comment.parentId.toString()];
+        if (parent) {
+          parent.replies.push(comment);
+        } else {
+          // If parent not found, render as root
+          rootComments.push(comment);
+        }
+      } else {
+        rootComments.push(comment);
+      }
+    });
+
+    return rootComments;
+  }
+
+  /**
+   * Edit a comment
+   */
+  async editComment(userId, commentId, content) {
+    if (!content || !content.trim()) {
+      throw new ValidationError('Comment content cannot be empty.');
+    }
+
+    const comment = await PublicationComment.findById(commentId);
+    if (!comment) {
+      throw new NotFoundError('Comment not found.');
+    }
+
+    if (comment.userId.toString() !== userId.toString()) {
+      throw new ForbiddenError('You are not authorized to edit this comment.');
+    }
+
+    comment.content = content.trim();
+    comment.isEdited = true;
+    comment.editedAt = new Date();
+    await comment.save();
+
+    return await PublicationComment.findById(commentId)
+      .populate('userId', 'firstName lastName fullName email profileImage institution department designation profileSlug username')
+      .lean();
+  }
+
+  /**
+   * Delete a comment (and recursively delete children if necessary)
+   */
+  async deleteComment(userId, commentId) {
+    const comment = await PublicationComment.findById(commentId);
+    if (!comment) {
+      throw new NotFoundError('Comment not found.');
+    }
+
+    if (comment.userId.toString() !== userId.toString()) {
+      throw new ForbiddenError('You are not authorized to delete this comment.');
+    }
+
+    const publicationId = comment.publicationId;
+
+    // Find and delete replies
+    const findRepliesRecursive = async (pid) => {
+      const children = await PublicationComment.find({ parentId: pid }).lean();
+      const ids = [pid];
+      for (const child of children) {
+        const childIds = await findRepliesRecursive(child._id);
+        ids.push(...childIds);
+      }
+      return ids;
+    };
+
+    const idsToDelete = await findRepliesRecursive(commentId);
+    const deleteCount = idsToDelete.length;
+
+    await PublicationComment.deleteMany({ _id: { $in: idsToDelete } });
+
+    // Decrement comments count in publication metrics
+    await PublicationMetric.findOneAndUpdate(
+      { publicationId },
+      { $inc: { comments: -deleteCount } },
+      { upsert: true }
+    );
+    await Publication.updateOne({ _id: publicationId }, { $inc: { comments: -deleteCount } });
+
+    return { success: true, deletedCount: deleteCount };
+  }
+
+  /**
+   * Toggle comment like
+   */
+  async toggleLikeComment(userId, commentId) {
+    const comment = await PublicationComment.findById(commentId);
+    if (!comment) {
+      throw new NotFoundError('Comment not found.');
+    }
+
+    if (!comment.likes) {
+      comment.likes = [];
+    }
+
+    const index = comment.likes.indexOf(userId);
+    let liked = false;
+
+    if (index > -1) {
+      comment.likes.splice(index, 1);
+    } else {
+      comment.likes.push(userId);
+      liked = true;
+    }
+
+    await comment.save();
+    return { liked, likeCount: comment.likes.length };
   }
 }
 

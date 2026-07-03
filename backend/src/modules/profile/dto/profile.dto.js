@@ -43,7 +43,6 @@ class ProfileDTO {
         researchGate: profile.socialLinks?.researchGate || '',
         linkedin: profile.socialLinks?.linkedin || '',
         website: profile.socialLinks?.website || '',
-        github: profile.socialLinks?.github || '',
         scopus: profile.socialLinks?.scopus || ''
       },
       profileCompletion: profile.profileCompletion || 0,

@@ -33,6 +33,10 @@ const PublicationMetricSchema = new Schema(
     comments: {
       type: Number,
       default: 0
+    },
+    recommendations: {
+      type: Number,
+      default: 0
     }
   },
   {

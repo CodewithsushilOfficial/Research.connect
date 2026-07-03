@@ -9,7 +9,7 @@ import {
   Bell, MessageSquare, UserPlus, Plus, ChevronDown, 
   Search, LogOut, User, Compass,
   FileText, Briefcase, Award, Settings, BookOpen, HelpCircle,
-  Share2, Sparkles, Users, Bookmark
+  Share2, Users, Bookmark
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -98,9 +98,6 @@ const AuthenticatedNavbar = () => {
             <Link to="/" className="px-3 py-2 rounded-lg hover:bg-slate-55 hover:text-blue-600 transition-all duration-150">Home</Link>
             <Link to="/#research" className="px-3 py-2 rounded-lg hover:bg-slate-55 hover:text-blue-600 transition-all duration-150">Research</Link>
             <Link to="/#communities" className="px-3 py-2 rounded-lg hover:bg-slate-55 hover:text-blue-600 transition-all duration-150">Communities</Link>
-            <Link to="/ai-workspace" className="px-3 py-2 bg-indigo-50 text-indigo-650 font-extrabold rounded-lg flex items-center gap-1.5 transition-all duration-150 hover:bg-indigo-100/80">
-              <Sparkles className="w-3.5 h-3.5" /> AI Workspace
-            </Link>
           </div>
 
           {/* Large Global Search */}

@@ -163,9 +163,6 @@ UserSchema.pre('save', async function (next) {
 });
 
 // Indexes
-UserSchema.index({ username: 1 }, { unique: true, sparse: true });
-UserSchema.index({ publicProfileId: 1 }, { unique: true, sparse: true });
-UserSchema.index({ profileSlug: 1 }, { unique: true, sparse: true });
 UserSchema.index({ status: 1 });
 UserSchema.index({ isDeleted: 1 });
 UserSchema.index({ createdAt: -1 });

@@ -1,22 +1,24 @@
 import React from 'react';
-import { CheckCircle2, Circle } from 'lucide-react';
+import { CheckCircle2, XCircle } from 'lucide-react';
 
 const ProfileCompletion = ({ profile, user }) => {
   const score = profile?.profileCompletion || 0;
 
+  const has = (v) => !!(v && String(v).trim().length > 0);
+
   const checklist = [
-    { label: 'Profile Photo', completed: !!(profile?.profileImage || user?.profileImage) },
-    { label: 'Basic Info & Country', completed: !!(user?.firstName && user?.lastName && profile?.country) },
-    { label: 'Research Identity (ORCID/Scholar)', completed: !!(profile?.socialLinks?.orcid || profile?.socialLinks?.googleScholar) },
+    { label: 'Profile Photo', completed: has(profile?.profileImage) || has(user?.profileImage) },
+    { label: 'Basic Info & Country', completed: has(user?.firstName) && has(user?.lastName) && has(profile?.country) },
+    { label: 'Research Identity (ORCID/Scholar)', completed: has(profile?.socialLinks?.orcid) || has(profile?.socialLinks?.googleScholar) },
     { label: 'Education Details', completed: !!(profile?.education && profile?.education.length > 0) },
     { label: 'Experience Details', completed: !!(profile?.experience && profile?.experience.length > 0) },
-    { label: 'Publications Portfolio', completed: !!(profile?.metrics?.publicationsCount > 0 || (profile?.education && profile?.education.length > 0)) }, // Fallback check or true
+    { label: 'Publications Portfolio', completed: !!(profile?.metrics?.publicationsCount > 0) },
     { label: 'Projects & Work', completed: !!(profile?.projects && profile?.projects.length > 0) },
-    { label: 'Social Portfolios', completed: !!(profile?.socialLinks?.linkedin || profile?.socialLinks?.github) }
+    { label: 'Social Portfolios', completed: has(profile?.socialLinks?.linkedin) }
   ];
 
   // SVG parameters for circular progress
-  const radius = 32;
+  const radius = 27;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (score / 100) * circumference;
 
@@ -65,13 +67,13 @@ const ProfileCompletion = ({ profile, user }) => {
       <div className="pt-3 border-t border-border/50 space-y-2">
         {checklist.map((item, idx) => (
           <div key={idx} className="flex items-center justify-between text-[11px] font-semibold">
-            <span className={item.completed ? 'text-text-secondary line-through opacity-70' : 'text-text-primary'}>
+            <span className={item.completed ? 'text-text-secondary' : 'text-text-primary'}>
               {item.label}
             </span>
             {item.completed ? (
               <CheckCircle2 className="w-3.5 h-3.5 text-accent-green fill-accent-green/10 flex-shrink-0" />
             ) : (
-              <Circle className="w-3.5 h-3.5 text-text-secondary opacity-40 flex-shrink-0" />
+              <XCircle className="w-3.5 h-3.5 text-accent-red fill-accent-red/10 flex-shrink-0" />
             )}
           </div>
         ))}

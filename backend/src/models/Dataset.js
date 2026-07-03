@@ -50,8 +50,6 @@ const DatasetSchema = new Schema(
   }
 );
 
-DatasetSchema.index({ userId: 1 });
-
 const Dataset = mongoose.model('Dataset', DatasetSchema);
 
 module.exports = Dataset;

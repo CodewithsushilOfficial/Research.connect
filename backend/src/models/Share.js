@@ -26,8 +26,6 @@ const ShareSchema = new Schema(
   }
 );
 
-ShareSchema.index({ publicationId: 1 });
-
 const Share = mongoose.model('Share', ShareSchema);
 
 module.exports = Share;

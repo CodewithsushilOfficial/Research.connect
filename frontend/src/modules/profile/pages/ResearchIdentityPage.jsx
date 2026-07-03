@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { 
   Compass, Link2, BookOpen, GraduationCap, CheckCircle, 
-  Loader2, GitBranch, Linkedin, Award, Play, AlertCircle, ArrowRight 
+  Loader2, Linkedin, Award, Play, AlertCircle, ArrowRight 
 } from 'lucide-react';
 import scholarService from '../../../services/scholar.service';
 import { updateProfileState } from '../../../redux/slices/authSlice';
@@ -21,7 +21,6 @@ const ResearchIdentityPage = () => {
   const [formData, setFormData] = useState({
     googleScholar: profile?.socialLinks?.googleScholar || '',
     orcid: profile?.socialLinks?.orcid || '',
-    github: profile?.socialLinks?.github || '',
     linkedin: profile?.socialLinks?.linkedin || '',
     researchGate: profile?.socialLinks?.researchGate || '',
     scopus: profile?.socialLinks?.scopus || ''
@@ -46,7 +45,7 @@ const ResearchIdentityPage = () => {
 
   // Form Validations
   const validateForm = () => {
-    const { googleScholar, orcid, github, linkedin, researchGate, scopus } = formData;
+    const { googleScholar, orcid, linkedin, researchGate, scopus } = formData;
     
     if (googleScholar) {
       const scholarRegex = /^https?:\/\/(www\.)?scholar\.google\.[a-z.]+\/citations\?.*user=([a-zA-Z0-9_-]{8,16}|[a-zA-Z0-9_-]{12})/;
@@ -62,9 +61,7 @@ const ResearchIdentityPage = () => {
       }
     }
 
-    if (github && !github.includes('github.com')) {
-      return toast.error('Please enter a valid GitHub URL');
-    }
+   
 
     if (linkedin && !linkedin.includes('linkedin.com')) {
       return toast.error('Please enter a valid LinkedIn URL');
@@ -226,12 +223,7 @@ const ResearchIdentityPage = () => {
                 value={formData.orcid}
                 onChange={(val) => handleInputChange('orcid', val)}
               />
-              <Input
-                label="GitHub URL"
-                placeholder="https://github.com/yourusername"
-                value={formData.github}
-                onChange={(val) => handleInputChange('github', val)}
-              />
+             
               <Input
                 label="LinkedIn URL"
                 placeholder="https://linkedin.com/in/yourusername"

@@ -15,16 +15,11 @@ const MORE_PUB_TYPES = [
   { name: 'Dataset', slug: 'dataset' },
   { name: 'Method', slug: 'method' },
   { name: 'Proposal', slug: 'proposal' },
+  { name: 'Technical Report', slug: 'technical-report' },
   { name: 'Book', slug: 'book' },
   { name: 'Book Chapter', slug: 'book-chapter' },
-  { name: 'Software', slug: 'software' },
-  { name: 'Technical Report', slug: 'technical-report' },
-  { name: 'White Paper', slug: 'white-paper' },
-  { name: 'Survey', slug: 'survey' },
-  { name: 'Case Study', slug: 'case-study' },
-  { name: 'Review Article', slug: 'review-article' },
-  { name: 'Dissertation', slug: 'dissertation' },
-  { name: 'Thesis', slug: 'thesis' }
+  { name: 'Thesis', slug: 'thesis' },
+  { name: 'White Paper', slug: 'white-paper' }
 ];
 
 const Step1Type = ({ selectedType, onSelect }) => {
@@ -38,8 +33,8 @@ const Step1Type = ({ selectedType, onSelect }) => {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-xl font-extrabold text-slate-900">What are you publishing today?</h2>
-        <p className="text-xs text-slate-500 mt-1">Select the type of research item you want to share with the community</p>
+        <h2 className="text-xl font-extrabold text-slate-900">Add your Research</h2>
+        <p className="text-xs text-slate-500 mt-1">Share your research with the global research community.</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
+import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { ArrowLeft, ArrowRight, Save, Send, Loader2 } from 'lucide-react';
@@ -24,6 +25,7 @@ const PublicationCreatePage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useSelector((state) => state.auth);
+  const queryClient = useQueryClient();
 
   // States
   const [step, setStep] = useState(1);
@@ -34,6 +36,7 @@ const PublicationCreatePage = () => {
     title: '',
     subtitle: '',
     publicationType: '',
+    publicationFormat: '',
     researchType: 'Original Research',
     abstract: '',
     authorsList: [],
@@ -49,6 +52,9 @@ const PublicationCreatePage = () => {
     issue: '',
     pages: '',
     language: 'English',
+    license: '',
+    funding: '',
+    openAccess: false,
     researchAreas: [],
     keywords: [],
     visibility: 'Public',
@@ -89,12 +95,10 @@ const PublicationCreatePage = () => {
     handleFieldChange('publicationType', slug);
     // Update URL parameter maintaining browser history
     setSearchParams({ publicationType: slug });
-    setStep(2);
   };
 
   const handleFormatSelect = (slug) => {
-    handleFieldChange('publicationType', slug); // Format overrides broad category
-    setStep(3);
+    handleFieldChange('publicationFormat', slug);
   };
 
   const handleUploadSuccess = ({ cloudinaryData, extractedMetadata, cacheId, originalName }) => {
@@ -167,8 +171,6 @@ const PublicationCreatePage = () => {
         return updated;
       });
     }
-
-    setStep(4);
   };
 
   const handleRemoveFile = () => {
@@ -215,6 +217,12 @@ const PublicationCreatePage = () => {
       const response = await publicationService.saveDraft(formData);
       if (response.success) {
         toast.success('Draft saved successfully!', { id: loadingToast });
+        
+        // Invalidate React Query caches to trigger updates
+        queryClient.invalidateQueries({ queryKey: ['publications-portfolio'] });
+        queryClient.invalidateQueries({ queryKey: ['profile'] });
+        queryClient.invalidateQueries({ queryKey: ['feed'] });
+
         // Redirect to profile or draft manager
         navigate(user?.profileSlug ? `/profile/${user.profileSlug}` : '/profile');
       } else {
@@ -242,11 +250,18 @@ const PublicationCreatePage = () => {
     const loadingToast = toast.loading('Publishing research in progress...');
     try {
       const response = await publicationService.createPublication(formData);
-      if (response.success) {
+      if (response.success && response.data) {
         toast.success('Research paper published successfully!', { id: loadingToast });
+        
+        // Invalidate React Query caches to trigger updates
+        queryClient.invalidateQueries({ queryKey: ['publications-portfolio'] });
+        queryClient.invalidateQueries({ queryKey: ['profile'] });
+        queryClient.invalidateQueries({ queryKey: ['feed'] });
+
         // Redirect to the generated SEO friendly slug page
+        const targetSlug = response.data.slug;
         setTimeout(() => {
-          navigate(`/publication/${response.data.slug}`);
+          navigate(`/publication/${targetSlug}`);
         }, 1000);
       } else {
         toast.error(response.message || 'Failed to publish research.', { id: loadingToast });
@@ -328,7 +343,7 @@ const PublicationCreatePage = () => {
                 )}
                 {step === 2 && (
                   <Step2Format
-                    selectedFormat={formData.publicationType}
+                    selectedFormat={formData.publicationFormat}
                     onSelect={handleFormatSelect}
                   />
                 )}
@@ -404,7 +419,20 @@ const PublicationCreatePage = () => {
                   <span>Review Details</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
-              ) : null}
+              ) : (
+                <button
+                  type="button"
+                  disabled={
+                    (step === 1 && !formData.publicationType) ||
+                    (step === 2 && !formData.publicationFormat)
+                  }
+                  onClick={handleNext}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-750 text-white px-5 py-2.5 rounded-xl transition-all shadow-md shadow-blue-600/10 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
+                >
+                  <span>Continue</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
 

@@ -28,7 +28,8 @@ class FeedRepository extends BaseRepository {
           model: 'User',
           select: 'name email profileImage institution designation'
         }
-      });
+      })
+      .lean();
   }
 
   async getPublications(filter = {}, options = {}) {
@@ -39,7 +40,8 @@ class FeedRepository extends BaseRepository {
       .populate('userId', 'firstName lastName fullName email profileImage institution department designation')
       .sort(sort)
       .skip(skip)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .lean();
 
     const [docs, total] = await Promise.all([
       query,
@@ -64,11 +66,42 @@ class FeedRepository extends BaseRepository {
   }
 
   async deletePublication(id) {
-    return await Publication.findByIdAndUpdate(id, { isDeleted: true, deletedAt: new Date() }, { new: true });
+    const PublicationAuthor = require('../../../models/PublicationAuthor');
+    const PublicationFile = require('../../../models/PublicationFile');
+    const PublicationKeyword = require('../../../models/PublicationKeyword');
+    const PublicationResearchArea = require('../../../models/PublicationResearchArea');
+    const PublicationMetric = require('../../../models/PublicationMetric');
+    const PublicationAnalytic = require('../../../models/PublicationAnalytic');
+    const PublicationView = require('../../../models/PublicationView');
+    const PublicationDownload = require('../../../models/PublicationDownload');
+    const PublicationBookmark = require('../../../models/PublicationBookmark');
+    const PublicationComment = require('../../../models/PublicationComment');
+    const PublicationHistory = require('../../../models/PublicationHistory');
+    const PublicationMetadata = require('../../../models/PublicationMetadata');
+    const PublicationReader = require('../../../models/PublicationReader');
+
+    await Publication.deleteOne({ _id: id });
+    await PublicationFile.deleteMany({ publicationId: id });
+    await PublicationAuthor.deleteMany({ publicationId: id });
+    await PublicationKeyword.deleteMany({ publicationId: id });
+    await PublicationResearchArea.deleteMany({ publicationId: id });
+    await PublicationMetric.deleteMany({ publicationId: id });
+    await PublicationAnalytic.deleteMany({ publicationId: id });
+    await PublicationView.deleteMany({ publicationId: id });
+    await PublicationDownload.deleteMany({ publicationId: id });
+    await PublicationBookmark.deleteMany({ publicationId: id });
+    await PublicationComment.deleteMany({ publicationId: id });
+    await PublicationHistory.deleteMany({ publicationId: id });
+    if (PublicationMetadata) await PublicationMetadata.deleteMany({ publicationId: id });
+    if (PublicationReader) await PublicationReader.deleteMany({ publicationId: id });
+
+    return { _id: id };
   }
 
   async getPublicationById(id) {
-    return await Publication.findById(id).populate('userId', 'firstName lastName fullName email profileImage institution department designation');
+    return await Publication.findById(id)
+      .populate('userId', 'firstName lastName fullName email profileImage institution department designation')
+      .lean();
   }
 
   async createLike(userId, publicationId) {
@@ -108,12 +141,13 @@ class FeedRepository extends BaseRepository {
   }
 
   async getBookmark(userId, publicationId) {
-    return await Bookmark.findOne({ userId, publicationId, isDeleted: { $ne: true } });
+    return await Bookmark.findOne({ userId, publicationId, isDeleted: { $ne: true } }).lean();
   }
 
   async getBookmarksByUserId(userId, filter = {}) {
     return await Bookmark.find({ userId, ...filter, isDeleted: { $ne: true } })
-      .populate('publicationId');
+      .populate('publicationId')
+      .lean();
   }
 
   async createComment(commentData) {
@@ -124,13 +158,14 @@ class FeedRepository extends BaseRepository {
     // Get top-level comments (parentId is null)
     const docs = await Comment.find({ publicationId, parentId: null, isDeleted: { $ne: true } })
       .populate('userId', 'firstName lastName fullName email profileImage')
-      .sort('-createdAt');
+      .sort('-createdAt')
+      .lean();
 
     // For each comment, fetch its nested replies recursively
     const commentsWithReplies = await Promise.all(docs.map(async (comment) => {
       const replies = await this.getRepliesRecursively(comment._id);
       return {
-        ...comment.toObject(),
+        ...comment,
         replies
       };
     }));
@@ -144,12 +179,13 @@ class FeedRepository extends BaseRepository {
   async getRepliesRecursively(commentId) {
     const replies = await Comment.find({ parentId: commentId, isDeleted: { $ne: true } })
       .populate('userId', 'firstName lastName fullName email profileImage')
-      .sort('createdAt');
+      .sort('createdAt')
+      .lean();
 
     const repliesWithNested = await Promise.all(replies.map(async (reply) => {
       const nestedReplies = await this.getRepliesRecursively(reply._id);
       return {
-        ...reply.toObject(),
+        ...reply,
         replies: nestedReplies
       };
     }));
@@ -189,7 +225,8 @@ class FeedRepository extends BaseRepository {
       .populate('userId', 'firstName lastName fullName email profileImage institution designation')
       .sort(sort)
       .skip(skip)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .lean();
 
     const [docs, total] = await Promise.all([
       query,
@@ -222,7 +259,8 @@ class FeedRepository extends BaseRepository {
       .populate('collaborators', 'firstName lastName fullName email profileImage')
       .sort(sort)
       .skip(skip)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .lean();
 
     const [docs, total] = await Promise.all([
       query,
@@ -251,7 +289,8 @@ class FeedRepository extends BaseRepository {
       .populate('userId', 'firstName lastName fullName email profileImage institution designation')
       .sort(sort)
       .skip(skip)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .lean();
 
     const [docs, total] = await Promise.all([
       query,
@@ -274,7 +313,8 @@ class FeedRepository extends BaseRepository {
     const query = Event.find({ ...filter, isDeleted: { $ne: true } })
       .sort(sort)
       .skip(skip)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .lean();
 
     const [docs, total] = await Promise.all([
       query,
@@ -308,11 +348,11 @@ class FeedRepository extends BaseRepository {
   }
 
   async getFollowingList(followerId) {
-    return await Follow.find({ followerId }).populate('followingId', 'firstName lastName fullName email profileImage institution department designation');
+    return await Follow.find({ followerId }).populate('followingId', 'firstName lastName fullName email profileImage institution department designation').lean();
   }
 
   async getFollowersList(followingId) {
-    return await Follow.find({ followingId }).populate('followerId', 'firstName lastName fullName email profileImage institution department designation');
+    return await Follow.find({ followingId }).populate('followerId', 'firstName lastName fullName email profileImage institution department designation').lean();
   }
 
   async createRecommendation(userId, publicationId) {
@@ -332,7 +372,7 @@ class FeedRepository extends BaseRepository {
   }
 
   async getRecommendation(userId, publicationId) {
-    return await Recommendation.findOne({ userId, publicationId, isDeleted: { $ne: true } });
+    return await Recommendation.findOne({ userId, publicationId, isDeleted: { $ne: true } }).lean();
   }
 
   async countRecommendations(publicationId) {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Share2, Github, Twitter, Linkedin, Mail } from 'lucide-react';
+import { Share2, Twitter, Linkedin, Mail } from 'lucide-react';
 
 const Footer = () => {
   return (
@@ -21,9 +21,6 @@ const Footer = () => {
               Enterprise-grade AI-powered Research Discovery & Collaboration Platform.
             </p>
             <div className="flex space-x-4">
-              <a href="#" className="text-text-secondary hover:text-primary transition-colors">
-                <Github className="w-5 h-5" />
-              </a>
               <a href="#" className="text-text-secondary hover:text-primary transition-colors">
                 <Twitter className="w-5 h-5" />
               </a>

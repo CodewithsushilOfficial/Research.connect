@@ -29,6 +29,14 @@ const PublicationFileSchema = new Schema(
       type: String,
       default: ''
     },
+    pages: {
+      type: Number,
+      default: 0
+    },
+    asset_id: {
+      type: String,
+      default: ''
+    },
     isDeleted: {
       type: Boolean,
       default: false

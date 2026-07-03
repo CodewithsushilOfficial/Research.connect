@@ -47,8 +47,6 @@ const ProjectSchema = new Schema(
   }
 );
 
-ProjectSchema.index({ userId: 1 });
-
 const Project = mongoose.model('Project', ProjectSchema);
 
 module.exports = Project;

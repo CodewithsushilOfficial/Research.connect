@@ -15,7 +15,6 @@ class ResearchIdentityService {
       googleScholar: data.googleScholar !== undefined ? data.googleScholar : profile.socialLinks?.googleScholar || '',
       researchGate: data.researchGate !== undefined ? data.researchGate : profile.socialLinks?.researchGate || '',
       linkedin: data.linkedin !== undefined ? data.linkedin : profile.socialLinks?.linkedin || '',
-      github: data.github !== undefined ? data.github : profile.socialLinks?.github || '',
       scopus: data.scopus !== undefined ? data.scopus : profile.socialLinks?.scopus || '',
       website: profile.socialLinks?.website || ''
     };
@@ -30,7 +29,6 @@ class ResearchIdentityService {
         googleScholar: profile.socialLinks.googleScholar,
         researchGate: profile.socialLinks.researchGate,
         linkedin: profile.socialLinks.linkedin,
-        github: profile.socialLinks.github,
         scopus: profile.socialLinks.scopus,
         website: profile.socialLinks.website
       },

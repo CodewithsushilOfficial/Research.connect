@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Upload, FileText, CheckCircle, AlertCircle, RefreshCw, Trash2, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useDropzone } from 'react-dropzone';
+import { Upload, FileText, CheckCircle, RefreshCw, Trash2, ArrowRight } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import publicationService from '../../../services/publication.service';
 
@@ -16,11 +17,9 @@ const LOADING_STEPS = [
 ];
 
 const Step3Upload = ({ fileDetails, onUploadSuccess, onRemove, onSkip }) => {
-  const [dragActive, setDragActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const fileInputRef = useRef(null);
 
   useEffect(() => {
     let interval;
@@ -32,28 +31,6 @@ const Step3Upload = ({ fileDetails, onUploadSuccess, onRemove, onSkip }) => {
     }
     return () => clearInterval(interval);
   }, [isUploading]);
-
-  const allowedExtensions = ['.pdf', '.docx', '.pptx', '.zip', '.csv', '.txt'];
-
-  const validateFile = (file) => {
-    if (!file) return false;
-
-    // Check size limit: 100 MB
-    const maxSize = 100 * 1024 * 1024;
-    if (file.size > maxSize) {
-      toast.error('File size exceeds the 100 MB limit.');
-      return false;
-    }
-
-    // Check file extension
-    const extension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
-    if (!allowedExtensions.includes(extension)) {
-      toast.error('Unsupported file format. Please upload PDF, DOCX, PPTX, ZIP, CSV, or TXT.');
-      return false;
-    }
-
-    return true;
-  };
 
   const uploadFile = async (file) => {
     setIsUploading(true);
@@ -74,7 +51,7 @@ const Step3Upload = ({ fileDetails, onUploadSuccess, onRemove, onSkip }) => {
       const [uploadResponse, extractResponse] = await Promise.all([
         uploadPromise.catch(err => {
           console.error('File upload failed', err);
-          return { success: false, message: err.message };
+          return { success: false, message: err.message || 'File upload failed.' };
         }),
         extractPromise.catch(err => {
           console.error('Metadata extraction failed', err);
@@ -101,42 +78,32 @@ const Step3Upload = ({ fileDetails, onUploadSuccess, onRemove, onSkip }) => {
     }
   };
 
-  const handleDrag = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      if (validateFile(file)) {
-        uploadFile(file);
+  const onDrop = (acceptedFiles, fileRejections) => {
+    if (fileRejections && fileRejections.length > 0) {
+      const rejection = fileRejections[0];
+      if (rejection.errors[0]?.code === 'file-too-large') {
+        toast.error('File size exceeds the 100 MB limit.');
+      } else if (rejection.errors[0]?.code === 'file-invalid-type') {
+        toast.error('Unsupported file format. Only PDF files are supported.');
+      } else {
+        toast.error(rejection.errors[0]?.message || 'File validation failed.');
       }
+      return;
+    }
+
+    if (acceptedFiles && acceptedFiles[0]) {
+      uploadFile(acceptedFiles[0]);
     }
   };
 
-  const handleChange = (e) => {
-    e.preventDefault();
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (validateFile(file)) {
-        uploadFile(file);
-      }
-    }
-  };
-
-  const onButtonClick = () => {
-    fileInputRef.current.click();
-  };
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'application/pdf': ['.pdf']
+    },
+    maxSize: 100 * 1024 * 1024,
+    multiple: false
+  });
 
   const formatBytes = (bytes, decimals = 2) => {
     if (!bytes) return '0 Bytes';
@@ -151,35 +118,25 @@ const Step3Upload = ({ fileDetails, onUploadSuccess, onRemove, onSkip }) => {
     <div className="space-y-6 max-w-2xl mx-auto">
       <div className="text-center">
         <h2 className="text-xl font-extrabold text-slate-900">Do you want to add a file?</h2>
-        <p className="text-xs text-slate-500 mt-1">Upload full-text PDF, data sheet, or project code</p>
+        <p className="text-xs text-slate-500 mt-1">You can add publication details in the next step.</p>
       </div>
 
       {!fileDetails?.secure_url && !isUploading ? (
         <div
-          onDragEnter={handleDrag}
-          onDragOver={handleDrag}
-          onDragLeave={handleDrag}
-          onDrop={handleDrop}
+          {...getRootProps()}
           className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center min-h-[220px] transition-all cursor-pointer ${
-            dragActive 
+            isDragActive 
               ? 'border-blue-600 bg-blue-50/20' 
               : 'border-slate-200 bg-white hover:border-slate-300'
           }`}
-          onClick={onButtonClick}
         >
-          <input
-            ref={fileInputRef}
-            type="file"
-            className="hidden"
-            accept=".pdf,.docx,.pptx,.zip,.csv,.txt"
-            onChange={handleChange}
-          />
+          <input {...getInputProps()} />
           <span className="p-3.5 rounded-full bg-blue-50 text-blue-600 mb-4">
             <Upload className="w-6 h-6" />
           </span>
-          <p className="text-sm font-bold text-slate-900">Drag & Drop file here, or browse</p>
+          <p className="text-sm font-bold text-slate-900">Drag & Drop PDF here, or Browse Files</p>
           <p className="text-[10px] text-slate-400 mt-2">
-            Supported: PDF, DOCX, PPTX, ZIP, CSV, TXT (Max 100 MB)
+            Supported: PDF (Max 100 MB)
           </p>
         </div>
       ) : isUploading ? (
@@ -214,19 +171,15 @@ const Step3Upload = ({ fileDetails, onUploadSuccess, onRemove, onSkip }) => {
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              accept=".pdf,.docx,.pptx,.zip,.csv,.txt"
-              onChange={handleChange}
-            />
-            <button
-              onClick={onButtonClick}
-              className="flex-grow sm:flex-grow-0 inline-flex items-center justify-center gap-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors px-4 py-2.5 rounded-xl active:scale-[0.98]"
-            >
-              Replace File
-            </button>
+            <div {...getRootProps()}>
+              <input {...getInputProps()} />
+              <button
+                type="button"
+                className="flex-grow sm:flex-grow-0 inline-flex items-center justify-center gap-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors px-4 py-2.5 rounded-xl active:scale-[0.98]"
+              >
+                Replace File
+              </button>
+            </div>
             <button
               onClick={onRemove}
               className="flex-grow sm:flex-grow-0 inline-flex items-center justify-center gap-1.5 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors px-4 py-2.5 rounded-xl active:scale-[0.98]"

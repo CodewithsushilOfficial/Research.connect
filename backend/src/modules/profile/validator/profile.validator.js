@@ -82,10 +82,6 @@ const updateProfileValidator = [
     .optional()
     .trim()
     .isString(),
-  body('socialLinks.github')
-    .optional()
-    .trim()
-    .isString(),
   body('socialLinks.scopus')
     .optional()
     .trim()

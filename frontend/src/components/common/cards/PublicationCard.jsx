@@ -274,7 +274,7 @@ const PublicationCard = ({ pub }) => {
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-blue-600 overflow-hidden shrink-0 border border-slate-200">
             {pub.userId?.profileImage ? (
-              <img src={pub.userId.profileImage} alt="" className="w-full h-full object-cover" />
+              <img src={pub.userId.profileImage} alt="" className="w-full h-full object-cover" loading="lazy" />
             ) : (
               <span>{pub.authors ? pub.authors[0] : 'R'}</span>
             )}
@@ -606,4 +606,4 @@ const PublicationCard = ({ pub }) => {
   );
 };
 
-export default PublicationCard;
+export default React.memo(PublicationCard);

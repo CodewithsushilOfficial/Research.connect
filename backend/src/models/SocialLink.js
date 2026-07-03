@@ -35,12 +35,7 @@ const SocialLinkSchema = new Schema(
       trim: true,
       default: ''
     },
-    github: {
-      type: String,
-      trim: true,
-      default: ''
-    },
-    scopus: {
+        scopus: {
       type: String,
       trim: true,
       default: ''

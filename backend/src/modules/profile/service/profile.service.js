@@ -46,6 +46,12 @@ class ProfileService {
    * Assemble/hydrate a fully populated profile object from all normalized collections
    */
   async getFullProfile(userId, isPublic = false) {
+    const { ProfileCache } = require('../../../cache/cache.service');
+    const cached = await ProfileCache.get(userId.toString());
+    if (cached) {
+      return cached;
+    }
+
     const user = await User.findById(userId);
     if (!user || user.isDeleted) {
       throw new NotFoundError('User not found.');
@@ -77,28 +83,28 @@ class ProfileService {
       citationGraph,
       derivedAnalytics
     ] = await Promise.all([
-      Education.find({ userId, isDeleted: { $ne: true } }),
-      Experience.find({ userId, isDeleted: { $ne: true } }),
-      Skill.find({ userId, isDeleted: { $ne: true } }),
-      Patent.find({ userId, isDeleted: { $ne: true } }),
-      Book.find({ userId, isDeleted: { $ne: true } }),
-      Dataset.find({ userId, isDeleted: { $ne: true } }),
-      Award.find({ userId, isDeleted: { $ne: true } }),
-      Certificate.find({ userId, isDeleted: { $ne: true } }),
-      SocialLink.findOne({ userId, isDeleted: { $ne: true } }),
-      ResearchMetric.findOne({ userId, isDeleted: { $ne: true } }),
-      ProfileCompletion.findOne({ userId }),
-      ResearchArea.find({ userId }),
-      Keyword.find({ userId }).sort({ count: -1 }),
-      Publication.find({ userId, isDeleted: { $ne: true } }).sort({ year: -1, createdAt: -1 }),
-      CoAuthor.find({ userId }),
-      CitationGraph.find({ userId }).sort({ year: 1 }),
-      DerivedAnalytics.findOne({ userId })
+      Education.find({ userId, isDeleted: { $ne: true } }).lean(),
+      Experience.find({ userId, isDeleted: { $ne: true } }).lean(),
+      Skill.find({ userId, isDeleted: { $ne: true } }).lean(),
+      Patent.find({ userId, isDeleted: { $ne: true } }).lean(),
+      Book.find({ userId, isDeleted: { $ne: true } }).lean(),
+      Dataset.find({ userId, isDeleted: { $ne: true } }).lean(),
+      Award.find({ userId, isDeleted: { $ne: true } }).lean(),
+      Certificate.find({ userId, isDeleted: { $ne: true } }).lean(),
+      SocialLink.findOne({ userId, isDeleted: { $ne: true } }).lean(),
+      ResearchMetric.findOne({ userId, isDeleted: { $ne: true } }).lean(),
+      ProfileCompletion.findOne({ userId }).lean(),
+      ResearchArea.find({ userId }).lean(),
+      Keyword.find({ userId }).sort({ count: -1 }).lean(),
+      Publication.find({ userId, isDeleted: { $ne: true } }).sort({ year: -1, createdAt: -1 }).lean(),
+      CoAuthor.find({ userId }).lean(),
+      CitationGraph.find({ userId }).sort({ year: 1 }).lean(),
+      DerivedAnalytics.findOne({ userId }).lean()
     ]);
 
     // Build default Social Links if none exists
     const socialLinks = socialLinksObj || profile.socialLinks || {
-      orcid: '', googleScholar: '', researchGate: '', linkedin: '', website: '', github: '', scopus: ''
+      orcid: '', googleScholar: '', researchGate: '', linkedin: '', website: '', scopus: ''
     };
 
     // Calculate profile completion rate & research score dynamically if they don't exist
@@ -107,13 +113,13 @@ class ProfileService {
       profileCompletion = await this.calculateAndSaveProfileCompletion(userId);
     }
 
-    let metrics = metricsObj ? metricsObj.toObject() : null;
+    let metrics = metricsObj ? (typeof metricsObj.toObject === 'function' ? metricsObj.toObject() : metricsObj) : null;
     if (!metricsObj) {
       const calculatedMetrics = await this.calculateAndSaveResearchMetrics(userId);
-      metrics = calculatedMetrics.toObject();
+      metrics = calculatedMetrics && typeof calculatedMetrics.toObject === 'function' ? calculatedMetrics.toObject() : calculatedMetrics;
     }
 
-    return {
+    const result = {
       profileId: profile._id,
       userId: user._id,
       username: user.username || '',
@@ -167,6 +173,9 @@ class ProfileService {
       createdAt: profile.createdAt,
       updatedAt: profile.updatedAt
     };
+
+    await ProfileCache.set(userId.toString(), result);
+    return result;
   }
 
   /**
@@ -180,13 +189,15 @@ class ProfileService {
    * Retrieve public profile of user by unique profileSlug
    */
   async getProfileBySlug(profileSlug) {
-    const user = await User.findOne({ profileSlug, isDeleted: { $ne: true } });
+    const user = await User.findOne({ profileSlug, isDeleted: { $ne: true } }).lean();
     if (!user) {
       throw new NotFoundError(`Profile not found for slug: ${profileSlug}`);
     }
     
-    // Log view action in analytics
-    await this.logAnalytics(user._id, 'views');
+    // Log view action in analytics (asynchronously, do not block page load)
+    this.logAnalytics(user._id, 'views').catch(err => 
+      console.error('Background logAnalytics error:', err)
+    );
     
     return await this.getFullProfile(user._id, true);
   }
@@ -288,61 +299,75 @@ class ProfileService {
    * Calculate Research Score based on publications, citations, projects, and collaborations
    */
   async calculateAndSaveResearchMetrics(userId) {
-    const publicationsCount = await Publication.countDocuments({ userId, isDeleted: { $ne: true } });
-    const projectsCount = await Project.countDocuments({ userId, isDeleted: { $ne: true } });
-    const patentsCount = await Patent.countDocuments({ userId, isDeleted: { $ne: true } });
-    const booksCount = await Book.countDocuments({ userId, isDeleted: { $ne: true } });
-    const datasetsCount = await Dataset.countDocuments({ userId, isDeleted: { $ne: true } });
-    const awardsCount = await Award.countDocuments({ userId, isDeleted: { $ne: true } });
+    const Follow = mongoose.models.Follow || mongoose.model('Follow');
+    
+    // Run all database queries in parallel
+    const [
+      publicationsCount,
+      projectsCount,
+      patentsCount,
+      booksCount,
+      datasetsCount,
+      awardsCount,
+      scholarProfile,
+      existingMetric,
+      followersCount,
+      followingCount,
+      experiences,
+      completionObj,
+      analytics,
+      projects
+    ] = await Promise.all([
+      Publication.countDocuments({ userId, isDeleted: { $ne: true } }),
+      Project.countDocuments({ userId, isDeleted: { $ne: true } }),
+      Patent.countDocuments({ userId, isDeleted: { $ne: true } }),
+      Book.countDocuments({ userId, isDeleted: { $ne: true } }),
+      Dataset.countDocuments({ userId, isDeleted: { $ne: true } }),
+      Award.countDocuments({ userId, isDeleted: { $ne: true } }),
+      GoogleScholarProfile.findOne({ userId }).lean(),
+      ResearchMetric.findOne({ userId }).lean(),
+      Follow ? Follow.countDocuments({ followingId: userId }) : 0,
+      Follow ? Follow.countDocuments({ followerId: userId }) : 0,
+      Experience.find({ userId, isDeleted: { $ne: true } }).lean(),
+      ProfileCompletion.findOne({ userId }).lean(),
+      ProfileAnalytics.find({ userId }).lean(),
+      Project.find({ userId, isDeleted: { $ne: true } }).lean()
+    ]);
 
     let citationsCount = 0;
     let hIndex = 0;
     let i10Index = 0;
 
-    const scholarProfile = await GoogleScholarProfile.findOne({ userId });
     if (scholarProfile) {
       citationsCount = scholarProfile.totalCitations || 0;
       hIndex = scholarProfile.hIndex || 0;
       i10Index = scholarProfile.i10Index || 0;
     }
 
-    // Query for any existing manual override/analytics tracking in ResearchMetric
-    const existingMetric = await ResearchMetric.findOne({ userId });
     if (existingMetric) {
       citationsCount = existingMetric.citationsCount || citationsCount;
       hIndex = existingMetric.hIndex || hIndex;
       i10Index = existingMetric.i10Index || i10Index;
     }
 
-    // Followers & Following count
-    const Follow = mongoose.models.Follow || mongoose.model('Follow');
-    const followersCount = Follow ? await Follow.countDocuments({ followingId: userId }) : 0;
-    const followingCount = Follow ? await Follow.countDocuments({ followerId: userId }) : 0;
-
     // Calculate experience years
-    const experiences = await Experience.find({ userId, isDeleted: { $ne: true } });
     let experienceYears = 0;
     experiences.forEach(exp => {
-      const match = exp.duration.match(/(\d{4})\s*-\s*(\d{4}|Present)/i);
-      if (match) {
-        const start = parseInt(match[1]);
-        const end = match[2].toLowerCase() === 'present' ? new Date().getFullYear() : parseInt(match[2]);
-        experienceYears += Math.max(0, end - start);
+      if (exp.duration) {
+        const match = exp.duration.match(/(\d{4})\s*-\s*(\d{4}|Present)/i);
+        if (match) {
+          const start = parseInt(match[1]);
+          const end = match[2].toLowerCase() === 'present' ? new Date().getFullYear() : parseInt(match[2]);
+          experienceYears += Math.max(0, end - start);
+        }
       }
     });
 
-    // Profile completion
-    const completionObj = await ProfileCompletion.findOne({ userId });
     const profileCompletion = completionObj ? completionObj.percentage : 0;
-
-    // Fetch views and downloads from ProfileAnalytics
-    const analytics = await ProfileAnalytics.find({ userId });
     const viewsCount = analytics.reduce((sum, item) => sum + (item.views || 0), 0);
     const downloadsCount = analytics.reduce((sum, item) => sum + (item.downloads || 0), 0);
 
-    // Collaborations count: other authors on our publications and project collaborators
     const collaboratorSet = new Set();
-    const projects = await Project.find({ userId, isDeleted: { $ne: true } });
     projects.forEach(p => {
       if (p.collaborators) {
         p.collaborators.forEach(collabId => {
@@ -404,6 +429,10 @@ class ProfileService {
         researchScore
       };
       await profile.save();
+
+      // Invalidate cache
+      const { ProfileCache } = require('../../../cache/cache.service');
+      await ProfileCache.del(userId.toString());
     }
 
     return updatedMetric;
@@ -422,8 +451,12 @@ class ProfileService {
       { upsert: true }
     );
 
-    // Re-aggregate and update metrics count
-    await this.calculateAndSaveResearchMetrics(userId);
+    // Re-aggregate and update metrics count in the background without blocking the API
+    setImmediate(() => {
+      this.calculateAndSaveResearchMetrics(userId).catch(err =>
+        console.error('Background metrics calculation error:', err)
+      );
+    });
   }
 
   /**
@@ -576,6 +609,10 @@ class ProfileService {
     await this.calculateAndSaveProfileCompletion(userId);
     await this.calculateAndSaveResearchMetrics(userId);
 
+    // Invalidate Cache
+    const { ProfileCache: ProfileCacheInvalidate } = require('../../../cache/cache.service');
+    await ProfileCacheInvalidate.del(userId.toString());
+
     // 7. Log Activity
     await ActivityLog.create({
       userId,
@@ -607,6 +644,10 @@ class ProfileService {
     user.status = 'suspended';
     user.isActive = false;
     await user.save();
+
+    // Invalidate Cache
+    const { ProfileCache: ProfileCacheInvalidate } = require('../../../cache/cache.service');
+    await ProfileCacheInvalidate.del(userId.toString());
 
     return { success: true };
   }

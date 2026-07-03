@@ -8,7 +8,12 @@ const options = {
   minPoolSize: parseInt(process.env.MONGO_MIN_POOL_SIZE, 10) || 10,
   socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
   connectTimeoutMS: 30000, // Give up initial connection attempt after 30 seconds
-  heartbeatFrequencyMS: 10000 // Send heartbeats every 10 seconds
+  heartbeatFrequencyMS: 10000, // Send heartbeats every 10 seconds
+  serverSelectionTimeoutMS: 5000,
+  retryWrites: true,
+  compressors: 'snappy,zlib',
+  readPreference: 'primary',
+  w: 'majority'
 };
 
 let isConnecting = false;

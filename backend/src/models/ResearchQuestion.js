@@ -58,7 +58,6 @@ const ResearchQuestionSchema = new Schema(
   }
 );
 
-ResearchQuestionSchema.index({ userId: 1 });
 ResearchQuestionSchema.index({ title: 'text', description: 'text' });
 
 const ResearchQuestion = mongoose.model('ResearchQuestion', ResearchQuestionSchema);

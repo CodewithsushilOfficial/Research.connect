@@ -26,6 +26,10 @@ require('../../models/DerivedAnalytics');
 require('../../models/SyncHistory');
 
 const syncDatabaseIndexes = async () => {
+  if (process.env.NODE_ENV !== 'development') {
+    logger.info('Skipping database index synchronization (outside development).');
+    return;
+  }
   logger.info('Auditing and syncing database indexes...');
   try {
     const models = mongoose.modelNames();

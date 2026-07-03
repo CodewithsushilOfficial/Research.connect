@@ -84,6 +84,50 @@ class ScholarService {
   }
 
   /**
+   * Sync only publications
+   */
+  async syncScholarPublications(userId) {
+    const profile = await Profile.findOne({ userId, isDeleted: { $ne: true } });
+    if (!profile) {
+      throw new NotFoundError('Profile not found.');
+    }
+
+    const scholarUrl = profile.socialLinks?.googleScholar;
+    if (!scholarUrl) {
+      throw new ValidationError('Google Scholar URL is not connected to your profile.');
+    }
+
+    const authorId = this.extractAuthorId(scholarUrl);
+    if (!authorId) {
+      throw new ValidationError('Invalid Google Scholar URL.');
+    }
+
+    return await importQueueService.enqueue(userId, 'google_scholar', { authorId, syncType: 'publications' });
+  }
+
+  /**
+   * Sync only metrics
+   */
+  async syncScholarMetrics(userId) {
+    const profile = await Profile.findOne({ userId, isDeleted: { $ne: true } });
+    if (!profile) {
+      throw new NotFoundError('Profile not found.');
+    }
+
+    const scholarUrl = profile.socialLinks?.googleScholar;
+    if (!scholarUrl) {
+      throw new ValidationError('Google Scholar URL is not connected to your profile.');
+    }
+
+    const authorId = this.extractAuthorId(scholarUrl);
+    if (!authorId) {
+      throw new ValidationError('Invalid Google Scholar URL.');
+    }
+
+    return await importQueueService.enqueue(userId, 'google_scholar', { authorId, syncType: 'metrics' });
+  }
+
+  /**
    * Inner synchronization execution worker (called by ImportQueueService)
    */
   async syncScholarData(jobId, userId, authorId) {
@@ -91,6 +135,9 @@ class ScholarService {
     let importedPublicationsCount = 0;
     let importedCitationsCount = 0;
     let importedCoAuthorsCount = 0;
+
+    const jobRecord = await importRepository.findById(jobId);
+    const syncType = jobRecord?.metadata?.syncType || 'full';
 
     const updateProgress = async (prog, msg) => {
       await importRepository.update(jobId, { progress: prog });
@@ -171,145 +218,216 @@ class ScholarService {
       }
 
       // --- STEP 2: Fetch and Save Publications (Incremental Sync) (30%-50%) ---
-      await updateProgress(30, 'Fetching publications list from Google Scholar...');
-      
       let articles = [];
-      
-      // Use the first batch of articles already fetched in the details request (up to 100)
-      if (data.articles && data.articles.length > 0) {
-        articles = data.articles;
-      }
+      let updatedCount = 0;
+      let duplicateCount = 0;
+      let skippedCount = 0;
 
-      // Parallel multi-page fetching in chunks of 5 pages
-      if (articles.length === 100) {
-        let hasMore = true;
-        let nextStart = 100;
-        const chunkSize = 5;
+      if (syncType !== 'metrics') {
+        await updateProgress(30, 'Fetching publications list from Google Scholar...');
+        
+        // Use the first batch of articles already fetched in the details request (up to 100)
+        if (data.articles && data.articles.length > 0) {
+          articles = data.articles;
+        }
 
-        while (hasMore) {
-          await importQueueService.log(jobId, userId, `Fetching publications in parallel starting at index ${nextStart}...`);
-          
-          const promises = [];
-          for (let i = 0; i < chunkSize; i++) {
-            promises.push(serpApiService.fetchAuthorArticles(authorId, nextStart + i * 100));
-          }
+        // Parallel multi-page fetching in chunks of 5 pages
+        if (articles.length === 100) {
+          let hasMore = true;
+          let nextStart = 100;
+          const chunkSize = 5;
 
-          const results = await Promise.all(promises);
-          let batchHasMore = true;
+          while (hasMore) {
+            await importQueueService.log(jobId, userId, `Fetching publications in parallel starting at index ${nextStart}...`);
+            
+            const promises = [];
+            for (let i = 0; i < chunkSize; i++) {
+              promises.push(serpApiService.fetchAuthorArticles(authorId, nextStart + i * 100));
+            }
 
-          for (let i = 0; i < results.length; i++) {
-            const batch = results[i];
-            if (batch && batch.articles && batch.articles.length > 0) {
-              articles = articles.concat(batch.articles);
-              if (batch.articles.length < 100) {
+            const results = await Promise.all(promises);
+            let batchHasMore = true;
+
+            for (let i = 0; i < results.length; i++) {
+              const batch = results[i];
+              if (batch && batch.articles && batch.articles.length > 0) {
+                articles = articles.concat(batch.articles);
+                if (batch.articles.length < 100) {
+                  batchHasMore = false;
+                  break;
+                }
+              } else {
                 batchHasMore = false;
                 break;
               }
+            }
+
+            if (!batchHasMore || serpApiService.apiKey === 'demoserpapikey') {
+              hasMore = false;
             } else {
-              batchHasMore = false;
-              break;
+              nextStart += chunkSize * 100;
             }
           }
+        }
 
-          if (!batchHasMore || serpApiService.apiKey === 'demoserpapikey') {
-            hasMore = false;
-          } else {
-            nextStart += chunkSize * 100;
+        await updateProgress(50, `Indexing and comparing ${articles.length} publications for duplicates...`);
+
+        // Incremental Syncing to prevent duplicating existing records
+        const existingPubs = await publicationRepository.model.find({ userId });
+        
+        const getTitleSimilarity = (title1, title2) => {
+          const clean = (str) => str.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(Boolean);
+          const words1 = new Set(clean(title1));
+          const words2 = new Set(clean(title2));
+          if (words1.size === 0 || words2.size === 0) return 0;
+          const intersection = new Set([...words1].filter(x => words2.has(x)));
+          const union = new Set([...words1, ...words2]);
+          return intersection.size / union.size;
+        };
+
+        const findMatchingPublication = (article, existingList) => {
+          if (article.citation_id) {
+            const match = existingList.find(p => p.googleScholarPublicationId === article.citation_id || p.citationId === article.citation_id);
+            if (match) return match;
           }
-        }
-      }
+          if (article.doi) {
+            const match = existingList.find(p => p.doi && p.doi.toLowerCase().trim() === article.doi.toLowerCase().trim());
+            if (match) return match;
+          }
+          const normArticleTitle = article.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+          const exactMatch = existingList.find(p => p.title.toLowerCase().replace(/[^a-z0-9]/g, '') === normArticleTitle);
+          if (exactMatch) return exactMatch;
 
-      await updateProgress(50, `Indexing and comparing ${articles.length} publications for duplicates...`);
-
-      // Incremental Syncing to prevent duplicating existing records
-      const existingPubs = await publicationRepository.model.find({ userId });
-      const existingByCitationId = new Map();
-      const existingByTitle = new Map();
-
-      existingPubs.forEach(pub => {
-        if (pub.citationId) {
-          existingByCitationId.set(pub.citationId, pub);
-        }
-        const normalizedTitle = pub.title.toLowerCase().replace(/[^a-z0-9]/g, '');
-        existingByTitle.set(normalizedTitle, pub);
-      });
-
-      const bulkUpdateOps = [];
-      const newPubsToCreate = [];
-      const newAuthorsToCreate = [];
-
-      for (const article of articles) {
-        let dbPublication = null;
-        if (article.citation_id) {
-          dbPublication = existingByCitationId.get(article.citation_id);
-        }
-        if (!dbPublication) {
-          const normalizedTitle = article.title.toLowerCase().replace(/[^a-z0-9]/g, '');
-          dbPublication = existingByTitle.get(normalizedTitle);
-        }
-
-        if (dbPublication) {
-          // Update citation count and link via bulk operations
-          bulkUpdateOps.push({
-            updateOne: {
-              filter: { _id: dbPublication._id },
-              update: {
-                $set: {
-                  citations: article.cited_by?.value || dbPublication.citations || 0,
-                  paperURL: article.link || dbPublication.paperURL || ''
-                }
+          for (const pub of existingList) {
+            const sim = getTitleSimilarity(article.title, pub.title);
+            const yearDiff = Math.abs((article.year || 0) - (pub.year || 0));
+            if (sim > 0.85 && yearDiff <= 1) {
+              return pub;
+            }
+            if (sim > 0.70 && article.authors && pub.authors) {
+              const cleanAuthor = (name) => name.toLowerCase().replace(/[^a-z]/g, '');
+              const artAuthors = article.authors.split(',').map(cleanAuthor);
+              const pubAuthors = pub.authors.split(',').map(cleanAuthor);
+              const hasAuthorOverlap = artAuthors.some(a => pubAuthors.some(p => p.includes(a) || a.includes(p)));
+              if (hasAuthorOverlap && yearDiff <= 1) {
+                return pub;
               }
             }
-          });
-        } else {
-          const { generateSlug } = require('../../publication/helper/slug.helper');
-          const slug = generateSlug(article.title);
-          const tempPubId = new mongoose.Types.ObjectId();
+          }
+          return null;
+        };
 
-          newPubsToCreate.push({
-            _id: tempPubId,
-            userId,
-            ownerId: userId,
-            title: article.title,
-            slug,
-            authors: article.authors || '',
-            publication: article.publication || '',
-            year: article.year,
-            citations: article.cited_by?.value || 0,
-            citationId: article.citation_id || '',
-            googleScholarPublicationId: article.citation_id || '',
-            paperURL: article.link || '',
-            publisher: article.publisher || '',
-            publicationType: 'Article'
-          });
+        const bulkUpdateOps = [];
+        const newPubsToCreate = [];
+        const newAuthorsToCreate = [];
+        const newMetricsToCreate = [];
 
-          if (article.authors) {
-            const authorNames = article.authors.split(',').map(name => name.trim());
-            for (const name of authorNames) {
-              newAuthorsToCreate.push({
-                publicationId: tempPubId,
-                name,
-                isCoAuthor: name.toLowerCase() !== data.author.name.toLowerCase()
+        const PublicationEdit = require('../../../models/PublicationEdit');
+
+        for (const article of articles) {
+          const dbPublication = findMatchingPublication(article, existingPubs);
+
+          if (dbPublication) {
+            duplicateCount++;
+
+            const isManual = !dbPublication.googleScholarPublicationId;
+            const manualEdits = await PublicationEdit.findOne({ publicationId: dbPublication._id });
+            const hasEdits = !!manualEdits;
+
+            const updateFields = {
+              citations: article.cited_by?.value || dbPublication.citations || 0,
+              googleScholarPublicationId: article.citation_id || dbPublication.googleScholarPublicationId,
+              citationId: article.citation_id || dbPublication.citationId,
+              googleScholarVerified: true,
+              lastSyncedAt: new Date()
+            };
+
+            // If NOT manually edited or manually created, sync metadata
+            if (!isManual && !hasEdits) {
+              updateFields.paperURL = article.link || dbPublication.paperURL || '';
+              updateFields.year = article.year || dbPublication.year;
+              if (article.publication) {
+                updateFields.publication = article.publication;
+              }
+            }
+
+            bulkUpdateOps.push({
+              updateOne: {
+                filter: { _id: dbPublication._id },
+                update: { $set: updateFields }
+              }
+            });
+            
+            updatedCount++;
+          } else {
+            const { generateSlug } = require('../../publication/helper/slug.helper');
+            const slug = generateSlug(article.title);
+            const tempPubId = new mongoose.Types.ObjectId();
+
+            newPubsToCreate.push({
+              _id: tempPubId,
+              userId,
+              ownerId: userId,
+              title: article.title,
+              slug,
+              authors: article.authors || '',
+              publication: article.publication || '',
+              year: article.year,
+              citations: article.cited_by?.value || 0,
+              citationId: article.citation_id || '',
+              googleScholarPublicationId: article.citation_id || '',
+              googleScholarVerified: true,
+              lastSyncedAt: new Date(),
+              paperURL: article.link || '',
+              publisher: article.publisher || '',
+              publicationType: 'Article',
+              status: 'published',
+              visibility: 'Public'
+            });
+
+            newMetricsToCreate.push({
+              publicationId: tempPubId,
+              views: 0,
+              downloads: 0,
+              citations: article.cited_by?.value || 0,
+              shares: 0,
+              bookmarks: 0,
+              comments: 0
+            });
+
+            if (article.authors) {
+              const authorNames = article.authors.split(',').map(name => name.trim());
+              authorNames.forEach((name, index) => {
+                newAuthorsToCreate.push({
+                  publicationId: tempPubId,
+                  name,
+                  isCoAuthor: name.toLowerCase() !== data.author.name.toLowerCase(),
+                  order: index
+                });
               });
             }
+            importedPublicationsCount++;
           }
-          importedPublicationsCount++;
         }
-      }
 
-      // Execute bulk database updates and insertions in parallel
-      const dbPromises = [];
-      if (bulkUpdateOps.length > 0) {
-        dbPromises.push(publicationRepository.bulkUpdate(bulkUpdateOps));
-      }
-      if (newPubsToCreate.length > 0) {
-        dbPromises.push(publicationRepository.model.insertMany(newPubsToCreate));
-      }
-      if (newAuthorsToCreate.length > 0) {
-        dbPromises.push(publicationAuthorRepository.model.insertMany(newAuthorsToCreate));
-      }
+        // Execute bulk database updates and insertions in parallel
+        const dbPromises = [];
+        if (bulkUpdateOps.length > 0) {
+          dbPromises.push(publicationRepository.bulkUpdate(bulkUpdateOps));
+        }
+        if (newPubsToCreate.length > 0) {
+          dbPromises.push(publicationRepository.model.insertMany(newPubsToCreate));
+        }
+        if (newAuthorsToCreate.length > 0) {
+          dbPromises.push(publicationAuthorRepository.model.insertMany(newAuthorsToCreate));
+        }
+        if (newMetricsToCreate.length > 0) {
+          const PublicationMetric = require('../../../models/PublicationMetric');
+          dbPromises.push(PublicationMetric.insertMany(newMetricsToCreate));
+        }
 
-      await Promise.all(dbPromises);
+        await Promise.all(dbPromises);
+      }
 
       // --- STEP 3: Save Citations Graph History (60%) ---
       await updateProgress(65, 'Updating citations history graph...');
@@ -324,42 +442,44 @@ class ScholarService {
         await citationGraphRepository.createMany(graphData);
       }
 
-      // --- STEP 4: Save Co-Authors (75%) ---
-      await updateProgress(75, 'Updating co-authors directory...');
-      await coAuthorRepository.deleteByUserId(userId);
+      if (syncType !== 'metrics') {
+        // --- STEP 4: Save Co-Authors (75%) ---
+        await updateProgress(75, 'Updating co-authors directory...');
+        await coAuthorRepository.deleteByUserId(userId);
 
-      if (data.co_authors && data.co_authors.length > 0) {
-        const coAuthorsData = data.co_authors.map(c => ({
-          userId,
-          authorId: c.author_id,
-          name: c.name,
-          affiliation: c.affiliation || '',
-          email: c.email || '',
-          photo: c.thumbnail || '',
-          profileURL: c.link || `https://scholar.google.com/citations?user=${c.author_id}`
-        }));
-        await coAuthorRepository.createMany(coAuthorsData);
-        importedCoAuthorsCount = coAuthorsData.length;
-      }
+        if (data.co_authors && data.co_authors.length > 0) {
+          const coAuthorsData = data.co_authors.map(c => ({
+            userId,
+            authorId: c.author_id,
+            name: c.name,
+            affiliation: c.affiliation || '',
+            email: c.email || '',
+            photo: c.thumbnail || '',
+            profileURL: c.link || `https://scholar.google.com/citations?user=${c.author_id}`
+          }));
+          await coAuthorRepository.createMany(coAuthorsData);
+          importedCoAuthorsCount = coAuthorsData.length;
+        }
 
-      // --- STEP 5: Generate Research Areas & Keywords (90%) ---
-      await updateProgress(90, 'Normalizing keywords and research area tags...');
-      
-      if (interests.length > 0) {
-        await researchAreaRepository.model.findOneAndUpdate(
-          { userId, name: 'Primary Research Interests' },
-          { $addToSet: { topics: { $each: interests }, domains: { $each: interests.slice(0, 3) } } },
-          { upsert: true, new: true }
-        );
+        // --- STEP 5: Generate Research Areas & Keywords (90%) ---
+        await updateProgress(90, 'Normalizing keywords and research area tags...');
+        
+        if (interests.length > 0) {
+          await researchAreaRepository.model.findOneAndUpdate(
+            { userId, name: 'Primary Research Interests' },
+            { $addToSet: { topics: { $each: interests }, domains: { $each: interests.slice(0, 3) } } },
+            { upsert: true, new: true }
+          );
 
-        // Run keyword upserts in parallel
-        await Promise.all(interests.map(interest => 
-          keywordRepository.model.findOneAndUpdate(
-            { userId, name: interest },
-            { $inc: { count: 1 } },
-            { upsert: true }
-          )
-        ));
+          // Run keyword upserts in parallel
+          await Promise.all(interests.map(interest => 
+            keywordRepository.model.findOneAndUpdate(
+              { userId, name: interest },
+              { $inc: { count: 1 } },
+              { upsert: true }
+            )
+          ));
+        }
       }
 
       // --- STEP 6: Derived Analytics & Post-sync calculations (95%) ---
@@ -384,6 +504,21 @@ class ScholarService {
         importedCitationsCount,
         importedCoAuthorsCount
       });
+
+      // Update background import job metadata stats
+      const job = await importRepository.findById(jobId);
+      if (job) {
+        await importRepository.update(jobId, {
+          metadata: {
+            ...(job.metadata || {}),
+            importedCount: importedPublicationsCount,
+            updatedCount: updatedCount,
+            duplicateCount: duplicateCount,
+            skippedCount: skippedCount,
+            lastSyncTime: new Date()
+          }
+        });
+      }
 
       await updateProgress(100, 'Academic portfolio synchronized successfully!');
     } catch (err) {

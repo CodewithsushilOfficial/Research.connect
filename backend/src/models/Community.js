@@ -40,8 +40,6 @@ const CommunitySchema = new Schema(
   }
 );
 
-CommunitySchema.index({ name: 1 });
-
 const Community = mongoose.model('Community', CommunitySchema);
 
 module.exports = Community;

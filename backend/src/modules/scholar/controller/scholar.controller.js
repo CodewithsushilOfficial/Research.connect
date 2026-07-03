@@ -31,6 +31,18 @@ class ScholarController {
     return res.success('Academic portfolio sync enqueued successfully.', { job });
   });
 
+  // Sync publications only
+  syncPublications = asyncHandler(async (req, res) => {
+    const job = await scholarService.syncScholarPublications(req.user._id);
+    return res.success('Publications sync enqueued successfully.', { job });
+  });
+
+  // Sync metrics only
+  syncMetrics = asyncHandler(async (req, res) => {
+    const job = await scholarService.syncScholarMetrics(req.user._id);
+    return res.success('Metrics sync enqueued successfully.', { job });
+  });
+
   // Fetch Scholar profile metadata
   getProfile = asyncHandler(async (req, res) => {
     const profile = await scholarService.getProfile(req.user._id);

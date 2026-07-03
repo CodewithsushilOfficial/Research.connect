@@ -218,7 +218,6 @@ const ProfileSchema = new Schema(
       researchGate: { type: String, default: '', trim: true },
       linkedin: { type: String, default: '', trim: true },
       website: { type: String, default: '', trim: true },
-      github: { type: String, default: '', trim: true },
       scopus: { type: String, default: '', trim: true }
     },
     profileCompletion: {

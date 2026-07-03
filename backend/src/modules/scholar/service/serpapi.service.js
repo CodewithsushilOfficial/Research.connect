@@ -2,6 +2,8 @@ const axios = require('axios');
 const logger = require('../../../common/logger/winston');
 const environment = require('../../../config/environment');
 
+const { httpAgent, httpsAgent } = require('../../../common/helper/httpAgent');
+
 class SerpApiService {
   constructor() {
     this.apiKey = environment.serpApi?.key || 'demoserpapikey';
@@ -23,7 +25,9 @@ class SerpApiService {
             ...params,
             api_key: this.apiKey
           },
-          timeout: 10000 // 10 seconds timeout
+          timeout: 10000, // 10 seconds timeout
+          httpAgent,
+          httpsAgent
         });
         
         if (response.status === 200 && response.data) {

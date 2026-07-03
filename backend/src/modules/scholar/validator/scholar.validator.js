@@ -18,13 +18,6 @@ const researchIdentityValidator = [
     .trim()
     .matches(/^\d{4}-\d{4}-\d{4}-\d{3}[0-9X]$/)
     .withMessage('Please enter a valid ORCID ID (e.g. 0000-0002-1825-0097)'),
-  body('github')
-    .optional({ checkFalsy: true })
-    .trim()
-    .isURL()
-    .withMessage('Please enter a valid GitHub profile URL')
-    .contains('github.com')
-    .withMessage('GitHub URL must point to github.com'),
   body('linkedin')
     .optional({ checkFalsy: true })
     .trim()

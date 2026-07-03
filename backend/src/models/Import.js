@@ -51,7 +51,6 @@ const ImportSchema = new Schema(
 );
 
 ImportSchema.index({ userId: 1, provider: 1 });
-ImportSchema.index({ status: 1 });
 
 const Import = mongoose.model('Import', ImportSchema);
 

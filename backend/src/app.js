@@ -11,13 +11,14 @@ const notFoundMiddleware = require("./common/middlewares/notFound.middleware");
 const errorHandlerMiddleware = require("./common/middlewares/errorHandler.middleware");
 
 // Import Modules
-const landingModule = require('./modules/landing');
-const authModule = require('./modules/authentication');
-const profileModule = require('./modules/profile');
-const scholarModule = require('./modules/scholar');
-const feedModule = require('./modules/feed');
-const publicationModule = require('./modules/publication');
-const messageModule = require('./modules/message');
+const landingModule = require("./modules/landing");
+const authModule = require("./modules/authentication");
+const profileModule = require("./modules/profile");
+const scholarModule = require("./modules/scholar");
+const feedModule = require("./modules/feed");
+const publicationModule = require("./modules/publication");
+const messageModule = require("./modules/message");
+const searchModule = require("./modules/search");
 
 const app = express();
 
@@ -54,13 +55,14 @@ app.use(loggerMiddleware);
 app.use(responseFormatterMiddleware);
 
 // Mount API Modules
-app.use('/api', landingModule.routes);
-app.use('/api/v1/auth', authModule.routes);
-app.use('/api/v1/profile', profileModule.routes);
-app.use('/api/v1', scholarModule.routes);
-app.use('/api/v1', feedModule.routes);
-app.use('/api/v1/publications', publicationModule.routes);
-app.use('/api/v1', messageModule.routes);
+app.use("/api", landingModule.routes);
+app.use("/api/v1/auth", authModule.routes);
+app.use("/api/v1/profile", profileModule.routes);
+app.use("/api/v1", scholarModule.routes);
+app.use("/api/v1", feedModule.routes);
+app.use("/api/v1/publications", publicationModule.routes);
+app.use("/api/v1/messages", messageModule.routes);
+app.use("/api/v1/search", searchModule.routes);
 
 // Default root redirect to /api
 app.get("/", (req, res) => {

@@ -38,9 +38,6 @@ module.exports = {
   serpApi: {
     key: process.env.SERP_API_KEY || 'demoserpapikey'
   },
-  gemini: {
-    key: process.env.GEMINI_API_KEY || ''
-  },
   cloudinary: {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
     apiKey: process.env.CLOUDINARY_API_KEY || '',

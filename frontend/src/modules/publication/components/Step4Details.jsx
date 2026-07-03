@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash, ArrowUp, ArrowDown, User, Globe, Tag, FileText, Building2, HelpCircle } from 'lucide-react';
+import { Plus, Trash, User, Globe, Tag, FileText, Building2, HelpCircle, GripVertical } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { Reorder } from 'framer-motion';
 
 const Step4Details = ({ formData, onChange, currentUser }) => {
   const [newAuthor, setNewAuthor] = useState({
@@ -227,10 +228,23 @@ const Step4Details = ({ formData, onChange, currentUser }) => {
         </h3>
 
         {/* Existing Authors List */}
-        <div className="space-y-2">
+        <Reorder.Group
+          axis="y"
+          values={formData.authorsList || []}
+          onReorder={(newOrder) => {
+            const reindexed = newOrder.map((author, idx) => ({ ...author, order: idx }));
+            onChange('authorsList', reindexed);
+          }}
+          className="space-y-2"
+        >
           {formData.authorsList?.map((author, index) => (
-            <div key={index} className="flex items-center justify-between border border-slate-100 rounded-xl p-3 bg-slate-50/50 gap-2 text-xs">
+            <Reorder.Item
+              key={author.name + '-' + author.email + '-' + index}
+              value={author}
+              className="flex items-center justify-between border border-slate-100 rounded-xl p-3 bg-slate-50/50 gap-2 text-xs cursor-grab active:cursor-grabbing select-none"
+            >
               <div className="flex items-center gap-2.5 min-w-0">
+                <GripVertical className="w-4 h-4 text-slate-400 shrink-0 cursor-row-resize" />
                 <span className="font-bold text-slate-400 shrink-0 w-4">#{index + 1}</span>
                 <div className="min-w-0">
                   <p className="font-bold text-slate-900 truncate">{author.name}</p>
@@ -252,24 +266,6 @@ const Step4Details = ({ formData, onChange, currentUser }) => {
                 >
                   Corresponding
                 </button>
-                <div className="flex flex-col gap-0.5 sm:flex-row">
-                  <button
-                    type="button"
-                    disabled={index === 0}
-                    onClick={() => moveAuthor(index, 'up')}
-                    className="p-1 border border-slate-200 bg-white rounded hover:bg-slate-50 disabled:opacity-50 text-slate-500"
-                  >
-                    <ArrowUp className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    disabled={index === (formData.authorsList?.length - 1)}
-                    onClick={() => moveAuthor(index, 'down')}
-                    className="p-1 border border-slate-200 bg-white rounded hover:bg-slate-50 disabled:opacity-50 text-slate-500"
-                  >
-                    <ArrowDown className="w-3.5 h-3.5" />
-                  </button>
-                </div>
                 <button
                   type="button"
                   onClick={() => removeAuthor(index)}
@@ -278,9 +274,9 @@ const Step4Details = ({ formData, onChange, currentUser }) => {
                   <Trash className="w-3.5 h-3.5" />
                 </button>
               </div>
-            </div>
+            </Reorder.Item>
           ))}
-        </div>
+        </Reorder.Group>
 
         {/* Add New Author Form */}
         <div className="border border-slate-200/80 rounded-2xl p-4 bg-slate-50/20 space-y-3">
@@ -381,8 +377,17 @@ const Step4Details = ({ formData, onChange, currentUser }) => {
               value={formData.doi || ''}
               onChange={(e) => handleInputChange('doi', e.target.value)}
               placeholder="e.g. 10.1038/nature123"
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent text-slate-950"
+              className={`w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent text-slate-950 ${
+                formData.doi && !/^10\.\d{4,9}\/[-._;()/:A-Z0-9]+$/i.test(formData.doi.trim())
+                  ? 'border-rose-450 focus:ring-rose-500'
+                  : 'border-slate-200'
+              }`}
             />
+            {formData.doi && !/^10\.\d{4,9}\/[-._;()/:A-Z0-9]+$/i.test(formData.doi.trim()) && (
+              <p className="text-[10px] text-rose-500 mt-1 font-semibold">
+                Invalid DOI format. Must start with 10. and follow standard structure.
+              </p>
+            )}
           </div>
 
           <div>
@@ -448,6 +453,40 @@ const Step4Details = ({ formData, onChange, currentUser }) => {
                 placeholder="Pages"
                 className="w-full px-2.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none text-slate-950"
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">License</label>
+              <input
+                type="text"
+                value={formData.license || ''}
+                onChange={(e) => handleInputChange('license', e.target.value)}
+                placeholder="e.g. CC BY 4.0"
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent text-slate-950"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Funding Information</label>
+              <input
+                type="text"
+                value={formData.funding || ''}
+                onChange={(e) => handleInputChange('funding', e.target.value)}
+                placeholder="e.g. NIH Grant #12345"
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent text-slate-950"
+              />
+            </div>
+
+            <div className="flex items-center pt-6">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={!!formData.openAccess}
+                  onChange={(e) => handleInputChange('openAccess', e.target.checked)}
+                  className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-xs font-bold text-slate-700">Open Access Publication</span>
+              </label>
             </div>
           </div>
         </div>

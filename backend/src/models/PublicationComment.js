@@ -26,6 +26,19 @@ const PublicationCommentSchema = new Schema(
       ref: 'PublicationComment',
       default: null,
       index: true
+    },
+    likes: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User'
+      }
+    ],
+    isEdited: {
+      type: Boolean,
+      default: false
+    },
+    editedAt: {
+      type: Date
     }
   },
   {

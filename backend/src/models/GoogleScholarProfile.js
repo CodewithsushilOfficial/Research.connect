@@ -82,8 +82,6 @@ const GoogleScholarProfileSchema = new Schema(
   }
 );
 
-GoogleScholarProfileSchema.index({ authorId: 1 }, { unique: true });
-GoogleScholarProfileSchema.index({ userId: 1 });
 GoogleScholarProfileSchema.index({ isDeleted: 1 });
 
 const GoogleScholarProfile = mongoose.model('GoogleScholarProfile', GoogleScholarProfileSchema);
