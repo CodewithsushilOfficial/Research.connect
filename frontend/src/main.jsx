@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { Provider as ReduxProvider } from 'react-redux';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from 'react-hot-toast';
+import { Toaster, ToastBar, toast } from 'react-hot-toast';
 import store from './redux';
 import App from './App';
 import './styles/index.css';
@@ -37,7 +37,28 @@ ReactDOM.createRoot(document.getElementById('root')).render(
                 fontFamily: 'Inter, sans-serif'
               }
             }}
-          />
+          >
+            {(t) => (
+              <ToastBar toast={t}>
+                {({ icon, message }) => (
+                  <>
+                    {t.type !== 'loading' && icon ? (
+                      <button
+                        onClick={() => toast.dismiss(t.id)}
+                        className="cursor-pointer hover:opacity-75 transition-opacity focus:outline-none flex items-center justify-center shrink-0"
+                        title="Click to dismiss"
+                      >
+                        {icon}
+                      </button>
+                    ) : (
+                      icon
+                    )}
+                    {message}
+                  </>
+                )}
+              </ToastBar>
+            )}
+          </Toaster>
         </BrowserRouter>
       </QueryClientProvider>
     </ReduxProvider>
