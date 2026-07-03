@@ -33,7 +33,7 @@ import {
   ScopusIcon, 
   LinkedinIcon 
 } from '../components/BrandIcons';
-
+import { compressImage } from '../../../utils/imageCompressor';
 
 // Subcomponents
 import ProfileHeader from '../components/ProfileHeader';
@@ -141,9 +141,12 @@ const ProfileOverview = () => {
   };
 
   const handleUploadAvatar = async (file) => {
-    const loadingToast = toast.loading('Uploading profile image...');
+    const loadingToast = toast.loading('Compressing profile image...');
     try {
-      const res = await profileService.updateAvatar(file);
+      // Validate and compress the file client-side
+      const compressedFile = await compressImage(file);
+      toast.loading('Uploading compressed profile image...', { id: loadingToast });
+      const res = await profileService.updateAvatar(compressedFile);
       if (res.success) {
         toast.success('Profile avatar updated successfully!', { id: loadingToast });
         const updatedProfile = res.data;

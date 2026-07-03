@@ -169,6 +169,45 @@ class AuthController {
       profile: authDTO.formatProfile(profile)
     });
   });
+
+  // Unified Send OTP
+  sendOtp = asyncHandler(async (req, res) => {
+    const clientInfo = getClientInfo(req);
+    const { email, purpose = 'login' } = req.body;
+    if (purpose === 'registration') {
+      await authService.sendRegistrationOtp(email, clientInfo);
+    } else if (purpose === 'forgot_password') {
+      await authService.forgotPassword(email, clientInfo);
+    } else {
+      await authService.sendLoginOtp(email, clientInfo);
+    }
+    return res.success(`OTP code sent successfully for ${purpose}.`, { email, purpose });
+  });
+
+  // Unified Verify OTP
+  verifyOtp = asyncHandler(async (req, res) => {
+    const clientInfo = getClientInfo(req);
+    const { email, otp, purpose = 'login', rememberMe = false } = req.body;
+    let result;
+    if (purpose === 'registration') {
+      const { user, profile, accessToken, refreshToken } = await authService.verifyRegistrationOtp(email, otp, clientInfo);
+      setRefreshTokenCookie(res, refreshToken);
+      result = authDTO.formatAuthResponse(user, profile, accessToken);
+    } else if (purpose === 'forgot_password') {
+      await authService.resetPassword(email, otp, req.body.password, clientInfo);
+      return res.success('Password reset successfully. You can now log in.');
+    } else {
+      const { user, profile, accessToken, refreshToken } = await authService.verifyLoginOtp(email, otp, rememberMe, clientInfo);
+      setRefreshTokenCookie(res, refreshToken);
+      result = authDTO.formatAuthResponse(user, profile, accessToken);
+    }
+    return res.success('OTP verified successfully.', result);
+  });
+
+  // Unified Resend OTP
+  resendOtp = asyncHandler(async (req, res) => {
+    return this.sendOtp(req, res);
+  });
 }
 
 module.exports = new AuthController();

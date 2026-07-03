@@ -24,7 +24,6 @@ const UploadSchema = new Schema(
         'research-image',
         'certificate',
         'project-image',
-        'community-banner',
         'institution-logo',
         'research-document',
         'patent-document',

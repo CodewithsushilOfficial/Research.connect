@@ -1,5 +1,8 @@
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 const mongoose = require('mongoose');
 const { connectDB } = require('../config/database/connection');
+const { syncDatabaseIndexes } = require('../config/database/indexes');
 const scholarService = require('../modules/scholar/service/scholar.service');
 const serpApiService = require('../modules/scholar/service/serpapi.service');
 const importQueueService = require('../modules/scholar/service/import-queue.service');
@@ -16,6 +19,11 @@ async function test() {
   console.log('Connecting to database...');
   await connectDB();
   console.log('Database connected.');
+
+  // Ensure correct indexes (drops old text index & recreates with language_override: 'none')
+  console.log('Syncing database indexes...');
+  await syncDatabaseIndexes();
+  console.log('Indexes synced.');
 
   try {
     console.log('\n--- 1. Testing Scholar URL Validation & Extraction ---');
@@ -34,6 +42,9 @@ async function test() {
     console.log(`Co-authors count: ${details.co_authors?.length}`);
 
     console.log('\n--- 3. Testing Import Job Enqueuing & Processing ---');
+    // Clean up any existing test profiles or colliding authorIds
+    await GoogleScholarProfile.deleteMany({ authorId: 'dqw4w9WgXcQ' });
+
     // Retrieve a test user from database or create one
     let user = await User.findOne({ email: 'scholar.tester@researchconnect.org' });
     if (!user) {
@@ -68,9 +79,13 @@ async function test() {
     const job = await scholarService.syncScholar(user._id);
     console.log(`Job enqueued. ID: ${job._id}, Status: ${job.status}`);
 
-    console.log('Processing job asynchronously in-process...');
-    // Manually trigger queue worker process once
-    await importQueueService.processNextJob();
+    console.log('Waiting for job to complete...');
+    let jobStatus = await Import.findById(job._id);
+    while (jobStatus.status === 'pending' || jobStatus.status === 'running') {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      jobStatus = await Import.findById(job._id);
+    }
+    console.log(`Job finished with status: ${jobStatus.status}, Progress: ${jobStatus.progress}%`);
 
     console.log('\n--- 4. Checking Database Insertions ---');
     const dbProfile = await GoogleScholarProfile.findOne({ userId: user._id });
@@ -88,11 +103,11 @@ async function test() {
     const graphCount = await CitationGraph.countDocuments({ userId: user._id });
     console.log(`Citation graph years count: ${graphCount}`);
 
-    const jobStatus = await Import.findById(job._id);
-    console.log(`Job final status: ${jobStatus.status}, Progress: ${jobStatus.progress}%`);
-
-    const logsCount = await ImportLog.countDocuments({ importId: job._id });
-    console.log(`Job logs written: ${logsCount}`);
+    const logs = await ImportLog.find({ importId: job._id }).sort({ timestamp: 1 });
+    console.log(`Job logs written: ${logs.length}`);
+    for (const log of logs) {
+      console.log(`  [${log.level.toUpperCase()}] ${log.message}`);
+    }
 
     // Wait 2 seconds for async tasks to finish completely
     await new Promise(resolve => setTimeout(resolve, 2000));

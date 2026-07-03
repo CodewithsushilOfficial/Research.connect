@@ -48,9 +48,20 @@ const validateUpload = (req, res, next) => {
   // Enforce purpose-based size limits
   // (Images: max 10MB, Documents/Datasets/Zip: max 100MB)
   const purpose = req.body.purpose || req.query.purpose || '';
+
+  if (purpose === 'profile-avatar') {
+    const validMimes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!validMimes.includes(req.file.mimetype)) {
+      return next(new ValidationError('Profile avatar must be a JPG, PNG, or WEBP image.'));
+    }
+    if (req.file.size > 5 * 1024 * 1024) {
+      return next(new ValidationError('Profile avatar cannot exceed 5MB.'));
+    }
+  }
+
   const isImagePurpose = [
     'profile-avatar', 'profile-banner', 'publication-cover',
-    'project-image', 'community-banner', 'institution-logo', 'book-cover'
+    'project-image', 'institution-logo', 'book-cover'
   ].includes(purpose) || req.file.mimetype.startsWith('image/');
 
   if (isImagePurpose && req.file.size > 10 * 1024 * 1024) {

@@ -36,7 +36,7 @@ class ResearchIdentityService {
     );
 
     // Set user type as academic if they complete identities
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).select('+password');
     if (user && user.researcherType === 'non_researcher') {
       user.researcherType = 'academic';
       user.status = 'active';

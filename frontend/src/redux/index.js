@@ -12,7 +12,6 @@ import feedReducer from './slices/feedSlice';
 import searchReducer from './slices/searchSlice';
 import messageReducer from './slices/messageSlice';
 import bookmarkReducer from './slices/bookmarkSlice';
-import communityReducer from './slices/communitySlice';
 import commentReducer from './slices/commentSlice';
 import likeReducer from './slices/likeSlice';
 import shareReducer from './slices/shareSlice';
@@ -35,7 +34,6 @@ export const store = configureStore({
     search: searchReducer,
     message: messageReducer,
     bookmark: bookmarkReducer,
-    community: communityReducer,
     comment: commentReducer,
     like: likeReducer,
     share: shareReducer,

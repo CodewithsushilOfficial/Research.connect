@@ -15,7 +15,6 @@ const Saved = React.lazy(() => import('../pages/Saved'));
 const Messages = React.lazy(() => import('../pages/Messages'));
 const ResearchIdentityPage = React.lazy(() => import('../pages/ResearchIdentityPage'));
 const Explore = React.lazy(() => import('../pages/Explore'));
-const Communities = React.lazy(() => import('../pages/Communities'));
 
 const profileRoutes = (
   <Route path="/profile/:username" element={<ProfileLayout />}>
@@ -33,9 +32,7 @@ const profileRoutes = (
     <Route path="bookmarks" element={<Bookmarks />} />
     <Route path="saved" element={<Saved />} />
     <Route path="explore" element={<Explore />} />
-    <Route path="communities" element={<Communities />} />
   </Route>
 );
 
 export default profileRoutes;
-

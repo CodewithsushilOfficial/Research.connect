@@ -12,6 +12,7 @@ const derivedAnalyticsRepository = require('../repository/derived-analytics.repo
 const syncHistoryRepository = require('../repository/sync-history.repository');
 
 const serpApiService = require('./serpapi.service');
+const enrichmentService = require('./enrichment.service');
 const importQueueService = require('./import-queue.service');
 
 const Profile = require('../../../models/Profile');
@@ -135,6 +136,11 @@ class ScholarService {
     let importedPublicationsCount = 0;
     let importedCitationsCount = 0;
     let importedCoAuthorsCount = 0;
+    let enrichedCount = 0;
+    let missingDoiCount = 0;
+    let missingAbstractCount = 0;
+    let missingPdfCount = 0;
+    const failedPublications = [];
 
     const jobRecord = await importRepository.findById(jobId);
     const syncType = jobRecord?.metadata?.syncType || 'full';
@@ -210,7 +216,7 @@ class ScholarService {
         await mainProfile.save();
       }
 
-      const mainUser = await User.findById(userId);
+      const mainUser = await User.findById(userId).select('+password');
       if (mainUser) {
         // Fallback update to user profileImage if not custom set
         mainUser.profileImage = mainUser.profileImage || data.author.thumbnail || '';
@@ -364,7 +370,27 @@ class ScholarService {
             const slug = generateSlug(article.title);
             const tempPubId = new mongoose.Types.ObjectId();
 
-            newPubsToCreate.push({
+            // ── Metadata Enrichment ──────────────────────────────────────────
+            let pubDoi = article.doi || null;
+
+            // Step 1: Lookup missing DOI
+            if (!pubDoi) {
+              pubDoi = await enrichmentService.lookupDOI(article.title, article.year, article.authors);
+            }
+
+            // Step 2: Fetch enriched metadata from external providers
+            let enrichedMeta = {};
+            try {
+              enrichedMeta = await enrichmentService.fetchMetadata(pubDoi, article.title);
+              if (enrichedMeta && Object.keys(enrichedMeta).length > 0) {
+                enrichedCount++;
+              }
+            } catch (enrichErr) {
+              logger.warn(`[Scholar] Enrichment failed for "${article.title}": ${enrichErr.message}`);
+            }
+            // ────────────────────────────────────────────────────────────────
+
+            let newPub = {
               _id: tempPubId,
               userId,
               ownerId: userId,
@@ -382,8 +408,19 @@ class ScholarService {
               publisher: article.publisher || '',
               publicationType: 'Article',
               status: 'published',
-              visibility: 'Public'
-            });
+              visibility: 'Public',
+              doi: pubDoi || undefined
+            };
+
+            // Step 3: Merge enriched metadata (never overwrites Google Scholar values)
+            newPub = enrichmentService.merge(newPub, enrichedMeta);
+
+            // Track missing field counts
+            if (!newPub.doi) missingDoiCount++;
+            if (!newPub.abstract) missingAbstractCount++;
+            if (!newPub.pdfURL) missingPdfCount++;
+
+            newPubsToCreate.push(newPub);
 
             newMetricsToCreate.push({
               publicationId: tempPubId,
@@ -410,23 +447,44 @@ class ScholarService {
           }
         }
 
-        // Execute bulk database updates and insertions in parallel
-        const dbPromises = [];
+        // Execute bulk database updates
         if (bulkUpdateOps.length > 0) {
-          dbPromises.push(publicationRepository.bulkUpdate(bulkUpdateOps));
-        }
-        if (newPubsToCreate.length > 0) {
-          dbPromises.push(publicationRepository.model.insertMany(newPubsToCreate));
-        }
-        if (newAuthorsToCreate.length > 0) {
-          dbPromises.push(publicationAuthorRepository.model.insertMany(newAuthorsToCreate));
-        }
-        if (newMetricsToCreate.length > 0) {
-          const PublicationMetric = require('../../../models/PublicationMetric');
-          dbPromises.push(PublicationMetric.insertMany(newMetricsToCreate));
+          await publicationRepository.bulkUpdate(bulkUpdateOps);
         }
 
-        await Promise.all(dbPromises);
+        // Insert new publications individually for granular error tracking
+        const successfulPubIds = new Set();
+        for (const pubDoc of newPubsToCreate) {
+          try {
+            await publicationRepository.model.create(pubDoc);
+            successfulPubIds.add(pubDoc._id.toString());
+          } catch (pubErr) {
+            logger.error(`[Scholar] Failed to insert publication "${pubDoc.title}": ${pubErr.message}`);
+            failedPublications.push({ title: pubDoc.title, error: pubErr.message });
+            importedPublicationsCount--; // Correct the count
+          }
+        }
+
+        // Insert publication authors only for successfully inserted pubs
+        const validAuthors = newAuthorsToCreate.filter(a => successfulPubIds.has(a.publicationId.toString()));
+        if (validAuthors.length > 0) {
+          try {
+            await publicationAuthorRepository.model.insertMany(validAuthors, { ordered: false });
+          } catch (authorErr) {
+            logger.warn(`[Scholar] Some author records failed to insert: ${authorErr.message}`);
+          }
+        }
+
+        // Insert metrics only for successfully inserted pubs
+        const validMetrics = newMetricsToCreate.filter(m => successfulPubIds.has(m.publicationId.toString()));
+        if (validMetrics.length > 0) {
+          try {
+            const PublicationMetric = require('../../../models/PublicationMetric');
+            await PublicationMetric.insertMany(validMetrics, { ordered: false });
+          } catch (metricErr) {
+            logger.warn(`[Scholar] Some metric records failed to insert: ${metricErr.message}`);
+          }
+        }
       }
 
       // --- STEP 3: Save Citations Graph History (60%) ---
@@ -505,7 +563,7 @@ class ScholarService {
         importedCoAuthorsCount
       });
 
-      // Update background import job metadata stats
+      // Update background import job metadata stats (detailed report)
       const job = await importRepository.findById(jobId);
       if (job) {
         await importRepository.update(jobId, {
@@ -515,6 +573,12 @@ class ScholarService {
             updatedCount: updatedCount,
             duplicateCount: duplicateCount,
             skippedCount: skippedCount,
+            enrichedCount,
+            failedCount: failedPublications.length,
+            missingDoiCount,
+            missingAbstractCount,
+            missingPdfCount,
+            failedPublications,
             lastSyncTime: new Date()
           }
         });

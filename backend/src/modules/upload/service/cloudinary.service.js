@@ -40,8 +40,6 @@ const getFolderForPurpose = (purpose, userId, resourceId) => {
       return `research-connect/projects/${cleanResourceId}`;
     case 'dataset':
       return `research-connect/datasets/${cleanResourceId}`;
-    case 'community-banner':
-      return `research-connect/communities/${cleanResourceId}`;
     case 'certificate':
       return `research-connect/certificates/${cleanUserId}`;
     case 'institution-logo':

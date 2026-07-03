@@ -1,4 +1,5 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 const logger = require('./common/logger/winston');
 const { connectDB, closeDB } = require('./config/database/connection');
 const { syncDatabaseIndexes } = require('./config/database/indexes');
@@ -34,26 +35,22 @@ const startServer = async () => {
         } catch (err) {
           logger.error('Failed to run Scholar queue worker in background:', err);
         }
+
+        try {
+          // Identity Sync Queue Worker
+          const identitySyncQueueService = require('./modules/identity/service/identitySyncQueue.service');
+          identitySyncQueueService.runQueueWorker();
+        } catch (err) {
+          logger.error('Failed to run Identity Sync queue worker in background:', err);
+        }
         
         logger.info('Background workers initialized.');
       });
     });
 
     // 4. Initialize Socket.IO
-    const io = new Server(server, {
-      cors: {
-        origin: "*", // allow frontend to connect
-        methods: ["GET", "POST"]
-      }
-    });
-
-    io.on("connection", (socket) => {
-      logger.info(`New WebSocket connection established: ${socket.id}`);
-      
-      socket.on("disconnect", () => {
-        logger.info(`WebSocket disconnected: ${socket.id}`);
-      });
-    });
+    const { initSocket } = require('./config/socket');
+    const io = initSocket(server);
 
     // Handle Graceful Shutdowns
     const shutdownGracefully = async (signal) => {
@@ -95,4 +92,4 @@ process.on('unhandledRejection', (reason, promise) => {
 
 startServer();
 
-// Nodemon reload trigger to connect cleanly after port release
+// Nodemon reload trigger to connect cleanly after port release - updated
