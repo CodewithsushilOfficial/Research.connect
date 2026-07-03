@@ -3,7 +3,7 @@ import { Video, Phone, MoreVertical, ArrowLeft, User, Search, BellOff, Bell, Ban
 import { useNavigate } from 'react-router-dom';
 import { useMessaging } from '../../context/MessagingContext';
 import { formatLastSeen } from '../../data/mockData';
-import { toast } from '../ui/Toaster';
+import { toast } from 'react-hot-toast';
 
 export default function ChatHeader() {
   const { activeConversation, getOtherParticipant, typingUsers, onlineUsers, selectConversation, searchQuery, setSearchQuery, deleteConversation, blockedUsers, toggleBlockUser } = useMessaging();
@@ -84,7 +84,7 @@ export default function ChatHeader() {
         {/* Back button */}
         <button 
           onClick={() => selectConversation(null)}
-          className="p-2 -ml-2 rounded-xl text-[#64748B] hover:bg-[#EEF2FF] hover:text-[#2563EB] transition-colors"
+          className="md:hidden p-2 -ml-2 rounded-xl text-[#64748B] hover:bg-[#EEF2FF] hover:text-[#2563EB] transition-colors"
           aria-label="Back to conversations"
         >
           <ArrowLeft size={20} />

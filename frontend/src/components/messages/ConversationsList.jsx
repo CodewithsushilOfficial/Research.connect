@@ -1,9 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useMessaging } from '../../context/MessagingContext';
 import { ConversationSkeleton } from './Skeletons';
 import ConversationItem from './ConversationItem';
 import { CURRENT_USER } from '../../data/mockData';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Search, X } from 'lucide-react';
 
 export default function ConversationsList() {
   const {
@@ -13,6 +13,19 @@ export default function ConversationsList() {
     isLoadingConversations,
     loadConversations
   } = useMessaging();
+
+  const [filterQuery, setFilterQuery] = useState('');
+
+  const filteredConversations = conversations.filter(conv => {
+    let displayName = '';
+    if (conv.isGroup) {
+      displayName = conv.groupName || '';
+    } else {
+      const otherParticipant = conv.participants.find(p => p.id !== CURRENT_USER.id);
+      displayName = otherParticipant ? otherParticipant.fullName : '';
+    }
+    return displayName.toLowerCase().includes(filterQuery.toLowerCase());
+  });
 
   useEffect(() => {
     loadConversations();
@@ -36,6 +49,29 @@ export default function ConversationsList() {
         )}
       </div>
 
+      {/* Search Bar */}
+      <div className="px-5 py-3 border-b border-[#E8EDF5] bg-white flex-shrink-0">
+        <div className="flex items-center bg-[#F8FAFC] rounded-xl px-3.5 py-2 border border-[#E2E8F0] focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400 transition-all duration-200">
+          <Search size={15} className="text-[#94A3B8] mr-2 flex-shrink-0" />
+          <input
+            type="text"
+            value={filterQuery}
+            onChange={(e) => setFilterQuery(e.target.value)}
+            placeholder="Search messages..."
+            className="w-full bg-transparent outline-none text-xs text-[#0F172A] placeholder-[#94A3B8]"
+          />
+          {filterQuery && (
+            <button
+              onClick={() => setFilterQuery('')}
+              className="p-0.5 hover:bg-[#E2E8F0] rounded-full text-[#64748B] transition-colors flex-shrink-0"
+              aria-label="Clear search"
+            >
+              <X size={12} />
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* List */}
       <div className="flex-1 overflow-y-auto">
         {isLoadingConversations ? (
@@ -52,8 +88,16 @@ export default function ConversationsList() {
             <p className="text-sm font-semibold text-[#0F172A]">No conversations yet</p>
             <p className="text-xs text-[#94A3B8] mt-1">Start a new chat with a researcher</p>
           </div>
+        ) : filteredConversations.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full py-16 px-6 text-center anim-fade-up">
+            <div className="w-14 h-14 rounded-2xl bg-[#F1F5F9] flex items-center justify-center mb-4">
+              <Search size={24} className="text-[#94A3B8]" />
+            </div>
+            <p className="text-sm font-semibold text-[#0F172A]">No matches found</p>
+            <p className="text-xs text-[#94A3B8] mt-1">Try searching for a different researcher</p>
+          </div>
         ) : (
-          conversations.map((conv, i) => (
+          filteredConversations.map((conv, i) => (
             <ConversationItem
               key={conv.id}
               conversation={conv}

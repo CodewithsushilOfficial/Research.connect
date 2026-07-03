@@ -3,7 +3,7 @@ import { Paperclip, PlusCircle, Smile, Send, X, Image } from 'lucide-react';
 import { SiGoogledrive } from 'react-icons/si';
 import { useMessaging } from '../../context/MessagingContext';
 import { messagingApi } from '../../services/messagingApi';
-import { toast } from '../ui/Toaster';
+import { toast } from 'react-hot-toast';
 
 export default function MessageInput() {
   const { activeConversationId, sendMessage, setUserTyping, getOtherParticipant, blockedUsers, toggleBlockUser } = useMessaging();

@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
 import { messagingApi } from '../services/messagingApi';
 import { eventBus } from '../services/eventBus';
-import { toast } from '../components/ui/Toaster';
+import { toast } from 'react-hot-toast';
 import { CURRENT_USER } from '../data/mockData';
 
 // ─── Context ─────────────────────────────────────────────────────────────────

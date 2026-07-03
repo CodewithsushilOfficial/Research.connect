@@ -1,20 +1,16 @@
-import React, { useEffect } from 'react';
-import { useDispatch } from 'react-redux';
-import HomeFeed from '../modules/home/pages/HomeFeed';
-import MessagesView from '../modules/message/components/MessagesView';
-import { setChatOpen } from '../redux/slices/messageSlice';
+import React from 'react';
+import { MessagingProvider } from '../context/MessagingContext';
+import { SocketProvider } from '../context/MessageSimulationContext';
+import MessagesPage from '../components/messages/MessagesPage';
 
 const MessagesRoute = () => {
-  const dispatch = useDispatch();
-
-  useEffect(() => {
-    dispatch(setChatOpen(true));
-  }, [dispatch]);
-
   return (
-    <div className="min-h-screen bg-bg-page text-text-primary">
-      <HomeFeed />
-      <MessagesView />
+    <div className="w-full">
+      <MessagingProvider>
+        <SocketProvider>
+          <MessagesPage />
+        </SocketProvider>
+      </MessagingProvider>
     </div>
   );
 };

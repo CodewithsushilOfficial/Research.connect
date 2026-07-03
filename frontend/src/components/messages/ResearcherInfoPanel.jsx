@@ -5,7 +5,7 @@ import { messagingApi } from '../../services/messagingApi';
 import { ResearcherSkeleton } from './Skeletons';
 import { useCountUp } from '../../hooks/useCountUp';
 import { Beaker, Cloud, Globe } from 'lucide-react';
-import { toast } from '../ui/Toaster';
+import { toast } from 'react-hot-toast';
 
 function IconByName({ name, className }) {
   if (name === 'beaker') return <Beaker size={16} className={className} />;

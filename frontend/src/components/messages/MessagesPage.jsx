@@ -6,7 +6,6 @@ import ChatWindow from './ChatWindow';
 import ChatHeader from './ChatHeader';
 import MessageInput from './MessageInput';
 import ResearcherInfoPanel from './ResearcherInfoPanel';
-import { Toaster } from '../ui/Toaster';
 
 function MessagesLayout() {
   const { activeConversationId, createConversation } = useMessaging();
@@ -81,7 +80,6 @@ function MessagesLayout() {
 
   return (
     <div className="h-[calc(100vh-8rem)] w-full flex overflow-hidden bg-white border border-slate-200 rounded-2xl shadow-sm relative">
-      <Toaster />
 
       {/* Conversations List — resizable */}
       <div
