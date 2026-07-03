@@ -24,8 +24,8 @@ export default function MessageBubble({ message, animDelay = 0 }) {
         <div
           className={`px-4 pt-3.5 pb-3 shadow-sm transition-all duration-250
             ${isMine
-              ? 'bubble-outbound bubble-outbound-bg text-white'
-              : 'bubble-inbound bg-white border border-[#E8EDF5] text-[#0F172A] hover:border-[#C7D2FE]'
+              ? 'bg-gradient-to-br from-[#2563EB] to-[#4F46E5] text-white rounded-2xl rounded-tr-none'
+              : 'bg-white border border-[#E8EDF5] text-[#0F172A] rounded-2xl rounded-tl-none hover:border-[#C7D2FE]'
             }`}
         >
           {message.content && (
