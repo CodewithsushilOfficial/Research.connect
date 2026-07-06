@@ -240,6 +240,14 @@ const ProfileHeader = ({
               </button>
               <FollowButton targetUserId={profile?.userId} username={profile?.profileSlug || profile?.username} />
               <ConnectButton targetUserId={profile?.userId} username={profile?.profileSlug || profile?.username} />
+              <Link
+                to={`/messages?participantId=${profile?.userId}`}
+                className="flex items-center gap-1.5 px-4 py-2 border border-border bg-white rounded-xl text-xs font-bold text-text-secondary hover:bg-primary hover:text-white hover:border-primary transition-all active:scale-95"
+                title="Message"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                Message
+              </Link>
             </>
           )}
         </div>

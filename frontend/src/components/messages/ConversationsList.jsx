@@ -11,7 +11,8 @@ export default function ConversationsList() {
     activeConversationId,
     selectConversation,
     isLoadingConversations,
-    loadConversations
+    loadConversations,
+    currentUserId
   } = useMessaging();
 
   useEffect(() => {
@@ -58,7 +59,7 @@ export default function ConversationsList() {
               key={conv.id}
               conversation={conv}
               isActive={activeConversationId === conv.id}
-              currentUserId={CURRENT_USER.id}
+              currentUserId={currentUserId}
               onClick={selectConversation}
               animDelay={i * 70}
             />

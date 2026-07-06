@@ -87,9 +87,8 @@ const SearchBar = ({ placeholder = 'Search publications, authors, journals…', 
   return (
     <div className={`relative ${className}`}>
       {/* Input */}
-      <div className={`flex items-center gap-2 px-4 py-3 rounded-2xl border transition-all duration-200 bg-white ${
-        isFocused ? 'border-blue-500 shadow-lg shadow-blue-100 ring-2 ring-blue-100' : 'border-gray-200 shadow-sm hover:border-gray-300'
-      }`}>
+      <div className={`flex items-center gap-2 px-4 py-3 rounded-2xl border transition-all duration-200 bg-white ${isFocused ? 'border-blue-500 shadow-lg shadow-blue-100 ring-2 ring-blue-100' : 'border-gray-200 shadow-sm hover:border-gray-300'
+        }`}>
         {isLoading
           ? <div className="w-5 h-5 rounded-full border-2 border-blue-500 border-t-transparent animate-spin flex-shrink-0" />
           : <Search className="w-5 h-5 text-gray-400 flex-shrink-0" />

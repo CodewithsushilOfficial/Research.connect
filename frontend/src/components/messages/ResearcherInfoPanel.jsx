@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMessaging } from '../../context/MessagingContext';
 import { messagingApi } from '../../services/messagingApi';
+import feedService from '../../services/feed.service';
 import { ResearcherSkeleton } from './Skeletons';
 import { useCountUp } from '../../hooks/useCountUp';
 import { Beaker, Cloud, Globe } from 'lucide-react';
-import { toast } from '../ui/Toaster';
+import { toast } from 'react-hot-toast';
 
 function IconByName({ name, className }) {
   if (name === 'beaker') return <Beaker size={16} className={className} />;
@@ -49,13 +50,35 @@ export default function ResearcherInfoPanel() {
   const hIndex = useCountUp(profile?.hIndex, 1000);
 
   const [isFollowing, setIsFollowing] = useState(false);
+  const [isFollowLoading, setIsFollowLoading] = useState(false);
 
-  const handleFollowToggle = () => {
-    setIsFollowing(!isFollowing);
-    if (!isFollowing) {
-      toast.success(`You are now following ${profile?.fullName}`);
-    } else {
-      toast.info(`Unfollowed ${profile?.fullName}`);
+  useEffect(() => {
+    // Check if we are following this user
+    if (userId) {
+      feedService.getFollowingList().then(res => {
+        const following = res?.data || res || [];
+        // Support array of ids or array of objects
+        const isFollowed = following.some(f => f === userId || f._id === userId || f.id === userId);
+        setIsFollowing(isFollowed);
+      }).catch(err => console.error("Failed to fetch following list", err));
+    }
+  }, [userId]);
+
+  const handleFollowToggle = async () => {
+    if (isFollowLoading) return;
+    setIsFollowLoading(true);
+    try {
+      await feedService.toggleFollow(userId);
+      setIsFollowing(!isFollowing);
+      if (!isFollowing) {
+        toast.success(`You are now following ${profile?.fullName}`);
+      } else {
+        toast.info(`Unfollowed ${profile?.fullName}`);
+      }
+    } catch (err) {
+      toast.error('Failed to toggle follow status');
+    } finally {
+      setIsFollowLoading(false);
     }
   };
 
@@ -70,7 +93,7 @@ export default function ResearcherInfoPanel() {
           {/* Profile Top */}
           <div className="p-6 flex flex-col items-center text-center border-b border-[#E2E8F0] group">
             <div
-              className="profile-avatar w-24 h-24 rounded-2xl overflow-hidden border-2 shadow-lg mb-4 cursor-pointer anim-breathe group-hover:border-[#2563EB] transition-colors duration-300"
+              className="profile-avatar w-24 h-24 rounded-full overflow-hidden border-2 shadow-lg mb-4 cursor-pointer anim-breathe group-hover:border-[#2563EB] transition-colors duration-300"
               style={{ borderColor: '#BFDBFE' }}
             >
               <img src={profile.avatarUrlLg || profile.avatarUrl} alt={profile.fullName} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
@@ -79,14 +102,17 @@ export default function ResearcherInfoPanel() {
             <p className="text-sm text-[#475569] mt-0.5">{profile.positionTitle} • {profile.department}</p>
             <div className="flex gap-2 mt-4">
               <button
-                onClick={() => navigate(`/researcher/${userId}`)}
+                onClick={() => navigate(`/profile/${profile?.profileSlug || profile?.username || userId}`)}
                 className="px-4 py-2 bg-[#DBEAFE] text-[#2563EB] rounded-lg text-sm font-semibold hover:bg-[#BFDBFE] transition-all hover:-translate-y-0.5 active:translate-y-0 shadow-sm"
               >
                 Profile
               </button>
               <button
                 onClick={handleFollowToggle}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all hover:-translate-y-0.5 active:translate-y-0 shadow-sm ${isFollowing
+                disabled={isFollowLoading}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all hover:-translate-y-0.5 active:translate-y-0 shadow-sm ${
+                  isFollowLoading ? 'opacity-70 cursor-wait' : ''
+                } ${isFollowing
                     ? 'bg-[#10B981] text-white hover:bg-[#059669] border border-transparent'
                     : 'border border-[#E2E8F0] text-[#0F172A] hover:bg-[#DBEAFE] hover:border-[#BFDBFE] hover:text-[#2563EB]'
                   }`}

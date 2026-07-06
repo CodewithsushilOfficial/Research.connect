@@ -3,8 +3,8 @@ import { CURRENT_USER, formatMsgTime } from '../../data/mockData';
 import FileAttachmentCard from './FileAttachmentCard';
 
 export default function MessageBubble({ message, animDelay = 0 }) {
-  const { activeConversationId } = useMessaging();
-  const isMine = message.senderId === CURRENT_USER.id;
+  const { activeConversationId, currentUserId } = useMessaging();
+  const isMine = message.senderId === currentUserId || message.senderId === CURRENT_USER.id;
   const time = formatMsgTime(message.createdAt);
 
   return (
@@ -19,10 +19,10 @@ export default function MessageBubble({ message, animDelay = 0 }) {
         </div>
       )}
 
-      <div className={isMine ? 'flex flex-col items-end gap-1' : ''}>
+      <div className={isMine ? 'flex flex-col items-end gap-1 min-w-0 max-w-full' : 'min-w-0 max-w-full'}>
         {/* Message ka dabba (Bubble) */}
         <div
-          className={`px-4 pt-3.5 pb-3 shadow-sm transition-all duration-250
+          className={`px-4 pt-3.5 pb-3 shadow-sm transition-all duration-250 max-w-full
             ${isMine
               ? 'bubble-outbound bubble-outbound-bg text-white'
               : 'bubble-inbound bg-white border border-[#E8EDF5] text-[#0F172A] hover:border-[#C7D2FE]'
@@ -33,7 +33,7 @@ export default function MessageBubble({ message, animDelay = 0 }) {
           )}
 
           {message.attachments?.length > 0 && (
-            <div className="mt-3 space-y-2">
+            <div className="mt-3 space-y-2 min-w-0 max-w-full">
               {message.attachments.map((a) => (
                 <FileAttachmentCard key={a.id} attachment={a} />
               ))}

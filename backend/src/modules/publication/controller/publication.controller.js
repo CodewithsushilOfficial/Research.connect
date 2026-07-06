@@ -156,7 +156,16 @@ class PublicationController {
     } = req.query;
 
     const User = require('../../../models/User');
-    const user = await User.findOne({ profileSlug, isDeleted: { $ne: true } });
+    
+    const query = { isDeleted: { $ne: true } };
+    if (require('mongoose').Types.ObjectId.isValid(profileSlug)) {
+      query.$or = [{ _id: profileSlug }, { profileSlug }, { username: profileSlug }];
+    } else {
+      query.$or = [{ profileSlug }, { username: profileSlug }];
+    }
+    
+    const user = await User.findOne(query);
+    
     if (!user) {
       throw new ValidationError('Profile not found.');
     }
@@ -541,11 +550,16 @@ class PublicationController {
     } = req.query;
 
     const User = require('../../../models/User');
-    // Try resolving by username first, fallback to profileSlug
-    let user = await User.findOne({ username, isDeleted: { $ne: true } });
-    if (!user) {
-      user = await User.findOne({ profileSlug: username, isDeleted: { $ne: true } });
+    
+    const query = { isDeleted: { $ne: true } };
+    if (require('mongoose').Types.ObjectId.isValid(username)) {
+      query.$or = [{ _id: username }, { profileSlug: username }, { username: username }];
+    } else {
+      query.$or = [{ profileSlug: username }, { username: username }];
     }
+    
+    let user = await User.findOne(query);
+
     if (!user) {
       throw new ValidationError('User profile not found.');
     }

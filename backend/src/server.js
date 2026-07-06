@@ -73,6 +73,13 @@ const startServer = async () => {
 
     process.on('SIGTERM', () => shutdownGracefully('SIGTERM'));
     process.on('SIGINT', () => shutdownGracefully('SIGINT'));
+    
+    // For Nodemon restarts
+    process.once('SIGUSR2', async () => {
+      logger.info('Received SIGUSR2 (nodemon restart). Closing DB connections...');
+      await closeDB();
+      process.kill(process.pid, 'SIGUSR2');
+    });
 
   } catch (error) {
     logger.error('Error starting Research Connect server:', error);

@@ -5,7 +5,7 @@ import {
   Home, User, Compass, FileText, Briefcase,
   Users, MessageSquare, Bookmark, UserCheck,
   UserPlus, Settings, Upload, ChevronLeft,
-  ChevronRight, BarChart2, Globe, Database, X
+  ChevronRight, BarChart2, Globe, Database, X, Bell
 } from 'lucide-react';
 
 const ProfileSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen }) => {
@@ -22,7 +22,8 @@ const ProfileSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
     { name: 'Publications', path: `/profile/${profileSlug}/publications`, icon: FileText },
     { name: 'Projects', path: `/profile/${profileSlug}/projects`, icon: Briefcase },
     { name: 'My Network', path: '/network', icon: Users },
-    { name: 'Messages', path: `/profile/${profileSlug}/messages`, icon: MessageSquare },
+    { name: 'Messages', path: '/messages', icon: MessageSquare },
+    { name: 'Notifications', path: '/notifications', icon: Bell },
     { name: 'Followers', path: `/profile/${profileSlug}/followers`, icon: UserCheck },
     { name: 'Following', path: `/profile/${profileSlug}/following`, icon: UserPlus },
     { name: 'Analytics', path: `/profile/${profileSlug}/analytics`, icon: BarChart2 },

@@ -70,19 +70,18 @@ app.use("/api/v1/auth", authModule.routes);
 app.use("/api/v1/profile", profileModule.routes);
 app.use("/api/v1/follows", followModule.routes);
 app.use("/api/v1/connections", connectionsModule.routes);
-app.use("/api/v1", scholarModule.routes);
-app.use("/api/v1", feedModule.routes);
-app.use("/api/v1/publications", publicationModule.routes);
-app.use("/api/v1/messages", messageModule.routes);
 app.use("/api/v1/search", searchModule.routes);
-app.use("/api/v1/uploads", uploadModule.routes);
+app.use("/api/v1/publications", publicationModule.routes);
 app.use("/api/v1/projects", projectModule.routes);
 app.use("/api/v1/datasets", datasetModule.routes);
+app.use("/api/v1/messages", messageModule.routes);
+app.use("/api/v1/uploads", uploadModule.routes);
 app.use("/api/v1/notifications", notificationRoutes);
 app.use("/api/v1/collaborations", collaborationRoutes);
-
 app.use("/api/v1/identity", identityRoutes);
 app.use("/api/v1/recommendations", recommendationsModule.routes);
+app.use("/api/v1", scholarModule.routes);
+app.use("/api/v1", feedModule.routes);
 
 // Default root redirect to /api
 app.get("/", (req, res) => {

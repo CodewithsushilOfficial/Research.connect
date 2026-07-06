@@ -19,7 +19,7 @@ const getCurrentUser = () => {
   const storedUser = parseStoredJson('user');
   const storedProfile = parseStoredJson('profile');
   const merged = { ...storedUser, ...storedProfile };
-  const id = merged._id || merged.id || merged.user || CURRENT_USER.id;
+  const id = merged._id || merged.id || merged.userId || merged.user || CURRENT_USER.id;
   const fullName =
     merged.fullName ||
     [merged.firstName, merged.lastName].filter(Boolean).join(' ') ||
@@ -46,6 +46,7 @@ const getPageDocs = (payload) => {
   const data = unwrap(payload);
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.docs)) return data.docs;
+  if (Array.isArray(data?.data)) return data.data;
   return [];
 };
 
@@ -61,7 +62,23 @@ const makeAvatarUrl = (name) =>
   `https://ui-avatars.com/api/?background=DBEAFE&color=2563EB&name=${encodeURIComponent(name || 'Researcher')}`;
 
 const normalizeUser = (user, currentUser = getCurrentUser()) => {
-  if (!user) return currentUser;
+  if (!user) {
+    return {
+      id: `unknown-${Date.now()}`,
+      backendId: null,
+      fullName: 'Unknown Researcher',
+      avatarUrl: makeAvatarUrl('Unknown Researcher'),
+      avatarUrlLg: makeAvatarUrl('Unknown Researcher'),
+      isOnline: false,
+      institution: '',
+      department: '',
+      positionTitle: '',
+      citationsCount: 0,
+      hIndex: 0,
+      topPublications: [],
+      sharedProjects: [],
+    };
+  }
 
   const rawId = user._id || user.id || user;
   const isCurrentUser = rawId && currentUser.backendId && String(rawId) === String(currentUser.backendId);
@@ -76,7 +93,7 @@ const normalizeUser = (user, currentUser = getCurrentUser()) => {
     (isCurrentUser ? currentUser.avatarUrl : makeAvatarUrl(fullName));
 
   const normalized = {
-    id: isCurrentUser ? CURRENT_USER.id : String(rawId),
+    id: rawId ? String(rawId) : `unknown-${Date.now()}`,
     backendId: rawId ? String(rawId) : null,
     fullName,
     avatarUrl,
@@ -107,8 +124,8 @@ const normalizeAttachment = (attachment, index = 0) => {
   }
   return {
     id: attachment.id || attachment._id || `att-${index}`,
-    fileName: attachment.fileName || attachment.name || attachment.url || 'Attachment',
-    fileSizeBytes: attachment.fileSizeBytes || attachment.size || 0,
+    fileName: attachment.fileName || attachment.filename || attachment.name || attachment.url || 'Attachment',
+    fileSizeBytes: attachment.fileSizeBytes || attachment.fileSize || attachment.size || 0,
     fileType: attachment.fileType || attachment.type || 'application/octet-stream',
     cdnUrl: attachment.cdnUrl || attachment.url || '#',
   };
@@ -119,19 +136,23 @@ const normalizeMessage = (message, currentUser = getCurrentUser()) => {
   const senderId =
     message.senderId ||
     (String(message.sender?._id || message.sender || '') === String(currentUser.backendId)
-      ? CURRENT_USER.id
+      ? (currentUser.backendId || CURRENT_USER.id)
       : sender.id);
 
   return {
     id: message._id || message.id,
-    content: message.content || '',
-    messageType: message.messageType || message.type || 'text',
+    content: message.text || message.content || '',
+    messageType: message.type || message.messageType || 'text',
     senderId,
-    senderName: senderId === CURRENT_USER.id ? currentUser.fullName : sender.fullName,
-    senderAvatarUrl: senderId === CURRENT_USER.id ? currentUser.avatarUrl : sender.avatarUrl,
+    senderName: sender.fullName,
+    senderAvatarUrl: sender.avatarUrl,
     createdAt: message.createdAt || new Date().toISOString(),
     readAt: message.readAt || (message.readBy?.length ? message.updatedAt : null),
-    attachments: (message.attachments || []).map(normalizeAttachment),
+    attachments: message.attachments 
+      ? message.attachments.map(normalizeAttachment) 
+      : message.attachment 
+        ? [normalizeAttachment(message.attachment)] 
+        : [],
   };
 };
 
@@ -139,14 +160,22 @@ const normalizeConversation = (conversation, currentUser = getCurrentUser()) => 
   const participants = (conversation.participants || []).map((participant) =>
     normalizeUser(participant, currentUser)
   );
-  const hasCurrentUser = participants.some((participant) => participant.id === CURRENT_USER.id);
+  
+  const currentId = currentUser?.backendId || CURRENT_USER.id;
+  const hasCurrentUser = participants.some((participant) => participant.id === currentId);
 
   if (!hasCurrentUser) {
     participants.unshift({
       ...currentUser,
-      id: CURRENT_USER.id,
+      id: currentId,
       isOnline: true,
     });
+  }
+
+  // Mongoose populate might have removed the other user if they don't exist in the DB.
+  // We must ensure there is an 'other' participant.
+  if (participants.length === 1) {
+    participants.push(normalizeUser(null, currentUser));
   }
 
   const lastMessage = conversation.lastMessage
@@ -175,7 +204,7 @@ const toBackendAttachments = (attachments = []) =>
 
 export const messagingApi = {
   async getConversations() {
-    const response = await axiosInstance.get('/v1/messages/conversations', {
+    const response = await axiosInstance.get('/v1/messages', {
       params: { sort: '-lastMessageAt', limit: 50 },
     });
     const currentUser = getCurrentUser();
@@ -183,12 +212,12 @@ export const messagingApi = {
   },
 
   async createConversation(participantId) {
-    const response = await axiosInstance.post('/v1/messages/conversations', { participantId });
+    const response = await axiosInstance.get(`/v1/messages/with/${participantId}`);
     return normalizeConversation(unwrap(response), getCurrentUser());
   },
 
   async getMessages(convId, page = 0) {
-    const response = await axiosInstance.get(`/v1/messages/conversations/${convId}/messages`, {
+    const response = await axiosInstance.get(`/v1/messages/${convId}`, {
       params: {
         page: Number(page) + 1,
         limit: 25,
@@ -207,9 +236,11 @@ export const messagingApi = {
   },
 
   async sendMessage(convId, content, attachments = []) {
-    const response = await axiosInstance.post(`/v1/messages/conversations/${convId}/messages`, {
-      content,
-      attachments: toBackendAttachments(attachments),
+    const attachmentId = attachments.length > 0 ? attachments[0].id : undefined;
+    const response = await axiosInstance.post(`/v1/messages/send`, {
+      conversationId: convId,
+      text: content,
+      attachmentId
     });
     return normalizeMessage(unwrap(response), getCurrentUser());
   },
@@ -219,7 +250,7 @@ export const messagingApi = {
   },
 
   async markConversationRead(convId) {
-    const response = await axiosInstance.post(`/v1/messages/conversations/${convId}/read`);
+    const response = await axiosInstance.patch(`/v1/messages/${convId}/read`);
     return unwrap(response);
   },
 
@@ -227,7 +258,7 @@ export const messagingApi = {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await axiosInstance.post('/v1/profile/upload', formData, {
+    const response = await axiosInstance.post('/v1/messages/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
       onUploadProgress: (progressEvent) => {
         if (!progressEvent.total) return;

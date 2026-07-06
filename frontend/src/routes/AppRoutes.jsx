@@ -9,6 +9,10 @@ const HomeHub = React.lazy(() => import('./HomeHub'));
 import ProtectedRoute from './ProtectedRoute';
 import PublicRoute from './PublicRoute';
 
+// Providers for Messages
+import { MessagingProvider } from '../context/MessagingContext';
+import { SocketProvider } from '../context/MessageSimulationContext';
+
 // Lazy-loaded Pages
 const LoginPage = React.lazy(() => import('../modules/authentication/pages/LoginPage'));
 const RegisterPage = React.lazy(() => import('../modules/authentication/pages/RegisterPage'));
@@ -25,7 +29,7 @@ const PublicationEditPage = React.lazy(() => import('../modules/publication/page
 const PublicationReader = React.lazy(() => import('../modules/publication/pages/PublicationReader'));
 const PublicationAnalyticsPage = React.lazy(() => import('../modules/publication/pages/PublicationAnalyticsPage'));
 const SearchPage = React.lazy(() => import('../modules/search/pages/SearchPage'));
-const MessagesPage = React.lazy(() => import('../modules/messages/pages/MessagesPage'));
+const MessagesPage = React.lazy(() => import('../components/messages/MessagesPage'));
 
 // Social Collaboration Modules
 const NetworkPage = React.lazy(() => import('../modules/connections/pages/NetworkPage'));
@@ -58,6 +62,8 @@ const AppRoutes = () => {
       </div>
     }>
       <Routes>
+        {/* Dynamic Landing / Feed Hub */}
+        <Route path="/" element={<HomeHub />} />
         {/* Authentication Layout */}
         <Route element={<AuthLayout />}>
           <Route path="login" element={
@@ -96,7 +102,7 @@ const AppRoutes = () => {
             <AppLayout />
           </ProtectedRoute>
         }>
-          <Route index element={<HomeHub />} />
+
           <Route path="profile" element={<ProfileRedirect />} />
           <Route path="research-identity" element={<ResearchIdentityPage />} />
           <Route path="publications/create" element={<PublicationCreatePage />} />
@@ -115,9 +121,27 @@ const AppRoutes = () => {
           <Route path="articles/create" element={<ComingSoon title="Write Article Coming Soon" />} />
           <Route path="events/create" element={<ComingSoon title="Create Event Coming Soon" />} />
           <Route path="publication/:slug/edit" element={<PublicationEditPage />} />
-          <Route path="messages" element={<MessagesPage />} />
-          <Route path="messages/:conversationId" element={<MessagesPage />} />
-          <Route path="messages/new" element={<MessagesPage />} />
+          <Route path="messages" element={
+            <MessagingProvider>
+              <SocketProvider>
+                <MessagesPage />
+              </SocketProvider>
+            </MessagingProvider>
+          } />
+          <Route path="messages/:conversationId" element={
+            <MessagingProvider>
+              <SocketProvider>
+                <MessagesPage />
+              </SocketProvider>
+            </MessagingProvider>
+          } />
+          <Route path="messages/new" element={
+            <MessagingProvider>
+              <SocketProvider>
+                <MessagesPage />
+              </SocketProvider>
+            </MessagingProvider>
+          } />
           <Route path="search" element={<SearchPage />} />
           
           {/* Social Collaboration Module Routes */}

@@ -22,6 +22,23 @@ class MessageController {
   }
 
   /**
+   * Get or create a conversation with a specific user
+   */
+  async getConversationWithUser(req, res, next) {
+    try {
+      const data = await messageService.getOrCreateConversation(req.user.id, req.params.userId);
+      res.status(200).json({
+        success: true,
+        message: 'Conversation retrieved successfully',
+        data,
+        error: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
    * Get paginated messages for a conversation
    */
   async getConversationMessages(req, res, next) {

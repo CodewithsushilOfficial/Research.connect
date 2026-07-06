@@ -6,7 +6,10 @@ const corsOptions = require('../../config/cors');
 const { globalLimiter } = require('../../config/rateLimiter');
 
 const securityMiddlewares = [
-  helmet(),
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginOpenerPolicy: { policy: "unsafe-none" }
+  }),
   cors(corsOptions),
   globalLimiter
 ];

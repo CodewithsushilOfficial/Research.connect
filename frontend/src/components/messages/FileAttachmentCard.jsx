@@ -50,7 +50,7 @@ export default function FileAttachmentCard({ attachment }) {
     <div
       onClick={handleDownload}
       className="attach-card hover-3d-lift flex items-center gap-3 p-3 bg-white border border-[#E2E8F0]
-        rounded-xl cursor-pointer group"
+        rounded-xl cursor-pointer group min-w-0 max-w-full"
     >
       <div
         className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"

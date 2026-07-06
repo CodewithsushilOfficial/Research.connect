@@ -71,60 +71,69 @@ const NotificationCard = ({ notification }) => {
 
   return (
     <div 
-      className={`p-4 border rounded-2xl transition-all duration-250 flex items-start justify-between gap-4 text-left relative overflow-hidden ${
+      className={`group p-4 md:p-5 rounded-2xl transition-all duration-300 flex items-start justify-between gap-4 text-left relative overflow-hidden backdrop-blur-md ${
         isRead 
-          ? 'bg-white border-slate-200 hover:border-slate-350' 
-          : 'bg-blue-50/30 border-blue-100 hover:border-blue-200'
+          ? 'bg-white/80 border border-slate-200/60 hover:bg-white hover:border-slate-300 hover:shadow-[0_4px_20px_rgb(0,0,0,0.03)]' 
+          : 'bg-blue-50/40 border border-blue-100 hover:bg-blue-50/60 hover:border-blue-200 hover:shadow-[0_4px_20px_rgb(59,130,246,0.06)]'
       }`}
     >
       {/* Unread indicator dot */}
       {!isRead && (
-        <span className="absolute top-4 right-4 w-2.5 h-2.5 bg-blue-600 rounded-full" />
+        <span className="absolute top-0 bottom-0 left-0 w-1 bg-gradient-to-b from-blue-400 to-indigo-500 shadow-[0_0_10px_rgba(59,130,246,0.6)]" />
       )}
 
-      <div className="flex gap-3.5 items-start cursor-pointer flex-1 min-w-0" onClick={handleCardClick}>
+      <div className="flex gap-4 items-start cursor-pointer flex-1 min-w-0" onClick={handleCardClick}>
         {/* Actor Avatar / Icon stack */}
-        <div className="relative shrink-0">
+        <div className="relative shrink-0 mt-0.5">
           <img
             src={actorImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"}
             alt={actorName}
-            className="w-11 h-11 rounded-full object-cover border border-slate-100"
+            className={`w-12 h-12 rounded-full object-cover transition-transform duration-300 group-hover:scale-105 shadow-sm ${
+              !isRead ? 'ring-2 ring-blue-100 ring-offset-2' : 'ring-1 ring-slate-200'
+            }`}
           />
-          <div className="absolute -bottom-1 -right-1 p-1 bg-white rounded-full shadow-xs border border-slate-100 flex items-center justify-center">
+          <div className="absolute -bottom-1 -right-1 p-1.5 bg-white rounded-full shadow-md shadow-slate-200/50 border border-slate-100 flex items-center justify-center transform group-hover:-rotate-12 transition-transform duration-300">
             {getNotificationIcon(notification.type)}
           </div>
+          {!isRead && (
+            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-blue-500 border-2 border-white rounded-full shadow-sm" />
+          )}
         </div>
 
         {/* Message details */}
-        <div className="space-y-0.5 flex-1 min-w-0 pr-8">
-          <h4 className="text-xs font-black text-slate-900 leading-tight">
+        <div className="space-y-1 flex-1 min-w-0 pr-8">
+          <h4 className={`text-sm font-black leading-tight transition-colors duration-200 ${
+            !isRead ? 'text-slate-900 group-hover:text-blue-600' : 'text-slate-800 group-hover:text-blue-600'
+          }`}>
             {title}
           </h4>
-          <p className="text-[11px] font-semibold text-[#475569] leading-relaxed break-words">
+          <p className={`text-[12px] font-medium leading-relaxed break-words ${
+            !isRead ? 'text-slate-600' : 'text-slate-500'
+          }`}>
             {message}
           </p>
-          <span className="text-[9px] font-bold text-slate-400 block pt-0.5">
+          <span className="text-[10px] font-bold text-slate-400 block pt-1 tracking-wide uppercase">
             {formatTimeAgo(createdAt)}
           </span>
           {notification.type === 'publication_uploaded' && (
-            <div className="flex gap-2 pt-2.5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex flex-wrap gap-2 pt-3.5" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => {
                   if (!isRead) markReadMutation.mutate();
                   if (targetUrl) navigate(targetUrl);
                 }}
-                className="px-2.5 py-1 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm transition-all cursor-pointer active:scale-95"
+                className="px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md shadow-blue-500/20 hover:shadow-lg transition-all cursor-pointer active:scale-95"
               >
-                Read Publication
+                <Eye className="w-3.5 h-3.5" /> Read Publication
               </button>
               <button
                 onClick={() => {
                   if (!isRead) markReadMutation.mutate();
                   if (actorId) navigate(`/profile/${actorId.profileSlug || actorId.username}`);
                 }}
-                className="px-2.5 py-1 border border-slate-200 bg-white hover:bg-slate-50 text-slate-650 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer active:scale-95"
+                className="px-3.5 py-1.5 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600 hover:text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm hover:shadow transition-all cursor-pointer active:scale-95"
               >
-                View Researcher
+                <User className="w-3.5 h-3.5" /> View Profile
               </button>
             </div>
           )}
@@ -132,7 +141,7 @@ const NotificationCard = ({ notification }) => {
       </div>
 
       {/* Action Buttons */}
-      <div className="flex items-center gap-1 shrink-0 self-center">
+      <div className="flex items-center gap-1.5 shrink-0 self-center absolute right-3 md:right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white/80 backdrop-blur-sm p-1 rounded-2xl shadow-sm border border-white/50">
         {!isRead && (
           <button
             onClick={(e) => {
@@ -140,10 +149,10 @@ const NotificationCard = ({ notification }) => {
               markReadMutation.mutate();
             }}
             disabled={markReadMutation.isPending}
-            className="p-1.5 hover:bg-emerald-50 text-emerald-600 rounded-xl transition-all cursor-pointer border border-transparent hover:border-emerald-100"
+            className="p-2 bg-white hover:bg-blue-50 text-blue-500 rounded-xl transition-all cursor-pointer shadow-sm hover:shadow hover:-translate-y-0.5 active:scale-95"
             title="Mark as Read"
           >
-            <Check className="w-3.5 h-3.5" />
+            <Check className="w-4 h-4" />
           </button>
         )}
         <button
@@ -152,10 +161,10 @@ const NotificationCard = ({ notification }) => {
             deleteMutation.mutate();
           }}
           disabled={deleteMutation.isPending}
-          className="p-1.5 hover:bg-red-50 text-red-650 rounded-xl transition-all cursor-pointer border border-transparent hover:border-red-100"
+          className="p-2 bg-white hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-xl transition-all cursor-pointer shadow-sm hover:shadow hover:-translate-y-0.5 active:scale-95"
           title="Delete Notification"
         >
-          <Trash2 className="w-3.5 h-3.5" />
+          <Trash2 className="w-4 h-4" />
         </button>
       </div>
     </div>

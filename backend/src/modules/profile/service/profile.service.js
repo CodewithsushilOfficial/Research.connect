@@ -165,7 +165,14 @@ class ProfileService {
   }
 
   async getProfileBySlug(profileSlug) {
-    const user = await User.findOne({ profileSlug, isDeleted: { $ne: true } }).lean();
+    const query = { isDeleted: { $ne: true } };
+    if (mongoose.Types.ObjectId.isValid(profileSlug)) {
+      query.$or = [{ _id: profileSlug }, { profileSlug }, { username: profileSlug }];
+    } else {
+      query.$or = [{ profileSlug }, { username: profileSlug }];
+    }
+    
+    const user = await User.findOne(query).lean();
     if (!user) {
       throw new NotFoundError(`Profile not found for slug: ${profileSlug}`);
     }

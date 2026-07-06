@@ -3,7 +3,7 @@ import { formatConvTime } from '../../data/mockData';
 
 export default function ConversationItem({ conversation, isActive, currentUserId, onClick, animDelay }) {
   const { onlineUsers } = useMessaging();
-  
+
   let displayName, avatarUrl;
   let otherParticipant = null;
 
@@ -14,8 +14,8 @@ export default function ConversationItem({ conversation, isActive, currentUserId
   } else {
     otherParticipant = conversation.participants.find((p) => p.id !== currentUserId);
     if (!otherParticipant) return null;
-    displayName = otherParticipant.fullName;
-    avatarUrl = otherParticipant.avatarUrl;
+    displayName = otherParticipant.fullName || 'Unknown';
+    avatarUrl = otherParticipant.avatarUrl || 'https://ui-avatars.com/api/?name=U';
   }
 
   const isOnline = otherParticipant ? onlineUsers.has(otherParticipant.id) : false;

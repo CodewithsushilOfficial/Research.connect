@@ -27,11 +27,11 @@ class MessageService {
       throw new ValidationError('Cannot chat with yourself.');
     }
 
-    // Enforce connection check
-    const isConnected = await this.checkConnected(userId, targetUserId);
-    if (!isConnected) {
-      throw new ValidationError('You can only message connected researchers.');
-    }
+    // Enforce connection check (disabled to allow messaging anyone)
+    // const isConnected = await this.checkConnected(userId, targetUserId);
+    // if (!isConnected) {
+    //   throw new ValidationError('You can only message connected researchers.');
+    // }
 
     return await messageRepository.findOrCreateConversation(userId, targetUserId);
   }
@@ -57,11 +57,11 @@ class MessageService {
       throw new ValidationError('Either conversationId or receiverId must be supplied.');
     }
 
-    // Double check connection status
-    const isConnected = await this.checkConnected(userId, receiverId);
-    if (!isConnected) {
-      throw new ValidationError('You can only message connected researchers.');
-    }
+    // Double check connection status (disabled to allow messaging anyone)
+    // const isConnected = await this.checkConnected(userId, receiverId);
+    // if (!isConnected) {
+    //   throw new ValidationError('You can only message connected researchers.');
+    // }
 
     // Create the message
     const message = new Message({

@@ -1,13 +1,17 @@
 import { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
 import { messagingApi } from '../services/messagingApi';
 import { eventBus } from '../services/eventBus';
-import { toast } from '../components/ui/Toaster';
-import { CURRENT_USER } from '../data/mockData';
-
+import { toast } from 'react-hot-toast';
+import { useAuth } from './AuthContext';
 // ─── Context ─────────────────────────────────────────────────────────────────
 const MessagingContext = createContext(null);
 
 export function MessagingProvider({ children }) {
+  const { user } = useAuth();
+  const currentUserId = user?._id || user?.id || user?.userId || 'user-me';
+  const currentUserName = user?.fullName || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'You';
+  const currentUserAvatar = user?.profileImage || user?.avatarUrl || 'https://ui-avatars.com/api/?name=You';
+
   const [conversations, setConversations] = useState([]);
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [messages, setMessages] = useState(new Map());          // convId → Message[]
@@ -69,11 +73,13 @@ export function MessagingProvider({ children }) {
   const selectConversation = useCallback(async (convId) => {
     setActiveConversationId(convId);
 
+    if (!convId) return;
+
     // Unread count zero (0) kar do
     setConversations((prev) =>
       prev.map((c) => (c.id === convId ? { ...c, unreadCount: 0 } : c))
     );
-    messagingApi.markConversationRead?.(convId).catch(() => {});
+    messagingApi.markConversationRead?.(convId).catch(() => { });
 
     // Agar pehle se load nahi hain toh messages laao
     if (!messages.has(convId)) {
@@ -86,7 +92,7 @@ export function MessagingProvider({ children }) {
         const { messages: msgs, hasMore } = await messagingApi.getMessages(convId, 0);
         setMessages((prev) => {
           const next = new Map(prev);
-          next.set(convId, [...msgs].reverse()); // chronological order
+          next.set(convId, [...msgs]); // chronological order from backend
           return next;
         });
         setMessagesMeta((prev) => {
@@ -121,7 +127,7 @@ export function MessagingProvider({ children }) {
       const { messages: olderMsgs, hasMore } = await messagingApi.getMessages(convId, nextPage);
       setMessages((prev) => {
         const next = new Map(prev);
-        next.set(convId, [...[...olderMsgs].reverse(), ...(prev.get(convId) || [])]);
+        next.set(convId, [...olderMsgs, ...(prev.get(convId) || [])]);
         return next;
       });
       setMessagesMeta((prev) => {
@@ -147,9 +153,9 @@ export function MessagingProvider({ children }) {
       tempId,
       content,
       messageType: 'text',
-      senderId: CURRENT_USER.id,
-      senderName: CURRENT_USER.fullName,
-      senderAvatarUrl: CURRENT_USER.avatarUrl,
+      senderId: currentUserId,
+      senderName: currentUserName,
+      senderAvatarUrl: currentUserAvatar,
       createdAt: new Date().toISOString(),
       readAt: null,
       attachments,
@@ -333,7 +339,7 @@ export function MessagingProvider({ children }) {
     (convId) => {
       const conv = conversations.find((c) => c.id === convId);
       if (!conv) return null;
-      return conv.participants.find((p) => p.id !== CURRENT_USER.id) ?? null;
+      return conv.participants.find((p) => p.id !== currentUserId) ?? null;
     },
     [conversations]
   );
@@ -364,6 +370,7 @@ export function MessagingProvider({ children }) {
         deleteConversation,
         blockedUsers,
         toggleBlockUser,
+        currentUserId,
       }}
     >
       {children}

@@ -18,11 +18,12 @@ class MessageRepository extends BaseRepository {
   async findOrCreateConversation(userA, userB) {
     let conv = await Conversation.findOne({
       participants: { $all: [userA, userB] }
-    });
+    }).populate('participants', 'firstName lastName profileImage username');
     
     if (!conv) {
       conv = new Conversation({ participants: [userA, userB] });
       await conv.save();
+      await conv.populate('participants', 'firstName lastName profileImage username');
     }
     return conv;
   }

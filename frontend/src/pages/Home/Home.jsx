@@ -103,8 +103,8 @@ const Home = () => {
     const fetchLandingData = async () => {
       try {
         const [statsRes, catRes] = await Promise.all([
-          api.get('/landing/stats'),
-          api.get('/landing/categories')
+          fetch('/api/stats').then(r => r.json()).then(data => ({ data })),
+          fetch('/api/categories').then(r => r.json()).then(data => ({ data }))
         ]);
         if (statsRes.data?.success) setPlatformStats(statsRes.data.data);
         if (catRes.data?.success) setCategories(catRes.data.data);
@@ -207,7 +207,7 @@ const Home = () => {
           {/* Top Pill Badge */}
           <div className="animate-fade-up flex items-center gap-2 rounded-full border border-blue-200/60 bg-white/50 backdrop-blur-md px-5 py-2 mb-10 shadow-[0_8px_20px_rgba(37,99,235,0.08)] hover:shadow-[0_8px_30px_rgba(37,99,235,0.15)] hover:border-blue-300 transition-all cursor-pointer">
             <Star className="w-[16px] h-[16px] text-[#2563EB] fill-[#2563EB] animate-pulse" />
-            <span className="text-[#2563EB] text-[14px] font-bold tracking-wide uppercase">Trusted by 50,000+ researchers</span>
+            <span className="text-[#2563EB] text-[14px] font-bold tracking-wide uppercase">Trusted by 1431+ researchers</span>
             <div className="relative ml-2">
               <div className="w-[8px] h-[8px] bg-[#22C55E] rounded-full" />
               <div className="absolute inset-0 bg-[#22C55E] rounded-full animate-pulse-ring" />
@@ -252,7 +252,7 @@ const Home = () => {
               ))}
             </div>
             <div className="text-[#475569] text-[14px]">
-              Join 50,000+ researchers from MIT, Stanford, Oxford...
+              Join 1431+ researchers from MIT, Stanford, Oxford...
             </div>
             <div className="flex items-center gap-1 text-[#F59E0B]">
               {[1, 2, 3, 4, 5].map((s) => <Star key={s} className="w-4 h-4 fill-current" />)}
@@ -265,7 +265,7 @@ const Home = () => {
             <div className="relative animate-scale-in w-full">
 
               {/* Top Floating Badge */}
-              <div className="hidden md:flex absolute -top-8 right-0 md:-right-8 bg-white/80 backdrop-blur-xl border border-white/80 rounded-2xl shadow-[0_16px_40px_rgba(0,0,0,0.08)] px-5 py-3 items-center gap-3 animate-float-slow z-20 hover:scale-105 transition-transform ring-1 ring-slate-900/5">
+              <div className="hidden md:flex absolute -top-8 right-0 md:-right-8 bg-white/80 backdrop-blur-xl border border-white/80 rounded-2xl shadow-[0_16px_40px_rgba(0,0,0,0.08)] px-5 py-3 items-center gap-3 animate-float-slow z-20 hover:scale-105 ring-1 ring-slate-900/5">
                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-green-100 to-green-50 flex items-center justify-center shadow-inner">
                   <TrendingUp className="w-4 h-4 text-green-600" />
                 </div>
@@ -276,7 +276,7 @@ const Home = () => {
               </div>
 
               {/* Left side floating badge */}
-              <div className="hidden md:flex absolute top-[40%] -left-8 bg-white/80 backdrop-blur-xl border border-white/80 rounded-2xl shadow-[0_16px_40px_rgba(0,0,0,0.08)] px-4 py-3 items-center gap-3 animate-float-slow z-20 hover:scale-105 transition-transform ring-1 ring-slate-900/5" style={{ animationDelay: '1.5s' }}>
+              <div className="hidden md:flex absolute top-[40%] -left-8 bg-white/80 backdrop-blur-xl border border-white/80 rounded-2xl shadow-[0_16px_40px_rgba(0,0,0,0.08)] px-4 py-3 items-center gap-3 animate-float-slow z-20 hover:scale-105 ring-1 ring-slate-900/5" style={{ animationDelay: '1.5s' }}>
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-50 flex items-center justify-center shadow-inner">
                   <Users className="w-4 h-4 text-indigo-600" />
                 </div>
@@ -445,11 +445,11 @@ const Home = () => {
           style={{ animationPlayState: tickerPaused ? 'paused' : 'running' }}
         >
           {Array(4).fill([
-            `${platformStats ? (platformStats.researchers/1000).toFixed(1) + 'k+' : '50,000+'} Researchers`, 
-            `${platformStats ? (platformStats.publications/1000000).toFixed(1) + 'M+' : '2.4M'} Publications`, 
-            `${platformStats ? platformStats.countries + '+' : '180+'} Countries`,
+            `${platformStats ? (platformStats.researchersCount/1000).toFixed(1) + 'k+' : '1431+'} Researchers`, 
+            `${platformStats ? (platformStats.publicationsCount/1000).toFixed(1) + 'k+' : '2.4M'} Publications`, 
+            `${platformStats ? platformStats.countriesCount + '+' : '180+'} Countries`,
             "98.9% Uptime", "4.9★ Rating", "500K Citations Tracked", 
-            `${platformStats ? (platformStats.universities/1000).toFixed(1) + 'k+' : '10K+'} Institutions`
+            `${platformStats ? (platformStats.universitiesCount/1000).toFixed(1) + 'k+' : '10K+'} Institutions`
           ]).flat().map((item, index) => (
             <div key={index} className="flex items-center gap-8 text-white text-[14px] font-semibold">
               <span>{item}</span>
@@ -493,16 +493,20 @@ const Home = () => {
               { name: 'Agriculture', count: 980, icon: 'Leaf' }
             ]).map((cat, i) => {
               const IconMap = { Cpu, Binary, Atom, Dna, HeartPulse, FlaskConical, TrendingUp, Users, Globe, Settings, Brain, Palette, Briefcase, Scale, Leaf };
-              const Icon = IconMap[cat.icon] || BookOpen;
+              const catIcon = cat.categoryIcon || cat.icon;
+              const Icon = IconMap[catIcon] || BookOpen;
+              const catName = cat.categoryName || cat.name || 'Unknown Category';
+              const catCount = cat.papersCount !== undefined ? cat.papersCount : (cat.count || 0);
+
               return (
                 <AnimatedSection key={i} delay={`${i * 100}ms`} className="[&.animate-in]:animate-fade-up">
                   <div className="group bg-white border border-[#E2E8F0] hover:border-[#4F46E5] hover:shadow-[0_8px_30px_rgba(79,70,229,0.12)] rounded-2xl p-6 text-left transition-all duration-300 hover:-translate-y-1 cursor-pointer flex flex-col h-full">
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#EDE9FE] to-[#F5F3FF] group-hover:from-[#4F46E5] group-hover:to-[#3730A3] flex items-center justify-center mb-5 transition-colors duration-300">
                       <Icon className="w-6 h-6 text-[#4F46E5] group-hover:text-white transition-colors duration-300" />
                     </div>
-                    <h3 className="text-[18px] font-bold text-[#0F172A] mb-2">{cat.name}</h3>
+                    <h3 className="text-[18px] font-bold text-[#0F172A] mb-2">{catName}</h3>
                     <div className="mt-auto pt-4 flex items-center justify-between border-t border-[#F1F5F9]">
-                      <span className="text-[13px] font-semibold text-[#475569]">{cat.count.toLocaleString()} publications</span>
+                      <span className="text-[13px] font-semibold text-[#475569]">{catCount.toLocaleString()} publications</span>
                       <ArrowRight className="w-4 h-4 text-[#94A3B8] group-hover:text-[#4F46E5] group-hover:translate-x-1 transition-all" />
                     </div>
                   </div>
@@ -851,10 +855,10 @@ const Home = () => {
       <section className="bg-gradient-to-r from-[#F0F7FF] to-[#EDE9FE] py-20 px-4">
         <div className="max-w-[1200px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
           {[
-            { end: platformStats ? platformStats.researchers : 50000, suffix: '+', label: 'Active Researchers', icon: Users },
-            { end: platformStats ? platformStats.publications : 2400000, suffix: '+', label: 'Publications Indexed', icon: BookOpen },
+            { end: platformStats ? platformStats.researchersCount : 50000, suffix: '+', label: 'Active Researchers', icon: Users },
+            { end: platformStats ? platformStats.publicationsCount : 2400000, suffix: '+', label: 'Publications Indexed', icon: BookOpen },
             { end: 98.9, suffix: '%', label: 'Platform Uptime', icon: Shield },
-            { end: platformStats ? platformStats.countries : 180, suffix: '+', label: 'Countries Represented', icon: Globe }
+            { end: platformStats ? platformStats.countriesCount : 180, suffix: '+', label: 'Countries Represented', icon: Globe }
           ].map((stat, i) => (
             <AnimatedSection key={i} delay={`${i * 150}ms`} className="[&.animate-in]:animate-fade-up flex flex-col items-center text-center">
               <div className="text-[40px] md:text-[56px] font-black text-[#0F172A]">
@@ -917,10 +921,10 @@ const Home = () => {
             <AnimatedSection delay="200ms" className="[&.animate-in]:animate-fade-up">
               <div className="grid grid-cols-2 gap-4 h-full">
                 {[
-                  { icon: Users, color: 'bg-[#DBEAFE]', tc: 'text-[#2563EB]', val: platformStats ? `${(platformStats.researchers/1000).toFixed(1)}k+` : '50,000+', label: 'Active Researchers', sub: 'from 180+ countries' },
-                  { icon: BookOpen, color: 'bg-[#DCFCE7]', tc: 'text-[#22C55E]', val: platformStats ? `${(platformStats.publications/1000000).toFixed(1)}M+` : '2.4M+', label: 'Publications Indexed', sub: 'across all fields' },
+                  { icon: Users, color: 'bg-[#DBEAFE]', tc: 'text-[#2563EB]', val: platformStats ? `${(platformStats.researchersCount/1000).toFixed(1)}k+` : '50,000+', label: 'Active Researchers', sub: 'from 180+ countries' },
+                  { icon: BookOpen, color: 'bg-[#DCFCE7]', tc: 'text-[#22C55E]', val: platformStats ? `${(platformStats.publicationsCount/1000).toFixed(1)}k+` : '2.4M+', label: 'Publications Indexed', sub: 'across all fields' },
                   { icon: TrendingUp, color: 'bg-[#EDE9FE]', tc: 'text-[#4F46E5]', val: '98.9%', label: 'Platform Uptime', sub: 'always available' },
-                  { icon: Globe, color: 'bg-[#FEF3C7]', tc: 'text-[#F59E0B]', val: platformStats ? `${platformStats.countries}+` : '180+', label: 'Countries', sub: 'global reach' },
+                  { icon: Globe, color: 'bg-[#FEF3C7]', tc: 'text-[#F59E0B]', val: platformStats ? `${platformStats.countriesCount}+` : '180+', label: 'Countries', sub: 'global reach' },
                 ].map((s, i) => (
                   <div key={i} className="bg-white border border-[#E2E8F0] rounded-2xl p-5 flex flex-col gap-3 hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(37,99,235,0.10)] transition-all">
                     <div className={`w-10 h-10 rounded-xl ${s.color} flex items-center justify-center`}>

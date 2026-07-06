@@ -132,6 +132,9 @@ const sendEmail = async (to, subject, html) => {
 };
 
 const sendRegistrationOtp = async (to, otp) => {
+  if (process.env.NODE_ENV !== 'production') {
+    logger.info(`[DEV MODE] REGISTRATION OTP for ${to}: ${otp}`);
+  }
   const content = `
     <h2>Verify Your Email Address</h2>
     <p>Thank you for starting your registration on <strong>Research Connect</strong>. Please use the following 6-digit One-Time Password (OTP) to complete your email verification process. This OTP is valid for <strong>10 minutes</strong>.</p>
@@ -142,6 +145,9 @@ const sendRegistrationOtp = async (to, otp) => {
 };
 
 const sendLoginOtp = async (to, otp, metadata = {}) => {
+  if (process.env.NODE_ENV !== 'production') {
+    logger.info(`[DEV MODE] LOGIN OTP for ${to}: ${otp}`);
+  }
   const { ip = 'Unknown', device = 'Unknown', browser = 'Unknown' } = metadata;
   const content = `
     <h2>Security Verification Code</h2>
@@ -159,6 +165,9 @@ const sendLoginOtp = async (to, otp, metadata = {}) => {
 };
 
 const sendForgotPasswordOtp = async (to, otp) => {
+  if (process.env.NODE_ENV !== 'production') {
+    logger.info(`[DEV MODE] FORGOT PASSWORD OTP for ${to}: ${otp}`);
+  }
   const content = `
     <h2>Reset Password Request</h2>
     <p>We received a request to reset your password on <strong>Research Connect</strong>. Use this 6-digit One-Time Password (OTP) to proceed with resetting your password. This OTP is valid for <strong>10 minutes</strong>.</p>

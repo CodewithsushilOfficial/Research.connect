@@ -6,8 +6,15 @@ const UnreadBadge = ({ className = '' }) => {
   const { data } = useQuery({
     queryKey: ['unreadCount'],
     queryFn: async () => {
-      const res = await notificationsService.getUnreadCount();
-      return res.data;
+      try {
+        const res = await notificationsService.getUnreadCount();
+        if (res && res.data !== undefined) {
+          return res.data;
+        }
+        return { count: 0 };
+      } catch (err) {
+        return { count: 0 };
+      }
     },
     refetchInterval: 60000 // Polling fallback in case sockets fail, for maximum durability
   });

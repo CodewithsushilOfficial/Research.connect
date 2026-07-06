@@ -215,7 +215,10 @@ class AuthService {
     }
 
     // Code Verification
+    logger.info(`[DEBUG] Attempting to verify OTP. User Input: '${otpCode}'`);
+    logger.info(`[DEBUG] DB OTP Hash: '${otpRecord.otp}'`);
     const isOtpMatch = await bcrypt.compare(otpCode, otpRecord.otp);
+    logger.info(`[DEBUG] OTP Match Result: ${isOtpMatch}`);
     if (!isOtpMatch) {
       otpRecord.attempts += 1;
       await otpRecord.save();

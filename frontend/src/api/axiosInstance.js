@@ -5,7 +5,7 @@ import { updateToken, logoutSuccess } from '../redux/slices/authSlice';
 
 // Use the backend url with suffix 'api' since in backend all routes are defined with prefix 'api'
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'  || '/api', 
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api', 
   timeout: 30000,
   withCredentials: true,
   headers: {
@@ -21,6 +21,8 @@ axiosInstance.interceptors.request.use(
     config.headers['X-Request-Id'] = typeof crypto !== 'undefined' && crypto.randomUUID 
       ? crypto.randomUUID() 
       : Math.random().toString(36).substring(2, 15);
+      
+    console.log('[Axios Debug] Request URL:', config.baseURL, config.url);
 
     // Attach Bearer JWT token if stored locally
     const token = localStorage.getItem('token');

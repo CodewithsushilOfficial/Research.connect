@@ -13,7 +13,8 @@ export default function ChatWindow() {
     loadMoreMessages,
     typingUsers,
     getOtherParticipant,
-    searchQuery
+    searchQuery,
+    currentUserId
   } = useMessaging();
 
   const containerRef = useRef(null);
@@ -28,12 +29,13 @@ export default function ChatWindow() {
   
   if (searchQuery.trim()) {
     currentMessages = currentMessages.filter(m => 
-      m.content.toLowerCase().includes(searchQuery.toLowerCase())
+      (m.content || '').toLowerCase().includes((searchQuery || '').toLowerCase())
     );
   }
 
   const otherParticipant = getOtherParticipant(activeConversationId);
-  const isTyping = typingUsers.get(activeConversationId)?.size > 0;
+  const typingUserIds = Array.from(typingUsers.get(activeConversationId) || []);
+  const isTyping = typingUserIds.some(id => id !== 'user-me' && id !== currentUserId);
 
   // Jab bhi dusri chat khole, scroll reset karne ka logic
   useEffect(() => {
