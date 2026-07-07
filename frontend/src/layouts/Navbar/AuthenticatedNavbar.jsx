@@ -324,9 +324,6 @@ const AuthenticatedNavbar = () => {
                   <button onClick={() => { setCreateOpen(false); navigate('/projects/create'); }} className="w-full px-4 py-2.5 hover:bg-slate-55 hover:text-blue-600 text-left flex items-center gap-2">
                     <Briefcase className="w-4 h-4 text-slate-400 shrink-0" /> Create Research Project
                   </button>
-                  <button onClick={() => { setCreateOpen(false); navigate('/communities/create'); }} className="w-full px-4 py-2.5 hover:bg-slate-55 hover:text-blue-600 text-left flex items-center gap-2">
-                    <Users className="w-4 h-4 text-slate-400 shrink-0" /> Create Community
-                  </button>
                   <button onClick={() => { setCreateOpen(false); navigate('/collaborations/create'); }} className="w-full px-4 py-2.5 hover:bg-slate-55 hover:text-blue-600 text-left flex items-center gap-2">
                     <Plus className="w-4 h-4 text-slate-400 shrink-0" /> Create Collaboration
                   </button>
