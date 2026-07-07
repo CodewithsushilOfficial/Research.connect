@@ -1,188 +1,164 @@
+import React from "react";
 import {
-  Calendar,
+  ToggleLeft,
+  ToggleRight,
   Users,
-  GraduationCap,
-  Briefcase,
-  Sparkles,
-  ArrowRight,
+  MoreHorizontal,
+  CheckCircle2,
+  Handshake,
 } from "lucide-react";
+import { TAG_STYLES } from "../data";
+import Avatar from "./Avatar";
 
-const ProjectCard = ({ project, onApply }) => {
+export default function ProjectCard({
+  project,
+  onToggleOpen,
+  onApply,
+  hasApplied,
+  pendingCount,
+  onViewApplications,
+  onClick,
+}) {
+  // Some projects don't define an icon — fall back to a sensible default
+  // instead of letting React blow up on <undefined />.
+  const Icon = project.icon || Users;
+  const collaboratorCount = project.collaborators ?? project.members ?? 0;
+  const coverClass = project.cover || "from-slate-900 via-slate-800 to-slate-700";
+  const coverIconColor = project.coverIconColor || "text-slate-400";
+  const statusColor = project.statusColor || "bg-slate-400";
+
+  // Prevent clicks on interactive controls inside the card from also
+  // triggering the "open details drawer" click on the card itself.
+  function stop(e) {
+    e.stopPropagation();
+  }
+
   return (
-    <div className="group bg-white rounded-3xl border border-[#E2E8F0] hover:border-[#2563EB]/30 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden">
-
-      {/* Header */}
-      <div className="bg-gradient-to-r from-[#2563EB] to-[#4F46E5] p-6 text-white">
-
-        <div className="flex justify-between items-start">
-
-          <div>
-            <h2 className="text-2xl font-bold">
-              {project.title}
-            </h2>
-
-            <p className="text-blue-100 mt-2 text-sm">
-              {project.institution}
-            </p>
-          </div>
-
-          {project.openForCollaboration ? (
-  <span className="bg-[#DCFCE7] text-[#22C55E] px-3 py-1 rounded-full text-xs font-semibold">
-    🟢 Open for Collaboration
-  </span>
-) : (
-  <span className="bg-red-100 text-[#EF4444] px-3 py-1 rounded-full text-xs font-semibold">
-    🔒 Collaboration Closed
-  </span>
-)}
-          
-
-        </div>
-
+    <div
+      onClick={() => onClick?.(project)}
+      className="flex cursor-pointer flex-col gap-4 border-b border-slate-100 py-5 last:border-0 sm:flex-row sm:items-center"
+    >
+      {/* Cover */}
+      <div
+        className={`relative flex h-24 w-full items-center justify-center rounded-xl bg-gradient-to-br sm:h-20 sm:w-32 ${coverClass}`}
+      >
+        <Icon size={36} className={coverIconColor} strokeWidth={1.5} />
       </div>
 
-      {/* Body */}
-      <div className="p-6">
-
-        <p className="text-[#475569] leading-7">
+      {/* Main info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="text-[15px] font-semibold text-slate-800 hover:text-blue-600 cursor-pointer">
+            {project.title}
+          </h3>
+          {project.openToCollaboration && (
+            <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">
+              <Handshake size={11} /> Open to Collaboration
+            </span>
+          )}
+        </div>
+        <p className="mt-1 text-sm leading-snug text-slate-500 line-clamp-2">
           {project.description}
         </p>
-
-        {/* Tags */}
-        <div className="flex flex-wrap gap-2 mt-5">
-
-          {project.tags.map((tag) => (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {project.tags?.map((tag) => (
             <span
               key={tag}
-              className="bg-[#EDE9FE] text-[#4F46E5] px-3 py-1 rounded-full text-sm font-medium"
+              className={`rounded-md px-2 py-0.5 text-xs font-medium ${TAG_STYLES[tag] || "bg-slate-100 text-slate-600"}`}
             >
               {tag}
             </span>
           ))}
-
         </div>
+        <p className="mt-2 text-xs text-slate-400">
+          Created on {project.created} &nbsp;•&nbsp; Updated {project.updated}
+        </p>
 
-        {/* Info */}
-        <div className="grid grid-cols-2 gap-4 mt-6 text-sm">
+        {/* Owner control: mark this project open/closed to outside collaborators */}
+        <button
+          onClick={(e) => {
+            stop(e);
+            onToggleOpen(project.id);
+          }}
+          className="mt-3 flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-700"
+        >
+          {project.openToCollaboration ? (
+            <ToggleRight size={22} className="text-emerald-500" />
+          ) : (
+            <ToggleLeft size={22} className="text-slate-300" />
+          )}
+          {project.openToCollaboration
+            ? "Open to collaboration"
+            : "Closed to new collaborators"}
+        </button>
 
-          <div className="flex items-center gap-2 text-[#475569]">
-            <GraduationCap className="text-[#2563EB]" size={18} />
-            <span>{project.researcher}</span>
+        {pendingCount > 0 && (
+          <button
+            onClick={(e) => {
+              stop(e);
+              onViewApplications(project);
+            }}
+            className="mt-2 flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700"
+          >
+            <Users size={13} />
+            {pendingCount} pending {pendingCount === 1 ? "application" : "applications"}
+          </button>
+        )}
+      </div>
+
+      {/* Collaborators */}
+      <div className="flex flex-col items-start gap-1 sm:w-36 sm:items-center">
+        <div className="flex -space-x-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Avatar key={i} seed={`${project.title}${i}`} index={i} />
+          ))}
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 ring-2 ring-white text-[11px] font-semibold text-slate-500">
+            +{project.extraAvatars ?? 0}
           </div>
-
-          <div className="flex items-center gap-2 text-[#475569]">
-            <Users className="text-[#2563EB]" size={18} />
-            <span>{project.members} Members</span>
-          </div>
-
-          <div className="flex items-center gap-2 text-[#475569]">
-            <Calendar className="text-[#2563EB]" size={18} />
-            <span>{project.duration}</span>
-          </div>
-
-          <div className="flex items-center gap-2 text-[#475569]">
-            <Briefcase className="text-[#2563EB]" size={18} />
-            <span>{project.positions} Positions</span>
-          </div>
-
         </div>
+        <span className="text-xs text-slate-400">{collaboratorCount} Collaborators</span>
+      </div>
 
-        {/* Skills */}
-        <div className="mt-7">
-
-          <h4 className="font-semibold text-[#0F172A] mb-3">
-            Required Skills
-          </h4>
-
-          <div className="flex flex-wrap gap-2">
-
-            {project.skills.map((skill) => (
-              <span
-                key={skill}
-                className="border border-[#E2E8F0] px-3 py-2 rounded-xl text-sm text-[#475569] hover:bg-[#DBEAFE] transition"
-              >
-                {skill}
-              </span>
-            ))}
-
-          </div>
-
+      {/* Status + actions */}
+      <div className="flex flex-row items-center gap-3 sm:w-44 sm:flex-col sm:items-end">
+        <span className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+          <span className={`h-1.5 w-1.5 rounded-full ${statusColor}`} />
+          {project.status || "Unknown"}
+        </span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={(e) => {
+              stop(e);
+              onClick?.(project);
+            }}
+            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            View Project
+          </button>
+          <button
+            onClick={stop}
+            className="rounded-lg border border-slate-200 p-1.5 text-slate-400 hover:bg-slate-50"
+          >
+            <MoreHorizontal size={16} />
+          </button>
         </div>
-
-        {/* Progress */}
-        <div className="mt-8">
-
-          <div className="flex justify-between mb-2">
-
-            <span className="text-sm text-[#475569]">
-              Research Progress
+        {project.openToCollaboration &&
+          (hasApplied ? (
+            <span className="flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-600">
+              <CheckCircle2 size={14} /> Application sent
             </span>
-
-            <span className="font-semibold text-[#0F172A]">
-              {project.progress}%
-            </span>
-
-          </div>
-
-          <div className="w-full h-3 bg-[#E2E8F0] rounded-full overflow-hidden">
-
-            <div
-              className="h-full bg-gradient-to-r from-[#2563EB] to-[#4F46E5] rounded-full transition-all duration-700"
-              style={{ width: `${project.progress}%` }}
-            />
-
-          </div>
-
-        </div>
-
-        {/* Footer */}
-        <div className="mt-8 flex justify-between items-center">
-
-          <div>
-
-            <p className="text-xs text-[#475569]">
-              Seats Available
-            </p>
-
-            <p className="font-bold text-[#0F172A] text-lg">
-              {project.positions}
-            </p>
-
-          </div>
-
-          {project.applied ? (
-            <button
-              disabled
-              className="bg-[#DCFCE7] text-[#22C55E] px-6 py-3 rounded-xl font-semibold cursor-default"
-            >
-              ✓ Applied
-            </button>
-          ) : project.openForCollaboration ? (
-            <button
-              onClick={() => onApply(project)}
-              className="group/button flex items-center gap-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-6 py-3 rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl"
-            >
-              <Sparkles size={18} />
-              Apply to Collaborate
-              <ArrowRight
-                size={18}
-                className="group-hover/button:translate-x-1 transition-transform"
-              />
-            </button>
           ) : (
             <button
-              disabled
-              className="bg-gray-200 text-gray-500 px-6 py-3 rounded-xl cursor-not-allowed"
+              onClick={(e) => {
+                stop(e);
+                onApply(project);
+              }}
+              className="flex items-center gap-1.5 rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-600"
             >
-              Collaboration Closed
+              <Handshake size={14} /> Apply to Collaborate
             </button>
-          )}
-
-        </div>
-
+          ))}
       </div>
     </div>
   );
-};
-
-export default ProjectCard;
+}
