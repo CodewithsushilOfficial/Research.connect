@@ -131,6 +131,7 @@ const AppRoutes = () => {
           <Route path="admin" element={<ComingSoon title="Administration Panel Coming Soon" />} />
           <Route path="analytics" element={<ComingSoon title="System Analytics Coming Soon" />} />
 
+
           {/* Phase 8 — Activity Feed Routes */}
           <Route path="feed" element={<HomeFeedV2 />} />
           <Route path="trending" element={<TrendingFeed />} />
