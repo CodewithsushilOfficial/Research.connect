@@ -9,7 +9,7 @@ import { toast } from 'react-hot-toast';
 import publicationService from '../../../services/publication.service';
 import PDFReader from '../components/PDFReader';
 
-const PUB_CATEGORIES = ['General Paper', 'Conference Paper', 'Patent', 'Book Chapter', 'Book'];
+const PUB_CATEGORIES = ['Journal Paper', 'Conference Paper', 'Patent', 'Book Chapter', 'Book'];
 
 const getPublicationCategory = (pub) => {
   const explicitType = (pub.publicationType || '').trim().toLowerCase();
@@ -23,7 +23,8 @@ const getPublicationCategory = (pub) => {
 
   if (explicitType === 'patent' || haystack.includes('patent')) return 'Patent';
   if (explicitType === 'book chapter' || haystack.includes('book chapter') || haystack.includes('chapter in')) return 'Book Chapter';
-  if (explicitType === 'book' || (haystack.includes('book') && !haystack.includes('chapter'))) return 'Book';
+  if (explicitType === 'book' || pub.isbn || (haystack.includes('book') && !haystack.includes('chapter'))) return 'Book';
+  if (pub.issn && !haystack.includes('proceedings') && !pub.conference) return 'Journal Paper';
   if (
     explicitType === 'conference' ||
     pub.conference ||
@@ -34,7 +35,9 @@ const getPublicationCategory = (pub) => {
   ) {
     return 'Conference Paper';
   }
-  return 'General Paper';
+  if (explicitType === 'journal' || explicitType === 'article' || explicitType === 'research paper') return 'Journal Paper';
+  if (explicitType) return explicitType.replace(/\b\w/g, (c) => c.toUpperCase());
+  return 'Journal Paper';
 };
 
 const PublicationDetailPage = () => {

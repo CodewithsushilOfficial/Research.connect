@@ -29,7 +29,7 @@ import profileService from '../../../services/profile.service';
 import publicationService from '../../../services/publication.service';
 import { updateProfileState, updateUserState } from '../../../redux/slices/authSlice';
 
-const PUB_CATEGORIES = ['General Paper', 'Conference Paper', 'Patent', 'Book Chapter', 'Book'];
+const PUB_CATEGORIES = ['Journal Paper', 'Conference Paper', 'Patent', 'Book Chapter', 'Book'];
 
 const getPublicationCategory = (pub) => {
   const explicitType = (pub.publicationType || '').trim().toLowerCase();
@@ -43,7 +43,8 @@ const getPublicationCategory = (pub) => {
 
   if (explicitType === 'patent' || haystack.includes('patent')) return 'Patent';
   if (explicitType === 'book chapter' || haystack.includes('book chapter') || haystack.includes('chapter in')) return 'Book Chapter';
-  if (explicitType === 'book' || (haystack.includes('book') && !haystack.includes('chapter'))) return 'Book';
+  if (explicitType === 'book' || pub.isbn || (haystack.includes('book') && !haystack.includes('chapter'))) return 'Book';
+  if (pub.issn && !haystack.includes('proceedings') && !pub.conference) return 'Journal Paper';
   if (
     explicitType === 'conference' ||
     pub.conference ||
@@ -54,7 +55,9 @@ const getPublicationCategory = (pub) => {
   ) {
     return 'Conference Paper';
   }
-  return 'General Paper';
+  if (explicitType === 'journal' || explicitType === 'article' || explicitType === 'research paper') return 'Journal Paper';
+  if (explicitType) return explicitType.replace(/\b\w/g, (c) => c.toUpperCase());
+  return 'Journal Paper';
 };
 import { 
   GoogleScholarIcon, 
@@ -92,6 +95,7 @@ const ProfileOverview = () => {
   const [loadingPubs, setLoadingPubs] = useState(false);
   const [pubTypeFilter, setPubTypeFilter] = useState('All');
   const [yearSort, setYearSort] = useState('desc');
+  const [pubTypeCounts, setPubTypeCounts] = useState({ All: 0 });
 
   useEffect(() => {
     const fetchPubs = async () => {
@@ -120,6 +124,31 @@ const ProfileOverview = () => {
     };
     fetchPubs();
   }, [username, pubsPage]);
+
+  // Fetch total counts per category independently of the paginated/"load more" list
+  useEffect(() => {
+    const fetchPubTypeCounts = async () => {
+      if (!username) return;
+      try {
+        const res = await publicationService.getPublicationsByUsername(username, {
+          page: 1,
+          limit: 0,
+          sort: '-createdAt'
+        });
+        if (res.success) {
+          const allDocs = res.data.docs;
+          const counts = { All: allDocs.length };
+          PUB_CATEGORIES.forEach((c) => {
+            counts[c] = allDocs.filter((p) => getPublicationCategory(p) === c).length;
+          });
+          setPubTypeCounts(counts);
+        }
+      } catch (err) {
+        console.error('Error fetching publication counts:', err);
+      }
+    };
+    fetchPubTypeCounts();
+  }, [username]);
 
   const tabs = [
     { id: 'about', name: 'About', icon: User },
@@ -428,16 +457,6 @@ const ProfileOverview = () => {
   <div className="flex items-center justify-between gap-3 flex-wrap">
     <h3 className="text-base font-black text-[#0F172A] tracking-tight">Publications Portfolio</h3>
     <div className="flex items-center gap-2">
-      <select
-        value={pubTypeFilter}
-        onChange={(e) => setPubTypeFilter(e.target.value)}
-        className="text-[10px] font-bold px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-[#475569] focus:outline-none focus:border-[#2563EB] cursor-pointer"
-      >
-        <option value="All">All Types</option>
-        {PUB_CATEGORIES.map((c) => (
-          <option key={c} value={c}>{c}</option>
-        ))}
-      </select>
       <button
         onClick={() => setYearSort((prev) => (prev === 'desc' ? 'asc' : 'desc'))}
         className="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-[#475569] hover:bg-slate-50 transition-colors"
@@ -446,6 +465,30 @@ const ProfileOverview = () => {
         Year: {yearSort === 'desc' ? 'Newest' : 'Oldest'}
       </button>
     </div>
+  </div>
+
+  {/* Category counts */}
+  <div className="flex flex-wrap gap-1.5">
+    {['All', ...PUB_CATEGORIES].map((c) => {
+      const count = pubTypeCounts[c] || 0;
+      const isActive = pubTypeFilter === c;
+      return (
+        <button
+          key={c}
+          onClick={() => setPubTypeFilter(c)}
+          className={`flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full border transition-colors ${
+            isActive
+              ? 'bg-[#2563EB] border-[#2563EB] text-white'
+              : 'bg-white border-slate-200 text-[#475569] hover:border-slate-300 hover:bg-slate-50'
+          }`}
+        >
+          {c}
+          <span className={`px-1.5 rounded-full text-[9px] ${isActive ? 'bg-white/20' : 'bg-slate-100 text-slate-500'}`}>
+            {count}
+          </span>
+        </button>
+      );
+    })}
   </div>
   
   {(() => {
@@ -553,51 +596,51 @@ const ProfileOverview = () => {
                 )}
 
                 {activeTab === 'timeline' && (
-                  <div className="space-y-6">
+                  <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 space-y-6 shadow-sm">
                     <div className="space-y-4">
-                      <h3 className="text-base font-black text-slate-900 dark:text-slate-100 tracking-tight pl-2">Education History</h3>
+                      <h3 className="text-base font-black text-slate-900 tracking-tight">Education History</h3>
                       <EducationTimeline education={profile?.education} />
                     </div>
 
-                    <div className="space-y-4 pt-6 border-t border-slate-200 dark:border-slate-800">
-                      <h3 className="text-base font-black text-slate-900 dark:text-slate-100 tracking-tight pl-2">Professional Work Experience</h3>
+                    <div className="space-y-4 pt-6 border-t border-slate-200">
+                      <h3 className="text-base font-black text-slate-900 tracking-tight">Professional Work Experience</h3>
                       <ExperienceTimeline experience={profile?.experience} />
                     </div>
                   </div>
                 )}
 
                 {activeTab === 'skills' && (
-                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 space-y-4 shadow-sm">
-                    <h3 className="text-base font-black text-slate-900 dark:text-slate-100 tracking-tight">Skills & Expertise</h3>
+                  <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 space-y-4 shadow-sm">
+                    <h3 className="text-base font-black text-slate-900 tracking-tight">Skills & Expertise</h3>
                     <SkillsList skills={profile?.skills} />
                   </div>
                 )}
 
                 {activeTab === 'patents' && (
-                  <div className="space-y-4">
-                    <h3 className="text-base font-black text-slate-900 dark:text-slate-100 tracking-tight pl-2">Patents Portfolio</h3>
+                  <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 space-y-4 shadow-sm">
+                    <h3 className="text-base font-black text-slate-900 tracking-tight">Patents Portfolio</h3>
                     {profile?.patents && profile.patents.length > 0 ? (
                       <div className="grid grid-cols-1 gap-4">
                         {profile.patents.map((pat, i) => (
-                          <div key={i} className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm space-y-2">
+                          <div key={i} className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
                             <div className="flex justify-between items-start gap-4">
-                              <h4 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">{pat.title}</h4>
+                              <h4 className="text-sm font-extrabold text-slate-900">{pat.title}</h4>
                               {pat.patentNumber && (
-                                <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-250 font-bold px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                                <span className="text-[10px] bg-slate-100 text-slate-800 font-bold px-2 py-0.5 rounded-lg border border-slate-200">
                                   No: {pat.patentNumber}
                                 </span>
                               )}
                             </div>
                             {pat.inventors && (
-                              <p className="text-xs text-indigo-600 dark:text-indigo-400 font-bold">Inventors: {pat.inventors}</p>
+                              <p className="text-xs text-indigo-600 font-bold">Inventors: {pat.inventors}</p>
                             )}
                             {pat.description && (
-                              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-semibold">{pat.description}</p>
+                              <p className="text-xs text-slate-500 leading-relaxed font-semibold">{pat.description}</p>
                             )}
                             <div className="flex items-center justify-between pt-1">
                               <span className="text-[10px] text-slate-400 font-medium">Issued: {pat.issueDate || 'N/A'}</span>
                               {pat.url && (
-                                <a href={pat.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold hover:underline">
+                                <a href={pat.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-indigo-600 font-bold hover:underline">
                                   View Patent Document &rarr;
                                 </a>
                               )}
@@ -606,35 +649,35 @@ const ProfileOverview = () => {
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
+                      <div className="text-center py-12">
                         <FileText className="w-8 h-8 text-slate-400 mx-auto mb-2 opacity-50" />
-                        <p className="text-xs font-bold text-slate-400 uppercase">No patents registered yet</p>
+                        <p className="text-xs font-bold text-slate-400">No patents registered yet</p>
                       </div>
                     )}
                   </div>
                 )}
 
                 {activeTab === 'books' && (
-                  <div className="space-y-4">
-                    <h3 className="text-base font-black text-slate-900 dark:text-slate-100 tracking-tight pl-2">Published Books & Chapters</h3>
+                  <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 space-y-4 shadow-sm">
+                    <h3 className="text-base font-black text-slate-900 tracking-tight">Published Books & Chapters</h3>
                     {profile?.books && profile.books.length > 0 ? (
                       <div className="grid grid-cols-1 gap-4">
                         {profile.books.map((bk, i) => (
-                          <div key={i} className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm space-y-2">
-                            <h4 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">{bk.title}</h4>
+                          <div key={i} className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                            <h4 className="text-sm font-extrabold text-slate-900">{bk.title}</h4>
                             {bk.authors && (
-                              <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">By: {bk.authors}</p>
+                              <p className="text-xs text-slate-500 font-semibold">By: {bk.authors}</p>
                             )}
                             {bk.publisher && (
-                              <p className="text-xs text-indigo-600 dark:text-indigo-400 font-bold">Publisher: {bk.publisher} ({bk.year || 'N/A'})</p>
+                              <p className="text-xs text-indigo-600 font-bold">Publisher: {bk.publisher} ({bk.year || 'N/A'})</p>
                             )}
                             {bk.description && (
-                              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">{bk.description}</p>
+                              <p className="text-xs text-slate-500 leading-relaxed font-medium">{bk.description}</p>
                             )}
                             <div className="flex items-center justify-between pt-1">
                               <span className="text-[10px] text-slate-400 font-medium">ISBN: {bk.isbn || 'N/A'}</span>
                               {bk.url && (
-                                <a href={bk.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold hover:underline">
+                                <a href={bk.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-indigo-600 font-bold hover:underline">
                                   Publisher Link &rarr;
                                 </a>
                               )}
@@ -643,9 +686,9 @@ const ProfileOverview = () => {
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
+                      <div className="text-center py-12">
                         <Bookmark className="w-8 h-8 text-slate-400 mx-auto mb-2 opacity-50" />
-                        <p className="text-xs font-bold text-slate-400 uppercase">No books added yet</p>
+                        <p className="text-xs font-bold text-slate-400">No books added yet</p>
                       </div>
                     )}
                   </div>
