@@ -406,7 +406,6 @@ class ScholarService {
               lastSyncedAt: new Date(),
               paperURL: article.link || '',
               publisher: article.publisher || '',
-              publicationType: 'Article',
               status: 'published',
               visibility: 'Public',
               doi: pubDoi || undefined
@@ -414,6 +413,16 @@ class ScholarService {
 
             // Step 3: Merge enriched metadata (never overwrites Google Scholar values)
             newPub = enrichmentService.merge(newPub, enrichedMeta);
+
+            // Step 4: If still unresolved (no Crossref type match), guess from Scholar's own venue text
+            if (!newPub.publicationType) {
+              const venueText = `${article.publication || ''} ${newPub.journal || ''}`.toLowerCase();
+              if (venueText.includes('patent')) newPub.publicationType = 'Patent';
+              else if (venueText.includes('chapter')) newPub.publicationType = 'Book Chapter';
+              else if (/\bbook\b/.test(venueText)) newPub.publicationType = 'Book';
+              else if (/proceedings|conference|symposium|workshop/.test(venueText)) newPub.publicationType = 'Conference Paper';
+              else newPub.publicationType = 'Journal Paper';
+            }
 
             // Track missing field counts
             if (!newPub.doi) missingDoiCount++;
