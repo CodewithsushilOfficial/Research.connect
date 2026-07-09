@@ -204,13 +204,14 @@ export const login = async (req, res, next) => {
     const ipAddress = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
 
     if (!user) {
-      // Log failed attempt
+      // Log failed attempt without user context (we can't link to a userId)
       await LoginActivity.create({
         browser,
         os: operatingSystem,
         ipAddress,
         status: 'failed',
       });
+      // Use the SAME error message as wrong-password to prevent account enumeration
       return next(new AppError('Invalid email or password.', 401));
     }
 

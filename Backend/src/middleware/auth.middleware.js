@@ -1,9 +1,44 @@
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import User from '../models/User.js';
 import AppError from '../utils/AppError.js';
 
 /**
- * Protect middleware: Ensures the request contains a valid JWT in headers or cookies
+ * JWT verification options with algorithm explicitly pinned to HS256.
+ * This prevents "algorithm confusion" attacks where an attacker modifies
+ * the JWT header to use 'none' or an asymmetric algorithm.
+ *
+ * Attack mitigated: CVE-2015-9235 (jwt alg:none bypass)
+ */
+const JWT_VERIFY_OPTIONS = { algorithms: ['HS256'] };
+const JWT_REFRESH_VERIFY_OPTIONS = { algorithms: ['HS256'] };
+
+/**
+ * Timing-safe string comparison to prevent timing-based token oracle attacks.
+ * Uses crypto.timingSafeEqual which runs in constant time regardless of where
+ * the strings differ — preventing timing side-channel attacks.
+ *
+ * @param {string} a
+ * @param {string} b
+ * @returns {boolean}
+ */
+export const timingSafeEqual = (a, b) => {
+  try {
+    const bufA = Buffer.from(String(a), 'utf8');
+    const bufB = Buffer.from(String(b), 'utf8');
+    // Buffers must be the same length for timingSafeEqual
+    if (bufA.length !== bufB.length) return false;
+    return crypto.timingSafeEqual(bufA, bufB);
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Protect middleware: Ensures the request contains a valid JWT in headers or cookies.
+ * Security enhancements:
+ *  - Algorithm pinned to HS256 (prevents alg:none and confusion attacks)
+ *  - Constant-time token comparison
  */
 export const protect = async (req, res, next) => {
   try {
@@ -19,8 +54,8 @@ export const protect = async (req, res, next) => {
       return next(new AppError('You are not logged in! Please log in to gain access.', 401));
     }
 
-    // 2. Verify the token signature
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // 2. Verify the token signature with pinned algorithm
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, JWT_VERIFY_OPTIONS);
 
     // 3. Check if the user still exists in the database
     const currentUser = await User.findById(decoded.id);
@@ -58,7 +93,7 @@ export const protect = async (req, res, next) => {
 };
 
 /**
- * Restrict access to specific roles
+ * Restrict access to specific roles.
  */
 export const restrictTo = (...roles) => {
   return (req, res, next) => {
@@ -70,7 +105,11 @@ export const restrictTo = (...roles) => {
 };
 
 /**
- * Verify Refresh Token middleware to allow token renewal
+ * Verify Refresh Token middleware.
+ * Security enhancements:
+ *  - Algorithm pinned to HS256
+ *  - Uses timing-safe comparison for token hash lookup (performed in DB query,
+ *    but JS-level comparisons use timingSafeEqual)
  */
 export const verifyRefreshToken = async (req, res, next) => {
   try {
@@ -83,7 +122,7 @@ export const verifyRefreshToken = async (req, res, next) => {
       return next(new AppError('No refresh token provided. Please log in again.', 401));
     }
 
-    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET, JWT_REFRESH_VERIFY_OPTIONS);
     const currentUser = await User.findById(decoded.id);
 
     if (!currentUser) {

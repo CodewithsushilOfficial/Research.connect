@@ -3,6 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import { protect } from '../middleware/auth.middleware.js';
 import * as uploadController from '../controllers/upload.controller.js';
+import { validateUploadedFile } from '../middleware/security/fileValidator.js';
 
 // Setup local disk storage for temporary multer files before upload to Cloudinary
 const storage = multer.diskStorage({
@@ -65,14 +66,14 @@ const uploadResearch = multer({
 
 const router = Router();
 
-// Endpoints
-router.post('/profile-image', protect, uploadImages.single('file'), uploadController.uploadProfileImage);
-router.post('/publication-pdf', protect, uploadPdfs.single('file'), uploadController.uploadPublicationPdf);
-router.post('/publication-cover', protect, uploadImages.single('file'), uploadController.uploadPublicationCover);
-router.post('/project-file', protect, uploadResearch.single('file'), uploadController.uploadProjectFile);
-router.post('/dataset', protect, uploadResearch.single('file'), uploadController.uploadDataset);
-router.post('/poster', protect, uploadResearch.single('file'), uploadController.uploadPoster);
-router.post('/presentation', protect, uploadResearch.single('file'), uploadController.uploadPresentation);
+// Endpoints — validateUploadedFile runs AFTER multer (magic-byte + extension check)
+router.post('/profile-image', protect, uploadImages.single('file'), validateUploadedFile, uploadController.uploadProfileImage);
+router.post('/publication-pdf', protect, uploadPdfs.single('file'), validateUploadedFile, uploadController.uploadPublicationPdf);
+router.post('/publication-cover', protect, uploadImages.single('file'), validateUploadedFile, uploadController.uploadPublicationCover);
+router.post('/project-file', protect, uploadResearch.single('file'), validateUploadedFile, uploadController.uploadProjectFile);
+router.post('/dataset', protect, uploadResearch.single('file'), validateUploadedFile, uploadController.uploadDataset);
+router.post('/poster', protect, uploadResearch.single('file'), validateUploadedFile, uploadController.uploadPoster);
+router.post('/presentation', protect, uploadResearch.single('file'), validateUploadedFile, uploadController.uploadPresentation);
 
 // Wildcard routing to support slashes in Cloudinary publicId
 router.delete('/:publicId(*)', protect, uploadController.deleteFile);

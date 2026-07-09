@@ -300,8 +300,17 @@ export const downloadFile = async (req, res, next) => {
     if (fileRecord.url.startsWith('http')) {
       res.redirect(fileRecord.url);
     } else {
-      // Local file serve
-      const localPath = path.resolve(fileRecord.url.replace(/^\//, ''));
+      // Local file serve — guard against path traversal attacks
+      const uploadsBaseDir = path.resolve('uploads');
+      // Remove any leading slash and resolve against base
+      const sanitizedRelPath = fileRecord.url.replace(/^\/+/, '');
+      const localPath = path.resolve(uploadsBaseDir, sanitizedRelPath);
+
+      // Ensure the resolved path is strictly within the uploads directory
+      if (!localPath.startsWith(uploadsBaseDir + path.sep) && localPath !== uploadsBaseDir) {
+        return next(new AppError('Invalid file path.', 400));
+      }
+
       res.download(localPath, fileRecord.fileName);
     }
   } catch (error) {

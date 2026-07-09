@@ -10,7 +10,8 @@
     "seed": "node src/database/seed.js",
     "test:persistence": "node src/tests/auth-persistence.test.js",
     "test:history": "node src/tests/profile-history.test.js",
-    "test:follow": "node src/tests/follow.test.js"
+    "test:follow": "node src/tests/follow.test.js",
+    "test:security": "node src/tests/security-verification.test.js"
   },
   "keywords": [
     "mern",

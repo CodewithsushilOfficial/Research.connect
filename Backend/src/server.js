@@ -1,8 +1,16 @@
 import './config/env.js';
 import dns from 'node:dns';
+import { installSecureLogger } from './middleware/security/requestGuard.js';
 
-// Configure public DNS resolvers to fix querySrv ECONNREFUSED on local systems/ISPs
-dns.setServers(['1.1.1.1', '8.8.8.8']);
+// Install secure logger FIRST — scrubs passwords/tokens from all subsequent console output
+installSecureLogger();
+
+// Configure public DNS resolvers ONLY if your local ISP blocks MongoDB Atlas SRV records
+// try {
+//   dns.setServers(['1.1.1.1', '8.8.8.8']);
+// } catch (dnsErr) {
+//   console.warn('Failed to configure custom DNS servers:', dnsErr.message);
+// }
 import app from './app.js';
 import connectDB from './config/db.js';
 import { initSocket } from './services/socket.service.js';
