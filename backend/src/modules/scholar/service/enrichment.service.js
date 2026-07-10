@@ -169,6 +169,8 @@ class EnrichmentService {
     fillIfMissing('openAccess', enrichedMeta.openAccess);
     fillIfMissing('publicationDate', enrichedMeta.publicationDate);
     fillIfMissing('issn', enrichedMeta.issn);
+    fillIfMissing('isbn', enrichedMeta.isbn);
+    fillIfMissing('publicationType', enrichedMeta.publicationType);
 
     // Keywords — merge arrays without duplicates
     if (enrichedMeta.keywords && Array.isArray(enrichedMeta.keywords) && enrichedMeta.keywords.length > 0) {
@@ -284,6 +286,16 @@ class EnrichmentService {
     const item = response.data?.message;
     if (!item) return {};
 
+    const typeMap = {
+      'journal-article': 'Journal Paper',
+      'proceedings-article': 'Conference Paper',
+      'proceedings': 'Conference Paper',
+      'book-chapter': 'Book Chapter',
+      'book': 'Book',
+      'monograph': 'Book',
+      'edited-book': 'Book'
+    };
+
     return {
       doi: item.DOI ? this._normalizeDOI(item.DOI) : undefined,
       abstract: item.abstract ? this._stripHtmlTags(item.abstract) : undefined,
@@ -292,7 +304,9 @@ class EnrichmentService {
       issue: item.issue || undefined,
       pages: item.page || undefined,
       publisher: item.publisher || undefined,
+      isbn: item.ISBN?.[0] || undefined,
       issn: item.ISSN?.[0] || undefined,
+      publicationType: typeMap[item.type] || undefined,
       publicationDate: item.published?.['date-parts']?.[0]
         ? new Date(`${item.published['date-parts'][0][0]}-${String(item.published['date-parts'][0][1] || 1).padStart(2, '0')}-01`)
         : undefined,

@@ -258,10 +258,10 @@ const ProfileHeader = ({
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`p-2 border border-border bg-white rounded-xl text-text-secondary transition-all ${config.color}`}
+                className={`p-2 border border-slate-300 bg-white rounded-xl text-text-secondary transition-all ${config.color}`}
                 title={config.label}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="w-5 h-5" />
               </a>
             );
           })}
