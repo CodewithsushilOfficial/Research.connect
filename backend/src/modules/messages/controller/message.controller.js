@@ -1,5 +1,5 @@
 const messageService = require('../service/message.service');
-const { uploadFileBuffer } = require('../../upload/service/cloudinary.service');
+const r2Service = require('../../upload/service/r2.service');
 const MessageAttachment = require('../model/MessageAttachment');
 const { ValidationError } = require('../../../common/errors/AppError');
 
@@ -232,7 +232,7 @@ class MessageController {
         throw new ValidationError('No file uploaded.');
       }
 
-      const uploaded = await uploadFileBuffer(
+      const uploaded = await r2Service.uploadFileBuffer(
         req.file.buffer,
         req.file.originalname,
         req.user.id,
