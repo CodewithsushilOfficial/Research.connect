@@ -441,8 +441,33 @@ class ProfileService {
     await this.calculateAndSaveResearchMetrics(userId);
 
     // Invalidate Cache
-    const { ProfileCache: ProfileCacheInvalidate } = require('../../../cache/cache.service');
+    const { ProfileCache: ProfileCacheInvalidate, LookupCache } = require('../../../cache/cache.service');
     await ProfileCacheInvalidate.del(userId.toString());
+
+    // ── Upsert lookup tables (Country, Institution) from updated profile ──────
+    try {
+      const Country = require('../../../models/Country');
+      const Institution = require('../../../models/Institution');
+
+      if (updateData.country) {
+        await Country.findOneAndUpdate(
+          { name: updateData.country },
+          { name: updateData.country },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+      }
+      if (updateData.institution) {
+        await Institution.findOneAndUpdate(
+          { name: updateData.institution },
+          { name: updateData.institution, country: updateData.country || profile.country || '' },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+      }
+      await LookupCache.invalidate();
+    } catch (lookupErr) {
+      // Non-critical — log but never block the update
+      console.error('[ProfileService] Lookup upsert error:', lookupErr.message);
+    }
 
     await ActivityLog.create({
       userId, action: 'PROFILE_UPDATED', description: 'Manually updated profile details and synced timelines'

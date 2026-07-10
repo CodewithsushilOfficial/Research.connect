@@ -5,6 +5,53 @@ const { ValidationError } = require('../../../common/errors/AppError');
 
 class MessageController {
   /**
+   * Get or create a conversation with a given participant
+   * POST /conversations  { participantId }
+   */
+  async createConversation(req, res, next) {
+    try {
+      const { participantId } = req.body;
+      if (!participantId) throw new ValidationError('participantId is required.');
+      const data = await messageService.getOrCreateConversation(req.user.id, participantId);
+      res.status(200).json({
+        success: true,
+        message: 'Conversation retrieved or created successfully',
+        data,
+        error: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * Send a message using the conversationId from the URL param
+   * POST /conversations/:conversationId/messages  { content, attachments? }
+   */
+  async sendMessageToConversation(req, res, next) {
+    try {
+      const { conversationId } = req.params;
+      const { content, attachments, type, replyTo } = req.body;
+      const data = await messageService.sendMessage(req.user.id, {
+        conversationId,
+        type: type || 'text',
+        text: content,
+        replyTo: replyTo || null,
+        attachmentId: (attachments && attachments[0]) || null
+      });
+      res.status(201).json({
+        success: true,
+        message: 'Message sent successfully',
+        data,
+        error: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+
+  /**
    * Get all active conversations for the authenticated user
    */
   async getUserConversations(req, res, next) {

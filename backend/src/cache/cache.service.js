@@ -98,11 +98,32 @@ const AIPromptCache = {
   del: async (key) => cacheInstance.del(`ai:prompt:${key}`)
 };
 
+// Cache for lookup collections (Country, Institution, Department)
+const LookupCache = {
+  getCountries: async () => cacheInstance.get('lookup:countries'),
+  setCountries: async (data) => cacheInstance.set('lookup:countries', data, 86400), // 24h
+  getInstitutions: async (country) => cacheInstance.get(`lookup:institutions:${country || 'all'}`),
+  setInstitutions: async (data, country) => cacheInstance.set(`lookup:institutions:${country || 'all'}`, data, 86400),
+  invalidate: async () => {
+    await cacheInstance.del('lookup:countries');
+    await cacheInstance.del('lookup:institutions:all');
+  }
+};
+
+// Cache for platform-wide statistics (landing page)
+const PlatformStatsCache = {
+  get: async () => cacheInstance.get('platform:stats'),
+  set: async (data) => cacheInstance.set('platform:stats', data, 3600), // 1h
+  del: async () => cacheInstance.del('platform:stats')
+};
+
 module.exports = {
   cacheService: cacheInstance,
   ScholarCache,
   ProfileCache,
   FeedCache,
   PublicationCache,
-  AIPromptCache
+  AIPromptCache,
+  LookupCache,
+  PlatformStatsCache
 };

@@ -241,6 +241,36 @@ class AuthService {
 
     // Initialize Settings, Research Metrics, and Completion
     await Settings.create({ userId: user._id });
+
+    // ── Lookup table upserts (non-blocking, best-effort) ─────────────────────
+    try {
+      const Country = require('../../../models/Country');
+      const Institution = require('../../../models/Institution');
+      const { LookupCache } = require('../../../cache/cache.service');
+
+      const profile = await Profile.findOne({ userId: user._id }).lean();
+
+      if (profile?.country) {
+        await Country.findOneAndUpdate(
+          { name: profile.country },
+          { name: profile.country },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+      }
+
+      if (profile?.institution) {
+        await Institution.findOneAndUpdate(
+          { name: profile.institution },
+          { name: profile.institution, country: profile.country || '' },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+      }
+
+      // Invalidate lookup cache so next request fetches fresh data
+      await LookupCache.invalidate();
+    } catch (err) {
+      logger.error('Lookup upsert failed during registration: ' + err.message);
+    }
     
     // Dynamically load profileService to avoid circular dependency
     try {

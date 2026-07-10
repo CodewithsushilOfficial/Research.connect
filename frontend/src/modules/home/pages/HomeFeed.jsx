@@ -98,19 +98,12 @@ const HomeFeed = () => {
   const citations = scholarData?.citations || null;
   const dbCoAuthors = scholarData?.coauthors || [];
 
-  const fallbackCoAuthors = [
-    { name: 'Dr. Sarah Connor', affiliation: 'Stanford University', photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', profileURL: '#' },
-    { name: 'Prof. Richard Feynman', affiliation: 'Caltech', photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', profileURL: '#' },
-    { name: 'Dr. Alan Turing', affiliation: 'Cambridge University', photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', profileURL: '#' },
-    { name: 'Ada Lovelace', affiliation: 'Oxford University', photo: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150', profileURL: '#' },
-    { name: 'Dr. Albert Einstein', affiliation: 'Princeton Institute', photo: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150', profileURL: '#' }
-  ];
-
-  const coAuthors = dbCoAuthors.length > 0 ? dbCoAuthors : fallbackCoAuthors;
+  // Co-authors come exclusively from synced Google Scholar data — no hardcoded fallbacks
+  const coAuthors = dbCoAuthors;
 
   const citationsVal = scholarProfile ? (scholarProfile.totalCitations ?? scholarProfile.citations ?? 0) : 0;
-  const hIndexVal = scholarProfile ? (scholarProfile.hIndex ?? 0) : 67;
-  const i10IndexVal = scholarProfile ? (scholarProfile.i10Index ?? 0) : 596;
+  const hIndexVal = scholarProfile ? (scholarProfile.hIndex ?? 0) : 0;
+  const i10IndexVal = scholarProfile ? (scholarProfile.i10Index ?? 0) : 0;
 
   // Reset feed on tab change
   useEffect(() => {
@@ -442,8 +435,8 @@ const HomeFeed = () => {
   };
 
   const renderAcademicStanding = () => {
-    const rawScore = profile?.metrics?.researchScore || 8056.7;
-    const scorePercent = Math.min(100, Math.round((rawScore / 10000) * 100));
+    const rawScore = profile?.metrics?.researchScore || 0;
+    const scorePercent = Math.min(100, Math.round((rawScore / 100) * 100));
 
     return (
       <div className="bg-[#FFFFFF] border border-[#E2E8F0] p-6 rounded-[18px] shadow-sm space-y-4 text-left">
@@ -634,27 +627,35 @@ const HomeFeed = () => {
         </div>
         
         <div className="space-y-3">
-          {coAuthors.slice(0, 5).map((author, idx) => (
-            <div key={idx} className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-[#F8FAFC] transition-colors">
-              <div className="w-9 h-9 rounded-full bg-[#EDE9FE] flex items-center justify-center font-bold text-xs overflow-hidden shrink-0 border border-[#E2E8F0]">
-                {author.photo && author.photo !== '#' ? (
-                  <img src={author.photo} alt={author.name} className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-[#4F46E5]">{author.name[0]}</span>
-                )}
-              </div>
-              <div className="min-w-0 flex-1 text-left">
-                <div className="flex justify-between items-start">
-                  <h4 className="font-bold text-xs text-[#0F172A] truncate leading-tight">{author.name}</h4>
-                  <span className="text-[9px] font-bold text-[#4F46E5] bg-[#EDE9FE] px-1.5 py-0.5 rounded-full shrink-0">
-                    {author.collaborationCount ?? (15 - idx * 2)} colabs
-                  </span>
-                </div>
-                <p className="text-[10px] text-[#475569] truncate mt-0.5">{author.affiliation || 'Independent Scholar'}</p>
-                <p className="text-[9px] text-[#475569]/70 truncate font-medium">Interest: {author.researchInterest || 'Deep Learning'}</p>
-              </div>
+          {coAuthors.length === 0 ? (
+            <div className="text-center py-4">
+              <Users className="w-8 h-8 text-[#CBD5E1] mx-auto mb-2" />
+              <p className="text-xs text-[#94A3B8] font-medium">No co-authors yet.</p>
+              <p className="text-[10px] text-[#CBD5E1] mt-0.5">Sync your Google Scholar profile to discover co-authors.</p>
             </div>
-          ))}
+          ) : (
+            coAuthors.slice(0, 5).map((author, idx) => (
+              <div key={idx} className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-[#F8FAFC] transition-colors">
+                <div className="w-9 h-9 rounded-full bg-[#EDE9FE] flex items-center justify-center font-bold text-xs overflow-hidden shrink-0 border border-[#E2E8F0]">
+                  {author.photo && author.photo !== '#' ? (
+                    <img src={author.photo} alt={author.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-[#4F46E5]">{author.name?.[0] || '?'}</span>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1 text-left">
+                  <div className="flex justify-between items-start">
+                    <h4 className="font-bold text-xs text-[#0F172A] truncate leading-tight">{author.name}</h4>
+                    <span className="text-[9px] font-bold text-[#4F46E5] bg-[#EDE9FE] px-1.5 py-0.5 rounded-full shrink-0">
+                      {author.collaborationCount ?? idx + 1} colabs
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-[#475569] truncate mt-0.5">{author.affiliation || 'Independent Scholar'}</p>
+                  <p className="text-[9px] text-[#475569]/70 truncate font-medium">Interest: {author.researchInterest || 'Research'}</p>
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
         {coAuthors.length > 0 && (
@@ -673,7 +674,7 @@ const HomeFeed = () => {
 
   const renderGoogleScholarAnalytics = () => {
     // Dynamic values from MongoDB (loaded via scholarData query)
-    const publicationsCount = scholarData?.publications?.total ?? 34; 
+    const publicationsCount = scholarData?.publications?.total ?? 0;
     const citationGrowth = getCitationGrowth(); 
 
     // Radial Progress calculations

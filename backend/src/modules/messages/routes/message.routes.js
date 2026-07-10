@@ -46,4 +46,20 @@ router.post('/reaction', validateReaction, messageController.reactToMessage);
 // POST File Attachment Upload
 router.post('/upload', upload.single('file'), validateUpload, messageController.uploadAttachment);
 
+// ── Conversation-scoped aliases (matches frontend messagingApi.js routes) ─────
+// GET  /conversations          → list all conversations
+router.get('/conversations', messageController.getUserConversations);
+
+// POST /conversations          → start or retrieve a conversation
+router.post('/conversations', messageController.createConversation);
+
+// GET  /conversations/:id/messages  → paginated message history
+router.get('/conversations/:conversationId/messages', validateConversationId, messageController.getConversationMessages);
+
+// POST /conversations/:id/messages  → send a message
+router.post('/conversations/:conversationId/messages', validateConversationId, messageController.sendMessageToConversation);
+
+// POST /conversations/:id/read → mark conversation as read
+router.post('/conversations/:conversationId/read', validateConversationId, messageController.markAsRead);
+
 module.exports = router;

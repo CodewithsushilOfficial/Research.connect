@@ -24,6 +24,9 @@ require('../../models/Import');
 require('../../models/ImportLog');
 require('../../models/DerivedAnalytics');
 require('../../models/SyncHistory');
+require('../../models/Institution');
+require('../../models/Department');
+require('../../models/Country');
 
 const syncDatabaseIndexes = async () => {
   logger.info('Auditing and syncing database indexes...');
