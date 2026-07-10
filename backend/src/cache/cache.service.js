@@ -1,11 +1,13 @@
+const redisClient = require('../config/redis');
+
 class CacheService {
   constructor() {
     this.cache = new Map();
-    this.redisClient = null; // Ready for Redis connection scaling
+    this.redisClient = redisClient;
   }
 
   async get(key) {
-    if (this.redisClient) {
+    if (this.redisClient && this.redisClient.isOpen) {
       try {
         const val = await this.redisClient.get(key);
         return val ? JSON.parse(val) : null;
@@ -23,7 +25,7 @@ class CacheService {
   }
 
   async set(key, value, ttlSeconds = 300) {
-    if (this.redisClient) {
+    if (this.redisClient && this.redisClient.isOpen) {
       try {
         await this.redisClient.set(key, JSON.stringify(value), { EX: ttlSeconds });
         return true;
@@ -37,7 +39,7 @@ class CacheService {
   }
 
   async del(key) {
-    if (this.redisClient) {
+    if (this.redisClient && this.redisClient.isOpen) {
       try {
         await this.redisClient.del(key);
         return true;
@@ -49,7 +51,7 @@ class CacheService {
   }
 
   async flush() {
-    if (this.redisClient) {
+    if (this.redisClient && this.redisClient.isOpen) {
       try {
         await this.redisClient.flushAll();
         return true;

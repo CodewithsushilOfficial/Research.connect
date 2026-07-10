@@ -34,14 +34,25 @@ const authMiddlewareHandler = async (req, res, next, options = {}) => {
 
     // Verify active session if sessionId is in decoded token and strict session checking is requested
     if (decoded.sessionId && options.strictSession) {
-      const session = await Session.findOne({ 
-        _id: decoded.sessionId, 
-        userId: user._id, 
-        active: true,
-        isDeleted: { $ne: true }
-      });
+      const { cacheService } = require('../../cache/cache.service');
+      const cacheKey = `session:${decoded.sessionId}`;
+      
+      let session = await cacheService.get(cacheKey);
       
       if (!session) {
+        session = await Session.findOne({ 
+          _id: decoded.sessionId, 
+          userId: user._id, 
+          active: true,
+          isDeleted: { $ne: true }
+        });
+        
+        if (session) {
+          await cacheService.set(cacheKey, session, 600); // Cache for 10 minutes
+        }
+      }
+      
+      if (!session || !session.active) {
         throw new UnauthorizedError('Session has expired or been terminated.');
       }
       

@@ -6,7 +6,7 @@ require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 const REQUIRED_VARS = ['MONGO_URI', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
 
 // These are strongly recommended in production but allowed to fall back in dev.
-const RECOMMENDED_VARS = ['EMAIL_USER', 'EMAIL_PASS', 'CLOUDINARY_CLOUD_NAME'];
+const RECOMMENDED_VARS = ['EMAIL_USER', 'EMAIL_PASS'];
 
 const missing = REQUIRED_VARS.filter(v => !process.env[v]);
 if (missing.length > 0) {
@@ -37,6 +37,18 @@ module.exports = {
     minPoolSize: parseInt(process.env.MONGO_MIN_POOL_SIZE, 10) || 2
   },
 
+  redis: {
+    uri: process.env.REDIS_URI || 'redis://localhost:6379'
+  },
+
+  r2: {
+    accountId: process.env.R2_ACCOUNT_ID || '',
+    accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
+    bucketName: process.env.R2_BUCKET_NAME || 'research-connect',
+    publicUrl: process.env.R2_PUBLIC_URL || ''
+  },
+
   jwt: {
     secret: process.env.JWT_SECRET, // No fallback — intentional; see jwtHelper.js
     expire: process.env.JWT_EXPIRE || '15m',
@@ -46,17 +58,13 @@ module.exports = {
 
   email: {
     user: process.env.EMAIL_USER || '',
-    pass: process.env.EMAIL_PASS || ''
+    pass: process.env.EMAIL_PASS || '',
+    resendKey: process.env.RESEND_API_KEY || ''
   },
 
   serpApi: {
     key: process.env.SERP_API_KEY || ''
-  },
-
-  cloudinary: {
-    cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
-    apiKey: process.env.CLOUDINARY_API_KEY || '',
-    apiSecret: process.env.CLOUDINARY_API_SECRET || ''
   }
 };
+
 
