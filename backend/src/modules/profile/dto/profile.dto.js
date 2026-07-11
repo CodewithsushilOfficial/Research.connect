@@ -1,3 +1,9 @@
+const getImageUrl = (field) => {
+  if (!field) return '';
+  if (typeof field === 'string') return field;
+  return field.url || '';
+};
+
 class ProfileDTO {
   formatProfile(profile, user = null) {
     if (!profile) return null;
@@ -14,8 +20,8 @@ class ProfileDTO {
       company: profile.company || '',
       division: profile.division || '',
       position: profile.position || '',
-      coverImage: profile.coverImage || 'https://iili.io/C7pZ8Ss.jpg',
-      profileImage: profile.profileImage || '',
+      coverImage: getImageUrl(profile.coverImage) || 'https://iili.io/C7pZ8Ss.jpg',
+      profileImage: getImageUrl(profile.profileImage) || '',
       researchSummary: profile.researchSummary || '',
       currentResearch: profile.currentResearch || '',
       researchVision: profile.researchVision || '',
@@ -57,7 +63,7 @@ class ProfileDTO {
           email: user.email,
           phone: user.phone || '',
           role: user.role,
-          profileImage: user.profileImage || ''
+          profileImage: getImageUrl(user.profileImage) || ''
         }
       })
     };

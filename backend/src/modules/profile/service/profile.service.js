@@ -336,12 +336,10 @@ class ProfileService {
       citationsCount = scholarProfile.totalCitations || 0;
       hIndex = scholarProfile.hIndex || 0;
       i10Index = scholarProfile.i10Index || 0;
-    }
-
-    if (existingMetric) {
-      citationsCount = existingMetric.citationsCount || citationsCount;
-      hIndex = existingMetric.hIndex || hIndex;
-      i10Index = existingMetric.i10Index || i10Index;
+    } else if (existingMetric) {
+      citationsCount = existingMetric.citationsCount || 0;
+      hIndex = existingMetric.hIndex || 0;
+      i10Index = existingMetric.i10Index || 0;
     }
 
     let experienceYears = 0;

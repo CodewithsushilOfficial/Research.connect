@@ -118,11 +118,15 @@ class IdentitySyncQueueService {
           if (authorId) {
             await this.log(job._id, userId, `Invoking ScholarService.syncScholarData for id: ${authorId}`);
             await scholarService.syncScholarData(job._id, userId, authorId);
+          } else {
+            throw new Error(`Google Scholar URL '${scholarUrl}' is invalid or has no author ID.`);
           }
+        } else {
+          throw new Error('Google Scholar URL is not connected to user profile.');
         }
       } catch (err) {
-        await this.log(job._id, userId, `Google Scholar SerpAPI failed, generating mock publications and coauthors fallback: ${err.message}`, 'warn');
-        await this.generateFallbackData(userId, provider);
+        await this.log(job._id, userId, `Google Scholar Sync Failed: ${err.message}`, 'error');
+        throw err;
       }
     } else {
       // Fetch open APIs or generate highly realistic mock data for DBLP, ORCID, Crossref, OpenAlex, Scopus

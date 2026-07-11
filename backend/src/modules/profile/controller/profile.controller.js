@@ -33,7 +33,13 @@ class ProfileController {
         userId: req.user._id,
         purpose: 'profile-banner'
       });
-      coverImage = uploadDoc.secure_url;
+      coverImage = {
+        url: uploadDoc.secure_url,
+        objectKey: uploadDoc.public_id,
+        mimeType: req.file.mimetype || `image/${uploadDoc.format}`,
+        fileSize: uploadDoc.bytes,
+        uploadedAt: uploadDoc.uploadedAt || new Date()
+      };
     }
     const profile = await profileService.updateProfile(req.user._id, { coverImage });
     return res.success('Profile cover banner updated successfully.', profile);
@@ -49,7 +55,13 @@ class ProfileController {
         userId: req.user._id,
         purpose: 'profile-avatar'
       });
-      profileImage = uploadDoc.secure_url;
+      profileImage = {
+        url: uploadDoc.secure_url,
+        objectKey: uploadDoc.public_id,
+        mimeType: req.file.mimetype || `image/${uploadDoc.format}`,
+        fileSize: uploadDoc.bytes,
+        uploadedAt: uploadDoc.uploadedAt || new Date()
+      };
     }
     const profile = await profileService.updateProfile(req.user._id, { profileImage });
     return res.success('Profile avatar photo updated successfully.', profile);

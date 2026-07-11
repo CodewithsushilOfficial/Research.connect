@@ -1,6 +1,23 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
+const ImageMetadataSchema = new Schema({
+  url: { type: String, default: '' },
+  objectKey: { type: String, default: '' },
+  mimeType: { type: String, default: '' },
+  fileSize: { type: Number, default: 0 },
+  uploadedAt: { type: Date }
+}, { _id: false });
+
+const setImageMetadata = (val) => {
+  if (!val) return { url: '' };
+  if (typeof val === 'string') {
+    return { url: val };
+  }
+  return val;
+};
+
+
 const UserSchema = new Schema(
   {
     firstName: {
@@ -98,8 +115,9 @@ const UserSchema = new Schema(
       default: ''
     },
     profileImage: {
-      type: String,
-      default: ''
+      type: ImageMetadataSchema,
+      set: setImageMetadata,
+      default: () => ({ url: '' })
     },
     country: {
       type: String,
@@ -243,6 +261,26 @@ UserSchema.pre('save', async function (next) {
   next();
 });
 
+
+UserSchema.set('toJSON', {
+  virtuals: true,
+  transform: (doc, ret) => {
+    if (ret.profileImage && typeof ret.profileImage === 'object') {
+      ret.profileImage = ret.profileImage.url || '';
+    }
+    return ret;
+  }
+});
+
+UserSchema.set('toObject', {
+  virtuals: true,
+  transform: (doc, ret) => {
+    if (ret.profileImage && typeof ret.profileImage === 'object') {
+      ret.profileImage = ret.profileImage.url || '';
+    }
+    return ret;
+  }
+});
 
 // Indexes
 UserSchema.index({ status: 1 });

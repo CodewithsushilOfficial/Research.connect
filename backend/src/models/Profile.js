@@ -1,6 +1,23 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
+const ImageMetadataSchema = new Schema({
+  url: { type: String, default: '' },
+  objectKey: { type: String, default: '' },
+  mimeType: { type: String, default: '' },
+  fileSize: { type: Number, default: 0 },
+  uploadedAt: { type: Date }
+}, { _id: false });
+
+const setImageMetadata = (val) => {
+  if (!val) return { url: '' };
+  if (typeof val === 'string') {
+    return { url: val };
+  }
+  return val;
+};
+
+
 const ProfileSchema = new Schema(
   {
     userId: {
@@ -26,12 +43,14 @@ const ProfileSchema = new Schema(
       default: ''
     },
     coverImage: {
-      type: String,
-      default: 'https://iili.io/C7pZ8Ss.jpg'
+      type: ImageMetadataSchema,
+      set: setImageMetadata,
+      default: () => ({ url: 'https://iili.io/C7pZ8Ss.jpg' })
     },
     profileImage: {
-      type: String,
-      default: ''
+      type: ImageMetadataSchema,
+      set: setImageMetadata,
+      default: () => ({ url: '' })
     },
     dateOfBirth: {
       type: String,
@@ -296,6 +315,32 @@ const ProfileSchema = new Schema(
     timestamps: true
   }
 );
+
+ProfileSchema.set('toJSON', {
+  virtuals: true,
+  transform: (doc, ret) => {
+    if (ret.profileImage && typeof ret.profileImage === 'object') {
+      ret.profileImage = ret.profileImage.url || '';
+    }
+    if (ret.coverImage && typeof ret.coverImage === 'object') {
+      ret.coverImage = ret.coverImage.url || '';
+    }
+    return ret;
+  }
+});
+
+ProfileSchema.set('toObject', {
+  virtuals: true,
+  transform: (doc, ret) => {
+    if (ret.profileImage && typeof ret.profileImage === 'object') {
+      ret.profileImage = ret.profileImage.url || '';
+    }
+    if (ret.coverImage && typeof ret.coverImage === 'object') {
+      ret.coverImage = ret.coverImage.url || '';
+    }
+    return ret;
+  }
+});
 
 // Indexes for searching specialists/universities
 ProfileSchema.index({ institution: 1 });

@@ -1,3 +1,9 @@
+const getImageUrl = (field) => {
+  if (!field) return '';
+  if (typeof field === 'string') return field;
+  return field.url || '';
+};
+
 class NetworkDTO {
   /**
    * Format a researcher profile for network lists
@@ -10,7 +16,7 @@ class NetworkDTO {
       fullName: user.fullName || `${user.firstName} ${user.lastName}`,
       username: user.username,
       profileSlug: user.profileSlug || user.username,
-      profileImage: user.profileImage || profile.profileImage || '',
+      profileImage: getImageUrl(user.profileImage) || getImageUrl(profile.profileImage) || '',
       headline: profile.headline || '',
       institution: profile.institution || '',
       department: profile.department || '',

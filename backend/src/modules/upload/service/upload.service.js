@@ -213,20 +213,28 @@ const uploadFileInternal = async ({ file, userId, purpose, resourceId, useTransa
       }
     }
 
+    const imgData = {
+      url: uploadedAsset.secure_url,
+      objectKey: uploadedAsset.public_id,
+      mimeType: file.mimetype || `image/${uploadedAsset.format}`,
+      fileSize: uploadedAsset.bytes,
+      uploadedAt: uploadedAsset.uploadedAt || new Date()
+    };
+
     // 5. Update the parent MongoDB resource (Profile + User for avatar)
     if (purpose === 'profile-avatar') {
       if (useTransaction && session) {
-        await Profile.findOneAndUpdate({ userId }, { profileImage: uploadedAsset.secure_url }, { session, new: true });
-        await User.findByIdAndUpdate(userId, { profileImage: uploadedAsset.secure_url }, { session });
+        await Profile.findOneAndUpdate({ userId }, { profileImage: imgData }, { session, new: true });
+        await User.findByIdAndUpdate(userId, { profileImage: imgData }, { session });
       } else {
-        await Profile.findOneAndUpdate({ userId }, { profileImage: uploadedAsset.secure_url });
-        await User.findByIdAndUpdate(userId, { profileImage: uploadedAsset.secure_url });
+        await Profile.findOneAndUpdate({ userId }, { profileImage: imgData });
+        await User.findByIdAndUpdate(userId, { profileImage: imgData });
       }
     } else if (purpose === 'profile-banner') {
       if (useTransaction && session) {
-        await Profile.findOneAndUpdate({ userId }, { coverImage: uploadedAsset.secure_url }, { session, new: true });
+        await Profile.findOneAndUpdate({ userId }, { coverImage: imgData }, { session, new: true });
       } else {
-        await Profile.findOneAndUpdate({ userId }, { coverImage: uploadedAsset.secure_url });
+        await Profile.findOneAndUpdate({ userId }, { coverImage: imgData });
       }
     }
 
@@ -249,17 +257,21 @@ const uploadFileInternal = async ({ file, userId, purpose, resourceId, useTransa
 
     // 9. Emit Socket.IO real-time update to all user sessions
     if (purpose === 'profile-avatar') {
-      emitProfileImageUpdate(userId, 'profile:imageUpdated', {
+      const payload = {
         userId: String(userId),
         profileImage: uploadedAsset.secure_url,
         uploadedAt: uploadedAsset.uploadedAt
-      });
+      };
+      emitProfileImageUpdate(userId, 'profile:imageUpdated', payload);
+      emitProfileImageUpdate(userId, 'profileImageUpdated', payload);
     } else if (purpose === 'profile-banner') {
-      emitProfileImageUpdate(userId, 'profile:bannerUpdated', {
+      const payload = {
         userId: String(userId),
         coverImage: uploadedAsset.secure_url,
         uploadedAt: uploadedAsset.uploadedAt
-      });
+      };
+      emitProfileImageUpdate(userId, 'profile:bannerUpdated', payload);
+      emitProfileImageUpdate(userId, 'bannerUpdated', payload);
     }
 
     const totalDuration = Date.now() - uploadStart;
@@ -393,17 +405,21 @@ const deleteUploadInternal = async (assetId, userId, useTransaction = true) => {
 
       // Emit real-time update
       if (upload.purpose === 'profile-avatar') {
-        emitProfileImageUpdate(userId, 'profile:imageUpdated', {
+        const payload = {
           userId: String(userId),
           profileImage: '',
           uploadedAt: new Date()
-        });
+        };
+        emitProfileImageUpdate(userId, 'profile:imageUpdated', payload);
+        emitProfileImageUpdate(userId, 'profileImageUpdated', payload);
       } else {
-        emitProfileImageUpdate(userId, 'profile:bannerUpdated', {
+        const payload = {
           userId: String(userId),
           coverImage: 'https://iili.io/C7pZ8Ss.jpg',
           uploadedAt: new Date()
-        });
+        };
+        emitProfileImageUpdate(userId, 'profile:bannerUpdated', payload);
+        emitProfileImageUpdate(userId, 'bannerUpdated', payload);
       }
     }
 
@@ -437,9 +453,6 @@ const deleteUpload = async (assetId, userId) => {
   return deleteUploadInternal(assetId, userId, true);
 };
 
-/**
- * Delete the profile photo by finding the active avatar upload for the user.
- */
 const deleteProfilePhoto = async (userId) => {
   const upload = await Upload.findOne({ userId, purpose: 'profile-avatar', isDeleted: { $ne: true } });
   if (!upload) {
@@ -447,7 +460,9 @@ const deleteProfilePhoto = async (userId) => {
     await Profile.findOneAndUpdate({ userId }, { profileImage: '' });
     await User.findByIdAndUpdate(userId, { profileImage: '' });
     await invalidateProfileCache(userId);
-    emitProfileImageUpdate(userId, 'profile:imageUpdated', { userId: String(userId), profileImage: '' });
+    const payload = { userId: String(userId), profileImage: '' };
+    emitProfileImageUpdate(userId, 'profile:imageUpdated', payload);
+    emitProfileImageUpdate(userId, 'profileImageUpdated', payload);
     return { success: true, message: 'Profile photo cleared.' };
   }
   return deleteUploadInternal(upload.asset_id, userId, true);
@@ -462,7 +477,9 @@ const deleteProfileBanner = async (userId) => {
   if (!upload) {
     await Profile.findOneAndUpdate({ userId }, { coverImage: DEFAULT_BANNER });
     await invalidateProfileCache(userId);
-    emitProfileImageUpdate(userId, 'profile:bannerUpdated', { userId: String(userId), coverImage: DEFAULT_BANNER });
+    const payload = { userId: String(userId), coverImage: DEFAULT_BANNER };
+    emitProfileImageUpdate(userId, 'profile:bannerUpdated', payload);
+    emitProfileImageUpdate(userId, 'bannerUpdated', payload);
     return { success: true, message: 'Profile banner reset to default.' };
   }
   return deleteUploadInternal(upload.asset_id, userId, true);

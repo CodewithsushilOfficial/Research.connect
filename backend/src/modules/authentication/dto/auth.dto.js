@@ -1,3 +1,9 @@
+const getImageUrl = (field) => {
+  if (!field) return '';
+  if (typeof field === 'string') return field;
+  return field.url || '';
+};
+
 class AuthDTO {
   formatUser(user) {
     if (!user) return null;
@@ -17,7 +23,7 @@ class AuthDTO {
       profileSlug: user.profileSlug || '',
       slug: user.slug || user.profileSlug || user.username || '',
       profileUrl: user.profileUrl || '',
-      profileImage: user.profileImage || '',
+      profileImage: getImageUrl(user.profileImage) || '',
       country: user.country || '',
       lastLogin: user.lastLogin || null,
       lastLoginIP: user.lastLoginIP || '',
