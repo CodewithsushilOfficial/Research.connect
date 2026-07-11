@@ -1,7 +1,17 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+
+const institutions = [
+  'Stanford University', 'MIT', 'Oxford', 'Cambridge', 'Harvard University',
+  'Caltech', 'ETH Zurich', 'IIT Bombay', 'IISc Bangalore', 'IIT Delhi',
+  'Yale University', 'Princeton University', 'Imperial College London',
+  'University of Tokyo', 'National University of Singapore', 'Tsinghua University',
+  'AIIMS Delhi', 'University of Toronto', 'TIFR', 'IIT Kanpur', 'IIT Madras',
+];
 
 const TrustedBy = () => {
+  // Duplicate list for seamless infinite loop
+  const repeated = [...institutions, ...institutions];
+
   return (
     <section className="py-12 bg-slate-50 border-y border-slate-200 overflow-hidden relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center mb-8">
@@ -10,23 +20,35 @@ const TrustedBy = () => {
         </p>
       </div>
 
-      {/* Marquee Container */}
-      <div className="relative w-full overflow-hidden flex flex-col gap-6">
-        
-        {/* Row 1 */}
-        <div className="flex w-max animate-ticker">
-          {[...Array(2)].map((_, i) => (
-            <div key={`row1-${i}`} className="flex items-center gap-16 px-8">
-              {['Stanford University', 'MIT', 'Oxford', 'Cambridge', 'Harvard University', 'Caltech', 'ETH Zurich', 'IIT Bombay', 'IISc Bangalore', 'IIT Delhi', 'Yale University', 'Princeton University', 'Imperial College London', 'University of Tokyo', 'National University of Singapore', 'Tsinghua University', 'AIIMS Delhi', 'University of Toronto', 'TIFR', 'IIT Kanpur', 'IIT Madras'].map((uni, idx) => (
-                <div key={idx} className="text-xl font-bold text-slate-300 whitespace-nowrap opacity-80 hover:opacity-100 hover:text-slate-800 transition-all cursor-default">
-                  {uni}
-                </div>
-              ))}
-            </div>
+      {/* Marquee track */}
+      <div className="relative w-full overflow-hidden">
+        <div
+          className="flex w-max"
+          style={{
+            animation: 'marquee-scroll 40s linear infinite',
+          }}
+        >
+          {repeated.map((uni, idx) => (
+            <span
+              key={idx}
+              className="text-xl font-bold text-slate-300 whitespace-nowrap opacity-80 hover:opacity-100 hover:text-slate-700 transition-all cursor-default mx-10"
+            >
+              {uni}
+            </span>
           ))}
         </div>
-
       </div>
+
+      {/* Fade edges */}
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-slate-50 to-transparent z-10" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-slate-50 to-transparent z-10" />
+
+      <style>{`
+        @keyframes marquee-scroll {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+      `}</style>
     </section>
   );
 };
