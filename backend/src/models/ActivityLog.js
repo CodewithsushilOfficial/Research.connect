@@ -1,35 +1,39 @@
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+import mongoose from 'mongoose';
 
-const ActivityLogSchema = new Schema(
+const activityLogSchema = new mongoose.Schema(
   {
-    userId: {
-      type: Schema.Types.ObjectId,
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true
+      required: [true, 'Activity log must belong to a user'],
+      index: true,
     },
-    action: {
+    activity: {
       type: String,
-      required: true,
-      trim: true
+      required: [true, 'Activity details are required'],
+      trim: true,
     },
-    description: {
+    ipAddress: {
       type: String,
-      trim: true
+      default: '',
     },
-    ip: {
+    browser: {
       type: String,
-      default: ''
-    }
+      default: '',
+    },
+    device: {
+      type: String,
+      default: '',
+    },
   },
   {
-    timestamps: { createdAt: true, updatedAt: false }
+    timestamps: { createdAt: true, updatedAt: false }, // Only need record time
+    collection: 'activityLogs',
   }
 );
 
-ActivityLogSchema.index({ userId: 1, action: 1 });
-ActivityLogSchema.index({ createdAt: -1 });
+// Compound Index: Optimizes fetching a user's security audit history
+activityLogSchema.index({ user: 1, createdAt: -1 });
 
-const ActivityLog = mongoose.model('ActivityLog', ActivityLogSchema);
-
-module.exports = ActivityLog;
+const ActivityLog = mongoose.model('ActivityLog', activityLogSchema);
+export default ActivityLog;

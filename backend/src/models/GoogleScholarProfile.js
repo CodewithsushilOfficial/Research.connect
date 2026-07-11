@@ -1,89 +1,92 @@
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+import mongoose from 'mongoose';
 
-const GoogleScholarProfileSchema = new Schema(
+const googleScholarProfileSchema = new mongoose.Schema(
   {
-    userId: {
-      type: Schema.Types.ObjectId,
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
-      index: true
-    },
-    authorId: {
-      type: String,
-      required: true,
+      required: [true, 'Scholar profile must belong to a user'],
       unique: true,
-      index: true
+      index: true,
     },
-    profileURL: {
+    scholarId: {
       type: String,
-      default: ''
+      required: [true, 'Scholar ID is required'],
+      trim: true,
+      index: true,
     },
     name: {
       type: String,
-      required: true
+      trim: true,
     },
     affiliation: {
       type: String,
-      default: ''
+      trim: true,
     },
     verifiedEmail: {
       type: String,
-      default: ''
+      trim: true,
     },
-    profileImage: {
+    interests: {
+      type: [String],
+      default: [],
+    },
+    photo: {
       type: String,
-      default: ''
+      default: '',
     },
-    researchInterests: [
-      {
-        type: String,
-        trim: true
-      }
-    ],
     totalCitations: {
       type: Number,
-      default: 0
+      default: 0,
+    },
+    citationsSinceRecentYears: {
+      type: Number,
+      default: 0,
     },
     hIndex: {
       type: Number,
-      default: 0
+      default: 0,
+    },
+    hIndexSinceRecentYears: {
+      type: Number,
+      default: 0,
     },
     i10Index: {
       type: Number,
-      default: 0
+      default: 0,
     },
-    verified: {
-      type: Boolean,
-      default: false
+    i10IndexSinceRecentYears: {
+      type: Number,
+      default: 0,
     },
-    lastImportedAt: {
-      type: Date
+    publicationsCount: {
+      type: Number,
+      default: 0,
     },
-    syncStatus: {
+    scholarProfileUrl: {
       type: String,
-      enum: ['pending', 'running', 'completed', 'failed'],
-      default: 'pending'
+      trim: true,
+      default: '',
     },
-    isDeleted: {
-      type: Boolean,
-      default: false
+    lastSync: {
+      type: Date,
+      default: Date.now,
     },
-    deletedAt: {
-      type: Date
+    website: {
+      type: String,
+      trim: true,
+      default: '',
     },
-    deletedBy: {
-      type: Schema.Types.ObjectId,
-      ref: 'User'
-    }
+    selectedFields: {
+      type: [String],
+      default: ['displayName', 'institution', 'department', 'profilePhoto', 'bio', 'website'],
+    },
   },
   {
-    timestamps: true
+    timestamps: true,
+    collection: 'googleScholarProfiles',
   }
 );
 
-GoogleScholarProfileSchema.index({ isDeleted: 1 });
-
-const GoogleScholarProfile = mongoose.model('GoogleScholarProfile', GoogleScholarProfileSchema);
-
-module.exports = GoogleScholarProfile;
+const GoogleScholarProfile = mongoose.model('GoogleScholarProfile', googleScholarProfileSchema);
+export default GoogleScholarProfile;

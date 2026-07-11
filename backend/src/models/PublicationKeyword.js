@@ -1,30 +1,26 @@
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+import mongoose from 'mongoose';
 
-const PublicationKeywordSchema = new Schema(
+const publicationKeywordSchema = new mongoose.Schema(
   {
-    publicationId: {
-      type: Schema.Types.ObjectId,
+    publication: {
+      type: mongoose.Schema.Types.ObjectId,
       ref: 'Publication',
-      required: true,
-      index: true
+      required: [true, 'Publication is required'],
     },
     keyword: {
-      type: String,
-      required: true,
-      trim: true,
-      index: true
-    }
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Keyword',
+      required: [true, 'Keyword is required'],
+      index: true,
+    },
   },
   {
     timestamps: true,
-    collection: 'publicationKeywords'
   }
 );
 
-// Compound index to avoid duplicate keyword mappings
-PublicationKeywordSchema.index({ publicationId: 1, keyword: 1 }, { unique: true });
+// Compound Index: Uniqueness of keyword per publication
+publicationKeywordSchema.index({ publication: 1, keyword: 1 }, { unique: true });
 
-const PublicationKeyword = mongoose.model('PublicationKeyword', PublicationKeywordSchema);
-
-module.exports = PublicationKeyword;
+const PublicationKeyword = mongoose.model('PublicationKeyword', publicationKeywordSchema);
+export default PublicationKeyword;

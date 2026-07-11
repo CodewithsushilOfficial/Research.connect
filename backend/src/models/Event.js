@@ -1,46 +1,58 @@
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+import mongoose from 'mongoose';
 
-const EventSchema = new Schema(
+const eventSchema = new mongoose.Schema(
   {
     title: {
       type: String,
-      required: true,
-      trim: true
+      required: [true, 'Event title is required'],
+      trim: true,
     },
     description: {
       type: String,
-      trim: true
+      required: [true, 'Event description is required'],
+      trim: true,
     },
-    type: {
+    organizer: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: [true, 'Event must have an organizer'],
+    },
+    location: {
       type: String,
-      enum: ['Conference', 'Funding', 'Webinar', 'Meeting'],
-      required: true
+      required: [true, 'Location is required. Use URL if virtual'],
+      trim: true,
     },
-    date: {
+    startDate: {
       type: Date,
-      required: true
+      required: [true, 'Start date is required'],
     },
-    link: {
-      type: String,
-      default: ''
+    endDate: {
+      type: Date,
+      required: [true, 'End date is required'],
     },
-    organization: {
-      type: String,
-      default: ''
+    community: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Community',
     },
-    isDeleted: {
-      type: Boolean,
-      default: false
-    }
+    attendees: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
 
-EventSchema.index({ date: 1 });
+// Validator to check that endDate is after startDate
+eventSchema.pre('validate', function (next) {
+  if (this.startDate && this.endDate && this.startDate > this.endDate) {
+    this.invalidate('endDate', 'End date must be after start date');
+  }
+  next();
+});
 
-const Event = mongoose.model('Event', EventSchema);
-
-module.exports = Event;
+const Event = mongoose.model('Event', eventSchema);
+export default Event;

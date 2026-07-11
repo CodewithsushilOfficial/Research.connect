@@ -1,35 +1,27 @@
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+import mongoose from 'mongoose';
 
-const PublicationBookmarkSchema = new Schema(
+const publicationBookmarkSchema = new mongoose.Schema(
   {
-    publicationId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Publication',
-      required: true,
-      index: true
-    },
-    userId: {
-      type: Schema.Types.ObjectId,
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      index: true
+      index: true,
     },
-    folder: {
-      type: String,
-      default: 'Unsorted',
-      trim: true
-    }
+    publication: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Publication',
+      required: true,
+      index: true,
+    },
   },
   {
     timestamps: true,
-    collection: 'publicationBookmarks'
   }
 );
 
-// Unique bookmark per user per publication
-PublicationBookmarkSchema.index({ userId: 1, publicationId: 1 }, { unique: true });
+// Compound index to ensure a user can only bookmark a publication once
+publicationBookmarkSchema.index({ user: 1, publication: 1 }, { unique: true });
 
-const PublicationBookmark = mongoose.model('PublicationBookmark', PublicationBookmarkSchema);
-
-module.exports = PublicationBookmark;
+const PublicationBookmark = mongoose.model('PublicationBookmark', publicationBookmarkSchema);
+export default PublicationBookmark;

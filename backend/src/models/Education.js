@@ -1,53 +1,95 @@
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+import mongoose from 'mongoose';
 
-const EducationSchema = new Schema(
+const educationSchema = new mongoose.Schema(
   {
-    userId: {
-      type: Schema.Types.ObjectId,
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
-      index: true
+      required: [true, 'Education must belong to a user'],
+      index: true,
     },
     degree: {
       type: String,
       required: [true, 'Degree is required'],
-      trim: true
+      trim: true,
     },
     university: {
       type: String,
       required: [true, 'University is required'],
-      trim: true
+      trim: true,
+      index: true,
     },
-    duration: {
-      type: String,
-      required: [true, 'Duration is required'], // e.g. "2018 - 2022"
-      trim: true
-    },
-    cgpa: {
+    institute: {
       type: String,
       trim: true,
-      default: ''
+      default: '',
     },
-    specialization: {
+    department: {
       type: String,
       trim: true,
-      default: ''
+      default: '',
+    },
+    fieldOfStudy: {
+      type: String,
+      required: [true, 'Field of study is required'],
+      trim: true,
+    },
+    startYear: {
+      type: Number,
+      required: [true, 'Start year is required'],
+    },
+    endYear: {
+      type: Number,
+      default: null, // Null means currently studying
+    },
+    grade: {
+      type: String,
+      trim: true,
+      default: '',
     },
     description: {
       type: String,
       trim: true,
-      default: ''
+      default: '',
+    },
+    sortOrder: {
+      type: Number,
+      default: 0,
     },
     isDeleted: {
       type: Boolean,
-      default: false
-    }
+      default: false,
+      index: true,
+    },
+    source: {
+      type: String,
+      enum: ['manual', 'googleScholar', 'orcid', 'scopus', 'linkedin'],
+      default: 'manual',
+    },
+    lastUpdated: {
+      type: Date,
+      default: Date.now,
+    },
+    updatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    syncVersion: {
+      type: Number,
+      default: 1,
+    },
   },
   {
-    timestamps: true
+    timestamps: true,
+    collection: 'education',
   }
 );
 
-const Education = mongoose.model('Education', EducationSchema);
-module.exports = Education;
+// Soft delete query middleware
+educationSchema.pre(/^find/, function (next) {
+  this.find({ isDeleted: { $ne: true } });
+  next();
+});
+
+const Education = mongoose.model('Education', educationSchema);
+export default Education;

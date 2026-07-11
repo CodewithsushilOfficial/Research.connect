@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "D:\\researchconnectfrontend\\backend\\logs\\.73a454d0c7a195cfb61ad9b01fd4faeb5262cf79-audit.json",
+    "files": [
+        {
+            "date": 1783746268936,
+            "name": "D:\\researchconnectfrontend\\backend\\logs\\error-2026-07-11.log",
+            "hash": "cf78efc1edbb2ee38dab9447a0ec95d1dba7cc2fb17f66fcd060b6266491c97b"
+        }
+    ],
+    "hashType": "sha256"
+}

@@ -1,68 +1,34 @@
-const mongoose = require("mongoose");
-const Schema = mongoose.Schema;
+import mongoose from 'mongoose';
 
-const MessageSchema = new Schema(
+const messageSchema = new mongoose.Schema(
   {
-    conversationId: {
-      type: Schema.Types.ObjectId,
-      ref: "Conversation",
-      required: true,
-      index: true,
-    },
     sender: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: [true, 'Message must have a sender'],
     },
     recipient: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: [true, 'Message must have a recipient'],
     },
     content: {
       type: String,
-      required: true,
+      required: [true, 'Message content cannot be empty'],
       trim: true,
-      maxlength: 4000,
     },
-    type: {
-      type: String,
-      enum: ["text", "system", "image"],
-      default: "text",
-    },
-    attachments: [
-      {
-        type: String,
-        trim: true,
-      },
-    ],
-    readBy: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "User",
-      },
-    ],
-    isDeleted: {
+    isRead: {
       type: Boolean,
       default: false,
-    },
-    deletedAt: {
-      type: Date,
-    },
-    deletedBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
     },
   },
   {
     timestamps: true,
-  },
+  }
 );
 
-MessageSchema.index({ conversationId: 1, createdAt: -1 });
-MessageSchema.index({ sender: 1 });
-MessageSchema.index({ readBy: 1, sender: 1, isDeleted: 1 });
-MessageSchema.index({ conversationId: 1, readBy: 1, sender: 1 });
+// Add index on sender and recipient for fast query retrieval
+messageSchema.index({ sender: 1, recipient: 1, createdAt: -1 });
 
-const Message = mongoose.model("Message", MessageSchema);
-
-module.exports = Message;
+const Message = mongoose.model('Message', messageSchema);
+export default Message;

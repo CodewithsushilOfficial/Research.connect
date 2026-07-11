@@ -240,14 +240,15 @@ const ProfileHeader = ({
               </button>
               <FollowButton targetUserId={profile?.userId} username={profile?.profileSlug || profile?.username} />
               <ConnectButton targetUserId={profile?.userId} username={profile?.profileSlug || profile?.username} />
-              <Link
-                to={`/messages?participantId=${profile?.userId}`}
-                className="flex items-center gap-1.5 px-4 py-2 border border-border bg-white rounded-xl text-xs font-bold text-text-secondary hover:bg-primary hover:text-white hover:border-primary transition-all active:scale-95"
-                title="Message"
-              >
-                <MessageSquare className="w-3.5 h-3.5" />
-                Message
-              </Link>
+              {isConnected && (
+                <Link
+                  to={`/messages?user=${profile?.userId}`}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-blue-650 hover:bg-blue-700 hover:scale-105 active:scale-95 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md shadow-blue-500/10"
+                >
+                  <MessageSquare className="w-3.5 h-3.5 fill-white text-white" />
+                  <span>Message</span>
+                </Link>
+              )}
             </>
           )}
         </div>
@@ -266,10 +267,10 @@ const ProfileHeader = ({
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`p-2 border border-border bg-white rounded-xl text-text-secondary transition-all ${config.color}`}
+                className={`p-2 border border-slate-300 bg-white rounded-xl text-text-secondary transition-all ${config.color}`}
                 title={config.label}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="w-5 h-5" />
               </a>
             );
           })}

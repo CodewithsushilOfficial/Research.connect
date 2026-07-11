@@ -1,31 +1,82 @@
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+import mongoose from 'mongoose';
 
-const KeywordSchema = new Schema(
+const keywordSchema = new mongoose.Schema(
   {
-    userId: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-      index: true
-    },
-    name: {
+    keyword: {
       type: String,
-      required: true,
-      trim: true
+      required: [true, 'Keyword is required'],
+      unique: true,
+      trim: true,
+      lowercase: true,
+      index: true,
     },
-    count: {
+    slug: {
+      type: String,
+      unique: true,
+      lowercase: true,
+    },
+    description: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    category: {
+      type: String,
+      trim: true,
+      default: 'General',
+      index: true,
+    },
+    parentKeyword: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Keyword',
+      default: null,
+      index: true,
+    },
+    synonyms: {
+      type: [String],
+      default: [],
+    },
+    popularityScore: {
       type: Number,
-      default: 1
-    }
+      default: 0,
+      index: true,
+    },
+    numberOfResearchers: {
+      type: Number,
+      default: 0,
+      index: true,
+    },
+    numberOfPublications: {
+      type: Number,
+      default: 0,
+      index: true,
+    },
+    isTrending: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
   },
   {
-    timestamps: true
+    timestamps: true,
+    collection: 'keywords',
   }
 );
 
-KeywordSchema.index({ userId: 1, name: 1 }, { unique: true });
+// Text Index for keyword searching and synonym matching
+keywordSchema.index({ keyword: 'text', synonyms: 'text', description: 'text' });
 
-const Keyword = mongoose.model('Keyword', KeywordSchema);
+// Pre-save hook to generate URL slug from keyword
+keywordSchema.pre('save', function (next) {
+  if (this.isModified('keyword')) {
+    this.slug = this.keyword
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/[\s-]+/g, '-');
+  }
+  next();
+});
 
-module.exports = Keyword;
+const Keyword = mongoose.model('Keyword', keywordSchema);
+export default Keyword;

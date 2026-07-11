@@ -1,39 +1,45 @@
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+import mongoose from 'mongoose';
 
-const ResearchAreaSchema = new Schema(
+const researchAreaSchema = new mongoose.Schema(
   {
-    userId: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-      index: true
-    },
-    name: {
+    areaName: {
       type: String,
-      required: true,
-      trim: true
+      required: [true, 'Research area name is required'],
+      unique: true,
+      trim: true,
+      index: true,
     },
-    topics: [
-      {
-        type: String,
-        trim: true
-      }
-    ],
-    domains: [
-      {
-        type: String,
-        trim: true
-      }
-    ]
+    slug: {
+      type: String,
+      unique: true,
+      lowercase: true,
+    },
+    description: {
+      type: String,
+      trim: true,
+      default: '',
+    },
   },
   {
-    timestamps: true
+    timestamps: true,
+    collection: 'researchAreas',
   }
 );
 
-ResearchAreaSchema.index({ userId: 1, name: 1 }, { unique: true });
+// Text Index for full-text search
+researchAreaSchema.index({ areaName: 'text', description: 'text' });
 
-const ResearchArea = mongoose.model('ResearchArea', ResearchAreaSchema);
+// Pre-save hook to generate URL slug from areaName
+researchAreaSchema.pre('save', function (next) {
+  if (this.isModified('areaName')) {
+    this.slug = this.areaName
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/[\s-]+/g, '-');
+  }
+  next();
+});
 
-module.exports = ResearchArea;
+const ResearchArea = mongoose.model('ResearchArea', researchAreaSchema);
+export default ResearchArea;

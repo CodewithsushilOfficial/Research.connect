@@ -1,43 +1,49 @@
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+import mongoose from 'mongoose';
 
-const AwardSchema = new Schema(
+const awardSchema = new mongoose.Schema(
   {
-    userId: {
-      type: Schema.Types.ObjectId,
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
-      index: true
+      required: [true, 'Award must belong to a user'],
+      index: true,
     },
     title: {
       type: String,
-      required: [true, 'Award/Honor title is required'],
-      trim: true
+      required: [true, 'Award title is required'],
+      trim: true,
     },
-    organization: {
+    issuer: {
       type: String,
-      required: [true, 'Granting organization is required'],
-      trim: true
+      required: [true, 'Award issuer is required'],
+      trim: true,
     },
-    year: {
-      type: Number,
-      required: [true, 'Year of grant is required'],
-      index: true
+    date: {
+      type: Date,
+      required: [true, 'Award date is required'],
     },
     description: {
       type: String,
       trim: true,
-      default: ''
+      default: '',
     },
     isDeleted: {
       type: Boolean,
-      default: false
-    }
+      default: false,
+      index: true,
+    },
   },
   {
-    timestamps: true
+    timestamps: true,
+    collection: 'achievements',
   }
 );
 
-const Award = mongoose.model('Award', AwardSchema);
-module.exports = Award;
+// Soft delete query middleware
+awardSchema.pre(/^find/, function (next) {
+  this.find({ isDeleted: { $ne: true } });
+  next();
+});
+
+const Award = mongoose.model('Award', awardSchema);
+export default Award;

@@ -1,36 +1,33 @@
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+import mongoose from 'mongoose';
 
-const PublicationHistorySchema = new Schema(
+const publicationHistorySchema = new mongoose.Schema(
   {
-    publicationId: {
-      type: Schema.Types.ObjectId,
+    publication: {
+      type: mongoose.Schema.Types.ObjectId,
       ref: 'Publication',
-      required: true,
-      index: true
+      required: [true, 'History log must reference a publication'],
+      index: true,
     },
-    userId: {
-      type: Schema.Types.ObjectId,
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
-      index: true
+      required: [true, 'User who performed action is required'],
     },
     action: {
       type: String,
-      required: true,
-      enum: ['create', 'update', 'publish', 'draft_save', 'delete', 'restore']
+      enum: ['create', 'update_metadata', 'upload_file', 'delete_file', 'publish_version', 'restore_version', 'soft_delete', 'restore'],
+      required: [true, 'Action is required'],
     },
-    changes: {
-      type: Schema.Types.Mixed,
-      default: {}
-    }
+    details: {
+      type: String,
+      trim: true,
+      default: '',
+    },
   },
   {
     timestamps: true,
-    collection: 'publicationHistory'
   }
 );
 
-const PublicationHistory = mongoose.model('PublicationHistory', PublicationHistorySchema);
-
-module.exports = PublicationHistory;
+const PublicationHistory = mongoose.model('PublicationHistory', publicationHistorySchema);
+export default PublicationHistory;

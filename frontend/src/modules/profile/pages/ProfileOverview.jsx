@@ -21,12 +21,44 @@ import {
   Eye, 
   Linkedin,
   BookMarked,
-  Activity
+  Activity,
+  ArrowUpDown
 } from 'lucide-react';
 
 import profileService from '../../../services/profile.service';
 import publicationService from '../../../services/publication.service';
 import { updateProfileState, updateUserState } from '../../../redux/slices/authSlice';
+
+const PUB_CATEGORIES = ['Journal Paper', 'Conference Paper', 'Patent', 'Book Chapter', 'Book'];
+
+const getPublicationCategory = (pub) => {
+  const explicitType = (pub.publicationType || '').trim().toLowerCase();
+  const normalizedMatch = PUB_CATEGORIES.find((c) => c.toLowerCase() === explicitType);
+  if (normalizedMatch) return normalizedMatch;
+
+  const haystack = [pub.publication, pub.journal, pub.conference, pub.publisher]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  if (explicitType === 'patent' || haystack.includes('patent')) return 'Patent';
+  if (explicitType === 'book chapter' || haystack.includes('book chapter') || haystack.includes('chapter in')) return 'Book Chapter';
+  if (explicitType === 'book' || pub.isbn || (haystack.includes('book') && !haystack.includes('chapter'))) return 'Book';
+  if (pub.issn && !haystack.includes('proceedings') && !pub.conference) return 'Journal Paper';
+  if (
+    explicitType === 'conference' ||
+    pub.conference ||
+    haystack.includes('proceedings') ||
+    haystack.includes('conference') ||
+    haystack.includes('symposium') ||
+    haystack.includes('workshop')
+  ) {
+    return 'Conference Paper';
+  }
+  if (explicitType === 'journal' || explicitType === 'article' || explicitType === 'research paper') return 'Journal Paper';
+  if (explicitType) return explicitType.replace(/\b\w/g, (c) => c.toUpperCase());
+  return 'Journal Paper';
+};
 import { 
   GoogleScholarIcon, 
   OrcidIcon, 
@@ -61,6 +93,15 @@ const ProfileOverview = () => {
   const [pubsPage, setPubsPage] = useState(1);
   const [hasMorePubs, setHasMorePubs] = useState(false);
   const [loadingPubs, setLoadingPubs] = useState(false);
+  const [pubTypeFilter, setPubTypeFilter] = useState('All');
+  const [yearSort, setYearSort] = useState('desc');
+  const [pubTypeCounts, setPubTypeCounts] = useState({ All: 0 });
+
+  // Reset publications page and list on profile updates (e.g., after sync)
+  useEffect(() => {
+    setPubsPage(1);
+    setPubsList([]);
+  }, [profile]);
 
   useEffect(() => {
     const fetchPubs = async () => {
@@ -69,12 +110,13 @@ const ProfileOverview = () => {
       try {
         const res = await publicationService.getPublicationsByUsername(username, {
           page: pubsPage,
-          limit: 10,
+          limit: 1000,
           sort: '-createdAt'
         });
         if (res.success) {
           const docs = res.data.docs;
           setPubsList((prev) => {
+            if (pubsPage === 1) return docs;
             const existingIds = new Set(prev.map(p => p._id || p.id));
             const uniqueNew = docs.filter(p => !existingIds.has(p._id || p.id));
             return [...prev, ...uniqueNew];
@@ -88,15 +130,39 @@ const ProfileOverview = () => {
       }
     };
     fetchPubs();
-  }, [username, pubsPage]);
+  }, [username, pubsPage, profile]);
+
+  // Fetch total counts per category independently of the paginated/"load more" list
+  useEffect(() => {
+    const fetchPubTypeCounts = async () => {
+      if (!username) return;
+      try {
+        const res = await publicationService.getPublicationsByUsername(username, {
+          page: 1,
+          limit: 0,
+          sort: '-createdAt'
+        });
+        if (res.success) {
+          const allDocs = res.data.docs;
+          const counts = { All: allDocs.length };
+          PUB_CATEGORIES.forEach((c) => {
+            counts[c] = allDocs.filter((p) => getPublicationCategory(p) === c).length;
+          });
+          setPubTypeCounts(counts);
+        }
+      } catch (err) {
+        console.error('Error fetching publication counts:', err);
+      }
+    };
+    fetchPubTypeCounts();
+  }, [username, profile]);
 
   const tabs = [
     { id: 'about', name: 'About', icon: User },
     { id: 'timeline', name: 'Education & Experience', icon: Layers },
     { id: 'skills', name: 'Skills', icon: HeartHandshake },
     { id: 'patents', name: 'Patents', icon: ShieldCheck },
-    { id: 'books', name: 'Books', icon: BookOpen },
-    { id: 'awards', name: 'Awards & Certificates', icon: Award }
+    { id: 'books', name: 'Books', icon: BookOpen }
   ];
 
   const handleSaveProfile = async (formData) => {
@@ -343,7 +409,7 @@ const ProfileOverview = () => {
                             return (
                               <div key={network.key} className="flex items-center justify-between gap-3 text-xs py-2 border-b border-slate-100 last:border-0">
                                 <div className="flex items-center gap-2">
-                                  <div className={`p-1.5 rounded-lg flex items-center justify-center ${network.color}`}>
+                                  <div className={`p-1.5 rounded-lg border border-slate-300 flex items-center justify-center ${network.color}`}>
                                     <Icon className="w-3.5 h-3.5" />
                                   </div>
                                   <span className="font-extrabold text-[#475569]">{network.label}</span>
@@ -393,139 +459,195 @@ const ProfileOverview = () => {
                     )}
 
                     {/* Dynamic Publications Card */}
-                    <div className="space-y-4 pt-6 border-t border-slate-200">
-                      <div className="flex items-center justify-between gap-3">
-                        <h3 className="text-base font-black text-[#0F172A] tracking-tight">Publications Portfolio</h3>
-                        <span className="text-[10px] bg-[#DBEAFE] text-[#2563EB] border border-[#DBEAFE] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                          Real-time Output
-                        </span>
-                      </div>
-                      
-                      {pubsList.length > 0 ? (
-                        <div className="space-y-3.5">
-                          {pubsList.map((pub) => {
-                            const id = pub.id || pub._id;
-                            const isScholarImport = !!pub.googleScholarPublicationId;
-                            const hasPDF = !!pub.cloudinaryFileUrl;
-                            return (
-                              <div key={id} className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                <div className="space-y-1.5 flex-grow text-left">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-[9px] font-black bg-blue-50 text-[#2563EB] px-2.5 py-0.5 rounded-md uppercase tracking-wider">
-                                      {pub.publicationType || 'Article'}
-                                    </span>
-                                    {isScholarImport && (
-                                      <span className="text-[8px] font-black bg-emerald-50 text-emerald-600 border border-emerald-100 px-2 py-0.5 rounded-md">Scholar</span>
-                                    )}
-                                    {hasPDF && (
-                                      <span className="text-[8px] font-black bg-blue-50 text-blue-600 border border-blue-100 px-2 py-0.5 rounded-md">PDF</span>
-                                    )}
-                                  </div>
-                                  <h4 
-                                    className="text-sm font-extrabold text-[#0F172A] leading-snug hover:text-[#2563EB] cursor-pointer transition-colors"
-                                    onClick={() => navigate(`/publication/${pub.slug || pub._id}`)}
-                                  >
-                                    {pub.title}
-                                  </h4>
-                                  <p className="text-[11px] text-[#475569] font-semibold">
-                                    By {pub.authors}
-                                  </p>
-                                  {(pub.publication || pub.journal || pub.conference) && (
-                                    <p className="text-[10px] text-slate-400 font-medium italic">
-                                      {pub.publication || pub.journal || pub.conference} {pub.year ? `(${pub.year})` : ''}
-                                    </p>
-                                  )}
-                                  {pub.doi && (
-                                    <span className="text-[9px] bg-slate-50 border border-slate-150 text-slate-500 font-bold px-2 py-0.5 rounded inline-block">
-                                      DOI: {pub.doi}
-                                    </span>
-                                  )}
-                                </div>
+                    {/* Dynamic Publications Card */}
+<div className="space-y-4 pt-6 border-t border-slate-200">
+  <div className="flex items-center justify-between gap-3 flex-wrap">
+    <h3 className="text-base font-black text-[#0F172A] tracking-tight">Publications Portfolio</h3>
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => setYearSort((prev) => (prev === 'desc' ? 'asc' : 'desc'))}
+        className="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-[#475569] hover:bg-slate-50 transition-colors"
+      >
+        <ArrowUpDown className="w-3 h-3" />
+        Year: {yearSort === 'desc' ? 'Newest' : 'Oldest'}
+      </button>
+    </div>
+  </div>
 
-                                {/* Stats & Actions */}
-                                <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-3 border-t md:border-t-0 border-slate-100 pt-3 md:pt-0 shrink-0">
-                                  <div className="flex items-center gap-2.5 text-[10px] font-bold text-[#475569]">
-                                    <span className="flex items-center gap-0.5"><Eye className="w-3.5 h-3.5 text-slate-400" /> {pub.views || 0} Reads</span>
-                                    <span className="flex items-center gap-0.5"><Download className="w-3.5 h-3.5 text-slate-400" /> {pub.downloads || 0} Downloads</span>
-                                    {pub.citations > 0 && <span className="flex items-center gap-0.5"><Award className="w-3.5 h-3.5 text-amber-500" /> {pub.citations} Citations</span>}
-                                  </div>
-                                  <button
-                                    onClick={() => navigate(`/publication/${pub.slug || pub._id}`)}
-                                    className="text-xs font-bold text-[#2563EB] bg-[#DBEAFE] hover:bg-[#DBEAFE]/80 px-4 py-2 rounded-xl transition-all active:scale-95 shadow-sm"
-                                  >
-                                    Read Output
-                                  </button>
-                                </div>
-                              </div>
-                            );
-                          })}
-                          
-                          {hasMorePubs && (
-                            <button
-                              onClick={() => setPubsPage((prev) => prev + 1)}
-                              disabled={loadingPubs}
-                              className="w-full text-center py-2.5 border border-slate-200 bg-slate-50 hover:bg-[#EDE9FE]/40 text-xs font-black text-[#475569] hover:text-[#4F46E5] uppercase tracking-wider rounded-xl transition-all duration-200 active:scale-[0.98] mt-4 flex items-center justify-center gap-1.5"
-                            >
-                              {loadingPubs ? 'Loading...' : 'Load More Publications'}
-                            </button>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="text-center py-12 bg-[#F8FAFC] border border-slate-200 rounded-2xl shadow-sm">
-                          <FileText className="w-8 h-8 text-slate-400 mx-auto mb-2 opacity-50" />
-                          <p className="text-xs font-bold text-slate-500 uppercase">No publications published yet</p>
-                        </div>
-                      )}
-                    </div>
+  {/* Category counts */}
+  <div className="flex flex-wrap gap-1.5">
+    {['All', ...PUB_CATEGORIES].map((c) => {
+      const count = pubTypeCounts[c] || 0;
+      const isActive = pubTypeFilter === c;
+      return (
+        <button
+          key={c}
+          onClick={() => setPubTypeFilter(c)}
+          className={`flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full border transition-colors ${
+            isActive
+              ? 'bg-[#2563EB] border-[#2563EB] text-white'
+              : 'bg-white border-slate-200 text-[#475569] hover:border-slate-300 hover:bg-slate-50'
+          }`}
+        >
+          {c}
+          <span className={`px-1.5 rounded-full text-[9px] ${isActive ? 'bg-white/20' : 'bg-slate-100 text-slate-500'}`}>
+            {count}
+          </span>
+        </button>
+      );
+    })}
+  </div>
+  
+  {(() => {
+    const filteredPubs = (pubTypeFilter === 'All'
+      ? [...pubsList]
+      : pubsList.filter((p) => getPublicationCategory(p) === pubTypeFilter)
+    ).sort((a, b) => 
+      yearSort === 'desc' 
+        ? (b.year || 0) - (a.year || 0) 
+        : (a.year || 0) - (b.year || 0)
+    );
+
+    return filteredPubs.length > 0 ? (
+      <div className="space-y-3.5">
+        {filteredPubs.map((pub) => {
+          const id = pub.id || pub._id;
+          const isScholarImport = !!pub.googleScholarPublicationId;
+          const hasPDF = !!pub.cloudinaryFileUrl;
+
+          return (
+            <div key={id} className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col md:flex-row md:items-start justify-between gap-4">
+              <div className="space-y-1.5 flex-grow text-left">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[9px] font-black bg-blue-50 text-[#2563EB] px-2.5 py-0.5 rounded-md uppercase tracking-wider">
+                    {getPublicationCategory(pub)}
+                  </span>
+                  {isScholarImport && (
+                    <span className="text-[8px] font-black bg-emerald-50 text-emerald-600 border border-emerald-100 px-2 py-0.5 rounded-md">Scholar</span>
+                  )}
+                  {hasPDF && (
+                    <span className="text-[8px] font-black bg-blue-50 text-blue-600 border border-blue-100 px-2 py-0.5 rounded-md">PDF</span>
+                  )}
+                  {/* Prominent Year Display */}
+                  {pub.year && (
+                    <span className="text-[10px] font-black bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-md border border-slate-200">
+                      {pub.year}
+                    </span>
+                  )}
+                </div>
+
+                <h4 
+                  className="text-sm font-extrabold text-[#0F172A] leading-snug hover:text-[#2563EB] cursor-pointer transition-colors"
+                  onClick={() => navigate(`/publication/${pub.slug || pub._id}`)}
+                >
+                  {pub.title}
+                </h4>
+
+                <p className="text-[11px] text-[#475569] font-semibold">
+                  By {pub.authors}
+                </p>
+
+                {/* Journal/Conference info */}
+                {(pub.publication || pub.journal || pub.conference) && (
+                  <p className="text-[10px] text-slate-400 font-medium italic">
+                    {pub.publication || pub.journal || pub.conference}
+                  </p>
+                )}
+
+                {pub.doi && (
+                  <span className="text-[9px] bg-slate-50 border border-slate-150 text-slate-500 font-bold px-2 py-0.5 rounded inline-block">
+                    DOI: {pub.doi}
+                  </span>
+                )}
+              </div>
+
+              {/* Stats & Actions */}
+              <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-3 border-t md:border-t-0 border-slate-100 pt-3 md:pt-0 shrink-0">
+                <div className="flex items-center gap-2.5 text-[10px] font-bold text-[#475569]">
+                  <span className="flex items-center gap-0.5"><Eye className="w-3.5 h-3.5 text-slate-400" /> {pub.views || 0} Reads</span>
+                  <span className="flex items-center gap-0.5"><Download className="w-3.5 h-3.5 text-slate-400" /> {pub.downloads || 0} Downloads</span>
+                  {pub.citations > 0 && <span className="flex items-center gap-0.5"><Award className="w-3.5 h-3.5 text-amber-500" /> {pub.citations} Citations</span>}
+                </div>
+                <button
+                  onClick={() => navigate(`/publication/${pub.slug || pub._id}`)}
+                  className="text-xs font-bold text-[#2563EB] bg-[#DBEAFE] hover:bg-[#DBEAFE]/80 px-4 py-2 rounded-xl transition-all active:scale-95 shadow-sm"
+                >
+                  Read Output
+                </button>
+              </div>
+            </div>
+          );
+        })}
+        
+        {hasMorePubs && (
+          <button
+            onClick={() => setPubsPage((prev) => prev + 1)}
+            disabled={loadingPubs}
+            className="w-full text-center py-2.5 border border-slate-200 bg-slate-50 hover:bg-[#EDE9FE]/40 text-xs font-black text-[#475569] hover:text-[#4F46E5] uppercase tracking-wider rounded-xl transition-all duration-200 active:scale-[0.98] mt-4 flex items-center justify-center gap-1.5"
+          >
+            {loadingPubs ? 'Loading...' : 'Load More Publications'}
+          </button>
+        )}
+      </div>
+    ) : (
+      <div className="text-center py-12 bg-[#F8FAFC] border border-slate-200 rounded-2xl shadow-sm">
+        <FileText className="w-8 h-8 text-slate-400 mx-auto mb-2 opacity-50" />
+        <p className="text-xs font-bold text-slate-500 uppercase">
+          {pubTypeFilter === 'All' ? 'No publications published yet' : `No ${pubTypeFilter} found`}
+        </p>
+      </div>
+    );
+  })()}
+</div>
                   </div>
                 )}
 
                 {activeTab === 'timeline' && (
-                  <div className="space-y-6">
+                  <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 space-y-6 shadow-sm">
                     <div className="space-y-4">
-                      <h3 className="text-base font-black text-slate-900 dark:text-slate-100 tracking-tight pl-2">Education History</h3>
+                      <h3 className="text-base font-black text-slate-900 tracking-tight">Education History</h3>
                       <EducationTimeline education={profile?.education} />
                     </div>
 
-                    <div className="space-y-4 pt-6 border-t border-slate-200 dark:border-slate-800">
-                      <h3 className="text-base font-black text-slate-900 dark:text-slate-100 tracking-tight pl-2">Professional Work Experience</h3>
+                    <div className="space-y-4 pt-6 border-t border-slate-200">
+                      <h3 className="text-base font-black text-slate-900 tracking-tight">Professional Work Experience</h3>
                       <ExperienceTimeline experience={profile?.experience} />
                     </div>
                   </div>
                 )}
 
                 {activeTab === 'skills' && (
-                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 space-y-4 shadow-sm">
-                    <h3 className="text-base font-black text-slate-900 dark:text-slate-100 tracking-tight">Skills & Expertise</h3>
+                  <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 space-y-4 shadow-sm">
+                    <h3 className="text-base font-black text-slate-900 tracking-tight">Skills & Expertise</h3>
                     <SkillsList skills={profile?.skills} />
                   </div>
                 )}
 
                 {activeTab === 'patents' && (
-                  <div className="space-y-4">
-                    <h3 className="text-base font-black text-slate-900 dark:text-slate-100 tracking-tight pl-2">Patents Portfolio</h3>
+                  <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 space-y-4 shadow-sm">
+                    <h3 className="text-base font-black text-slate-900 tracking-tight">Patents Portfolio</h3>
                     {profile?.patents && profile.patents.length > 0 ? (
                       <div className="grid grid-cols-1 gap-4">
                         {profile.patents.map((pat, i) => (
-                          <div key={i} className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm space-y-2">
+                          <div key={i} className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
                             <div className="flex justify-between items-start gap-4">
-                              <h4 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">{pat.title}</h4>
+                              <h4 className="text-sm font-extrabold text-slate-900">{pat.title}</h4>
                               {pat.patentNumber && (
-                                <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-250 font-bold px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                                <span className="text-[10px] bg-slate-100 text-slate-800 font-bold px-2 py-0.5 rounded-lg border border-slate-200">
                                   No: {pat.patentNumber}
                                 </span>
                               )}
                             </div>
                             {pat.inventors && (
-                              <p className="text-xs text-indigo-600 dark:text-indigo-400 font-bold">Inventors: {pat.inventors}</p>
+                              <p className="text-xs text-indigo-600 font-bold">Inventors: {pat.inventors}</p>
                             )}
                             {pat.description && (
-                              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-semibold">{pat.description}</p>
+                              <p className="text-xs text-slate-500 leading-relaxed font-semibold">{pat.description}</p>
                             )}
                             <div className="flex items-center justify-between pt-1">
                               <span className="text-[10px] text-slate-400 font-medium">Issued: {pat.issueDate || 'N/A'}</span>
                               {pat.url && (
-                                <a href={pat.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold hover:underline">
+                                <a href={pat.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-indigo-600 font-bold hover:underline">
                                   View Patent Document &rarr;
                                 </a>
                               )}
@@ -534,35 +656,35 @@ const ProfileOverview = () => {
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
+                      <div className="text-center py-12">
                         <FileText className="w-8 h-8 text-slate-400 mx-auto mb-2 opacity-50" />
-                        <p className="text-xs font-bold text-slate-400 uppercase">No patents registered yet</p>
+                        <p className="text-xs font-bold text-slate-400">No patents registered yet</p>
                       </div>
                     )}
                   </div>
                 )}
 
                 {activeTab === 'books' && (
-                  <div className="space-y-4">
-                    <h3 className="text-base font-black text-slate-900 dark:text-slate-100 tracking-tight pl-2">Published Books & Chapters</h3>
+                  <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 space-y-4 shadow-sm">
+                    <h3 className="text-base font-black text-slate-900 tracking-tight">Published Books & Chapters</h3>
                     {profile?.books && profile.books.length > 0 ? (
                       <div className="grid grid-cols-1 gap-4">
                         {profile.books.map((bk, i) => (
-                          <div key={i} className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm space-y-2">
-                            <h4 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">{bk.title}</h4>
+                          <div key={i} className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                            <h4 className="text-sm font-extrabold text-slate-900">{bk.title}</h4>
                             {bk.authors && (
-                              <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">By: {bk.authors}</p>
+                              <p className="text-xs text-slate-500 font-semibold">By: {bk.authors}</p>
                             )}
                             {bk.publisher && (
-                              <p className="text-xs text-indigo-600 dark:text-indigo-400 font-bold">Publisher: {bk.publisher} ({bk.year || 'N/A'})</p>
+                              <p className="text-xs text-indigo-600 font-bold">Publisher: {bk.publisher} ({bk.year || 'N/A'})</p>
                             )}
                             {bk.description && (
-                              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">{bk.description}</p>
+                              <p className="text-xs text-slate-500 leading-relaxed font-medium">{bk.description}</p>
                             )}
                             <div className="flex items-center justify-between pt-1">
                               <span className="text-[10px] text-slate-400 font-medium">ISBN: {bk.isbn || 'N/A'}</span>
                               {bk.url && (
-                                <a href={bk.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold hover:underline">
+                                <a href={bk.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-indigo-600 font-bold hover:underline">
                                   Publisher Link &rarr;
                                 </a>
                               )}
@@ -571,65 +693,11 @@ const ProfileOverview = () => {
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
+                      <div className="text-center py-12">
                         <Bookmark className="w-8 h-8 text-slate-400 mx-auto mb-2 opacity-50" />
-                        <p className="text-xs font-bold text-slate-400 uppercase">No books added yet</p>
+                        <p className="text-xs font-bold text-slate-400">No books added yet</p>
                       </div>
                     )}
-                  </div>
-                )}
-
-                {activeTab === 'awards' && (
-                  <div className="space-y-6">
-                    <div className="space-y-4">
-                      <h4 className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider pl-2">Awards & Honors</h4>
-                      {profile?.awards && profile.awards.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {profile.awards.map((aw, i) => (
-                            <div key={i} className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm space-y-1.5 relative overflow-hidden">
-                              <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-600/5 rounded-bl-full pointer-events-none flex items-center justify-center">
-                                <Award className="w-5 h-5 text-indigo-600 opacity-20 -mt-4 -mr-4" />
-                              </div>
-                              <h5 className="text-xs font-bold text-slate-900 dark:text-slate-100 pr-8">{aw.title}</h5>
-                              <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold">{aw.organization} ({aw.year})</p>
-                              {aw.description && (
-                                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">{aw.description}</p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
-                          <p className="text-xs font-bold text-slate-400 uppercase">No awards declared yet</p>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="space-y-4 pt-6 border-t border-slate-200 dark:border-slate-800">
-                      <h4 className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider pl-2">Certificates</h4>
-                      {profile?.certificates && profile.certificates.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {profile.certificates.map((cert, i) => (
-                            <div key={i} className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex items-start gap-3">
-                              <ShieldCheck className="w-5 h-5 text-emerald-500 mt-0.5" />
-                              <div className="space-y-1 flex-grow">
-                                <h5 className="text-xs font-bold text-slate-900 dark:text-slate-100">{cert.name}</h5>
-                                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">{cert.organization} | {cert.issueDate || 'N/A'}</p>
-                                {cert.credentialUrl && (
-                                  <a href={cert.credentialUrl} target="_blank" rel="noopener noreferrer" className="text-[9px] text-indigo-600 dark:text-indigo-400 font-bold hover:underline block pt-0.5">
-                                    Verify Credential &rarr;
-                                  </a>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
-                          <p className="text-xs font-bold text-slate-400 uppercase">No certificates uploaded yet</p>
-                        </div>
-                      )}
-                    </div>
                   </div>
                 )}
               </motionFramer.div>
@@ -670,7 +738,7 @@ const ProfileOverview = () => {
               }
 
               return (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3 max-h-[340px] overflow-y-auto pr-1">
                   {activeMetrics.map((item) => {
                     const Icon = item.icon;
                     return (
