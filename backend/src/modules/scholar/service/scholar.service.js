@@ -759,7 +759,7 @@ class ScholarService {
   async getProfile(userId) {
     const profile = await googleScholarProfileRepository.findByUserId(userId);
     if (!profile) {
-      throw new NotFoundError('Google Scholar profile details not found. Please sync your profile.');
+      throw new NotFoundError('Complete Your profile and link Google Scholar');
     }
     return profile;
   }

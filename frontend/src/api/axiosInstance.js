@@ -160,7 +160,19 @@ axiosInstance.interceptors.response.use(
     } else {
       // Local operational errors
       const errorMsg = error.response?.data?.message || 'Something went wrong. Please try again.';
-      showDeduplicatedError(errorMsg, toastStyle);
+      if (errorMsg === 'Complete Your profile and link Google Scholar') {
+        showDeduplicatedError(errorMsg, {
+          style: {
+            background: '#F59E0B', // Warning Amber
+            color: '#FFFFFF',
+            fontSize: '14px',
+            fontFamily: 'Inter, sans-serif',
+            fontWeight: '600'
+          }
+        });
+      } else {
+        showDeduplicatedError(errorMsg, toastStyle);
+      }
     }
 
     return Promise.reject(error.response?.data || error);
