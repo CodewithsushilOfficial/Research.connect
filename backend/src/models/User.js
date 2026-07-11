@@ -262,6 +262,18 @@ UserSchema.pre('save', async function (next) {
 });
 
 
+// Pre-init hook to cast legacy string URLs to structured objects
+UserSchema.pre('init', function(rawDoc) {
+  if (rawDoc) {
+    if (typeof rawDoc.profileImage === 'string') {
+      rawDoc.profileImage = { url: rawDoc.profileImage };
+    }
+    if (typeof rawDoc.coverImage === 'string') {
+      rawDoc.coverImage = { url: rawDoc.coverImage };
+    }
+  }
+});
+
 UserSchema.set('toJSON', {
   virtuals: true,
   transform: (doc, ret) => {

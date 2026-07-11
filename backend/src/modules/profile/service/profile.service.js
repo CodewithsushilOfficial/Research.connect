@@ -26,6 +26,12 @@ const ActivityLog = require('../../../models/ActivityLog');
 const Follow = require('../../../models/Follow');
 const { NotFoundError, ValidationError } = require('../../../common/errors/AppError');
 
+const getImageUrl = (field) => {
+  if (!field) return '';
+  if (typeof field === 'string') return field;
+  return field.url || '';
+};
+
 class ProfileService {
   async _syncCollection(Model, userId, items) {
     await Model.deleteMany({ userId });
@@ -114,9 +120,8 @@ class ProfileService {
       bio: profile.bio || '',
       displayName: profile.displayName || user.fullName || '',
       headline: profile.headline || '',
-      // Default URL if empty
-      coverImage: profile.coverImage || 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=1200',
-      profileImage: profile.profileImage || user.profileImage || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png',
+      coverImage: getImageUrl(profile.coverImage) || 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=1200',
+      profileImage: getImageUrl(profile.profileImage) || getImageUrl(user.profileImage) || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png',
       dateOfBirth: profile.dateOfBirth || '',
       nationality: profile.nationality || '',
       country: profile.country || user.country || '',

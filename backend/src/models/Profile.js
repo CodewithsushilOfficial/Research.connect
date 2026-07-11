@@ -347,6 +347,18 @@ ProfileSchema.index({ institution: 1 });
 ProfileSchema.index({ company: 1 });
 ProfileSchema.index({ isDeleted: 1 });
 
+// Pre-init hook to cast legacy string URLs to structured objects
+ProfileSchema.pre('init', function(rawDoc) {
+  if (rawDoc) {
+    if (typeof rawDoc.coverImage === 'string') {
+      rawDoc.coverImage = { url: rawDoc.coverImage };
+    }
+    if (typeof rawDoc.profileImage === 'string') {
+      rawDoc.profileImage = { url: rawDoc.profileImage };
+    }
+  }
+});
+
 const Profile = mongoose.model('Profile', ProfileSchema);
 
 module.exports = Profile;
