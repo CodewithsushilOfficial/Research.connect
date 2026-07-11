@@ -31,7 +31,7 @@ module.exports = (io, socket) => {
     if (!conversationId) return;
     try {
       const redisClient = require('../../../config/redis');
-      if (redisClient && redisClient.isOpen) {
+      if (redisClient && redisClient.isOpen && redisClient.isReady) {
         await redisClient.set(`typing:${conversationId}:${userId}`, 'true', { EX: 5 });
       }
     } catch (err) {
@@ -50,7 +50,7 @@ module.exports = (io, socket) => {
     if (!conversationId) return;
     try {
       const redisClient = require('../../../config/redis');
-      if (redisClient && redisClient.isOpen) {
+      if (redisClient && redisClient.isOpen && redisClient.isReady) {
         await redisClient.del(`typing:${conversationId}:${userId}`);
       }
     } catch (err) {

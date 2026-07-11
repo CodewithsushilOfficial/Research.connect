@@ -7,8 +7,8 @@ const createStore = (prefix) => {
     const { RedisStore } = require('rate-limit-redis');
     return new RedisStore({
       sendCommand: async (...args) => {
-        if (!redisClient.isOpen) {
-          // Return dummy value during import/compile phase if Redis is not connected yet
+        if (!redisClient.isOpen || !redisClient.isReady) {
+          // Return dummy value during import/compile phase or when Redis is not ready yet
           return 'dummy';
         }
         return await redisClient.sendCommand(args);

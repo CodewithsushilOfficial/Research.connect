@@ -19,7 +19,7 @@ class RedisQueue {
     };
 
     try {
-      if (redisClient.isOpen) {
+      if (redisClient.isOpen && redisClient.isReady) {
         await redisClient.lPush(key, JSON.stringify(payload));
         logger.info(`[QUEUE] Job ${payload.id} enqueued to ${queueName}`);
       } else {
@@ -64,7 +64,7 @@ class RedisQueue {
     (async () => {
       while (true) {
         try {
-          if (!redisClient.isOpen) {
+          if (!redisClient.isOpen || !redisClient.isReady) {
             await new Promise(resolve => setTimeout(resolve, 5000));
             continue;
           }
@@ -93,7 +93,7 @@ class RedisQueue {
             }
           }
         } catch (err) {
-          logger.error(`[QUEUE WORKER LOOP ERROR] Queue ${queueName}: ${err.message}`);
+          logger.error(`[QUEUE WORKER LOOP ERROR] Queue ${queueName}: ${err.stack || err.message || err}`);
           await new Promise(resolve => setTimeout(resolve, 5000));
         }
       }

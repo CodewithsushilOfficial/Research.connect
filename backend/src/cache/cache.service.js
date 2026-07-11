@@ -7,7 +7,7 @@ class CacheService {
   }
 
   async get(key) {
-    if (this.redisClient && this.redisClient.isOpen) {
+    if (this.redisClient && this.redisClient.isOpen && this.redisClient.isReady) {
       try {
         const val = await this.redisClient.get(key);
         return val ? JSON.parse(val) : null;
@@ -25,7 +25,7 @@ class CacheService {
   }
 
   async set(key, value, ttlSeconds = 300) {
-    if (this.redisClient && this.redisClient.isOpen) {
+    if (this.redisClient && this.redisClient.isOpen && this.redisClient.isReady) {
       try {
         await this.redisClient.set(key, JSON.stringify(value), { EX: ttlSeconds });
         return true;
@@ -39,7 +39,7 @@ class CacheService {
   }
 
   async del(key) {
-    if (this.redisClient && this.redisClient.isOpen) {
+    if (this.redisClient && this.redisClient.isOpen && this.redisClient.isReady) {
       try {
         await this.redisClient.del(key);
         return true;
@@ -51,7 +51,7 @@ class CacheService {
   }
 
   async flush() {
-    if (this.redisClient && this.redisClient.isOpen) {
+    if (this.redisClient && this.redisClient.isOpen && this.redisClient.isReady) {
       try {
         await this.redisClient.flushAll();
         return true;
