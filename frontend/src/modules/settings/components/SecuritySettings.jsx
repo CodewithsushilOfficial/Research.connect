@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { toast } from 'react-hot-toast';
-import { Laptop, LogOut, Lock } from 'lucide-react';
+import { Laptop, LogOut, Lock, AlertTriangle } from 'lucide-react';
 import Input from '../../../components/common/inputs/Input';
 import Button from '../../../components/common/buttons/Button';
 import authService from '../../../services/auth.service';
 import { useDispatch } from 'react-redux';
 import { logoutSuccess } from '../../../redux/slices/authSlice';
 import { useNavigate } from 'react-router-dom';
+import ConfirmationModal from '../../../components/common/modals/ConfirmationModal';
 
 const SecuritySettings = () => {
   const dispatch = useDispatch();
@@ -109,10 +110,9 @@ const SecuritySettings = () => {
     }
   };
 
-  const handleLogoutAll = async () => {
-    if (!window.confirm('Are you sure you want to terminate all active sessions? You will be logged out of this device too.')) {
-      return;
-    }
+  const [isConfirmLogoutAllOpen, setIsConfirmLogoutAllOpen] = useState(false);
+
+  const performLogoutAll = async () => {
     setLogoutSubmitting(true);
     try {
       const response = await authService.logoutAll();
@@ -130,6 +130,7 @@ const SecuritySettings = () => {
       navigate('/login');
     } finally {
       setLogoutSubmitting(false);
+      setIsConfirmLogoutAllOpen(false);
     }
   };
 
@@ -257,7 +258,7 @@ const SecuritySettings = () => {
           </button>
 
           <button
-            onClick={handleLogoutAll}
+            onClick={() => setIsConfirmLogoutAllOpen(true)}
             disabled={logoutSubmitting}
             className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold bg-accent-red text-white hover:bg-red-650 rounded-lg shadow-sm transition-all sm:ml-auto"
           >
@@ -266,6 +267,19 @@ const SecuritySettings = () => {
           </button>
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={isConfirmLogoutAllOpen}
+        onClose={() => setIsConfirmLogoutAllOpen(false)}
+        onConfirm={performLogoutAll}
+        title="Logout All Devices"
+        description="Are you sure you want to terminate all active sessions? You will be logged out of this device too."
+        confirmText="Logout All"
+        cancelText="Cancel"
+        variant="danger"
+        loading={logoutSubmitting}
+        icon={<AlertTriangle className="w-6 h-6 text-accent-red flex-shrink-0" />}
+      />
     </div>
   );
 };

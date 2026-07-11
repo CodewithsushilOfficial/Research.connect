@@ -1,28 +1,23 @@
 import React, { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { AlertTriangle, Trash2 } from 'lucide-react';
-import Button from '../../../components/common/buttons/Button';
-import Modal from '../../../components/common/modals/Modal';
+import ConfirmationModal from '../../../components/common/modals/ConfirmationModal';
 import profileService from '../../../services/profile.service';
 import authService from '../../../services/auth.service';
 import { useDispatch } from 'react-redux';
 import { logoutSuccess } from '../../../redux/slices/authSlice';
 import { useNavigate } from 'react-router-dom';
-import Input from '../../../components/common/inputs/Input';
 
 const DangerZoneSettings = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [confirmText, setConfirmText] = useState('');
+  const [isDeactivateOpen, setIsDeactivateOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeactivating, setIsDeactivating] = useState(false);
 
-  const handleDeactivate = async () => {
-    if (!window.confirm('Are you sure you want to temporarily deactivate your account? Your profile and uploads will be hidden until you log back in.')) {
-      return;
-    }
+  const performDeactivate = async () => {
     setIsDeactivating(true);
     try {
       const response = await authService.deactivateAccount();
@@ -39,22 +34,18 @@ const DangerZoneSettings = () => {
       toast.error(errMsg);
     } finally {
       setIsDeactivating(false);
+      setIsDeactivateOpen(false);
     }
   };
 
   const handleDeleteAccount = async () => {
-    if (confirmText !== 'DELETE') {
-      toast.error('Please type DELETE to confirm.');
-      return;
-    }
-
     setIsDeleting(true);
     try {
       const response = await profileService.deleteProfile();
       if (response && response.success) {
         toast.success('Your profile and account have been successfully deleted.');
         dispatch(logoutSuccess());
-        setIsModalOpen(false);
+        setIsDeleteOpen(false);
         navigate('/login');
       } else {
         throw new Error(response?.message || 'Delete account failed.');
@@ -86,7 +77,7 @@ const DangerZoneSettings = () => {
             <span className="font-extrabold text-amber-600 uppercase mr-1">Note:</span> Your uploads and search visibility status will remain hidden until you reactivate.
           </span>
           <button
-            onClick={handleDeactivate}
+            onClick={() => setIsDeactivateOpen(true)}
             disabled={isDeactivating}
             className="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-sm transition-all active:scale-95 disabled:opacity-50"
           >
@@ -109,8 +100,7 @@ const DangerZoneSettings = () => {
         <div className="flex items-center justify-end pt-2">
           <button
             onClick={() => {
-              setConfirmText('');
-              setIsModalOpen(true);
+              setIsDeleteOpen(true);
             }}
             disabled={isDeleting}
             className="w-full sm:w-auto font-bold text-xs px-5 py-2.5 bg-accent-red hover:bg-red-650 text-white rounded-xl shadow-sm transition-all active:scale-95"
@@ -120,58 +110,34 @@ const DangerZoneSettings = () => {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Confirm Account Deletion"
-        size="md"
-      >
-        <div className="space-y-4 text-left">
-          <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3">
-            <AlertTriangle className="w-6 h-6 text-accent-red flex-shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <h4 className="text-xs font-black text-accent-red uppercase tracking-tight">Warning: Irreversible Action</h4>
-              <p className="text-[10px] text-red-800/70 font-semibold leading-relaxed">
-                You are about to delete your Research Connect researcher account. All metrics, co-author linkages, and stored data will be soft-deleted and scheduled for pruning.
-              </p>
-            </div>
-          </div>
+      {/* Custom Deactivate Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={isDeactivateOpen}
+        onClose={() => setIsDeactivateOpen(false)}
+        onConfirm={performDeactivate}
+        title="Deactivate Account"
+        description="Your profile, publications, and research activity will be hidden until you log in again. You can reactivate your account at any time."
+        confirmText="Deactivate Account"
+        cancelText="Cancel"
+        variant="warning"
+        loading={isDeactivating}
+        icon={<AlertTriangle className="w-6 h-6 text-amber-500 flex-shrink-0" />}
+      />
 
-          <div className="space-y-2">
-            <p className="text-xs text-text-primary font-bold">
-              To proceed, please type <span className="text-accent-red font-black uppercase">DELETE</span> below:
-            </p>
-            <Input
-              value={confirmText}
-              onChange={(e) => setConfirmText(e.target.value)}
-              placeholder="Type DELETE to confirm"
-              disabled={isDeleting}
-              className="w-full"
-            />
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-            <Button
-              onClick={() => setIsModalOpen(false)}
-              variant="ghost"
-              disabled={isDeleting}
-              className="text-xs font-bold"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleDeleteAccount}
-              disabled={confirmText !== 'DELETE' || isDeleting}
-              loading={isDeleting}
-              variant="danger"
-              className="text-xs font-bold px-5"
-            >
-              Confirm Permanent Deletion
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      {/* Custom Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={isDeleteOpen}
+        onClose={() => setIsDeleteOpen(false)}
+        onConfirm={handleDeleteAccount}
+        title="Delete Account Permanently"
+        description="This action permanently deletes your account and all associated data. This action cannot be undone."
+        confirmText="Delete Permanently"
+        cancelText="Cancel"
+        variant="danger"
+        loading={isDeleting}
+        requireTextInput="DELETE"
+        icon={<AlertTriangle className="w-6 h-6 text-accent-red flex-shrink-0" />}
+      />
     </div>
   );
 };

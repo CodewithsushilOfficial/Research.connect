@@ -9,18 +9,28 @@ const Modal = ({
   title = '',
   children,
   size = 'md', // 'sm', 'md', 'lg', 'xl'
-  className = ''
+  className = '',
+  preventClose = false
 }) => {
   useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && !preventClose && onClose) {
+        onClose();
+      }
+    };
+
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      window.addEventListener('keydown', handleKeyDown);
     } else {
       document.body.style.overflow = 'unset';
     }
+    
     return () => {
       document.body.style.overflow = 'unset';
+      window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen]);
+  }, [isOpen, preventClose, onClose]);
 
   const sizeWidths = {
     sm: 'max-w-md',
@@ -38,7 +48,7 @@ const Modal = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={() => !preventClose && onClose && onClose()}
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
           />
 
@@ -61,6 +71,7 @@ const Modal = ({
                 variant="ghost"
                 size="sm"
                 onClick={onClose}
+                disabled={preventClose}
                 icon={<X className="w-5 h-5" />}
                 className="!p-1.5 rounded-full"
               />
