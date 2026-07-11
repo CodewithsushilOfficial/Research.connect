@@ -102,6 +102,7 @@ const AppRoutes = () => {
         <Route path="/" element={<HomeHub />} />
         <Route path="/terms" element={<TermsOfServicePage />} />
         <Route path="/privacy" element={<PrivacyPolicyPage />} />
+        <Route path="/about" element={<AboutUs />} />
 
         {/* Dashboard & Modules Layout (No Sidebar) */}
         <Route element={
@@ -139,9 +140,7 @@ const AppRoutes = () => {
           <Route path="messages/:conversationId" element={<MessagesPage />} />
           <Route path="messages/new" element={<MessagesPage />} />
           <Route path="search" element={<SearchPage />} />
-          <Route path="/about" element={<AboutUs />} />
-          
-          
+
           {/* Social Collaboration Module Routes */}
           <Route path="network" element={<NetworkPage />} />
           <Route path="network/connections" element={<ConnectionsPage />} />
