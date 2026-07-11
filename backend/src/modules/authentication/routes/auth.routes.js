@@ -25,7 +25,7 @@ router.post('/reset-password', authLimiter, resetPasswordValidator, authControll
 
 router.post('/send-otp', otpLimiter, sendOtpValidator, authController.sendOtp);
 router.post('/verify-otp', verifyOtpLimiter, verifyOtpValidator, authController.verifyOtp);
-router.post('/resend-otp', otpLimiter, sendOtpValidator, authController.resendOtp);
+router.post('/resend-otp', otpLimiter, sendOtpValidator, authController.sendOtp);
 
 router.post('/refresh-token', authController.refreshAccessToken);
 router.post('/logout', authController.logout);
@@ -34,7 +34,8 @@ router.post('/logout', authController.logout);
 const { changePasswordValidator } = require('../validator/auth.validator');
 router.post('/change-password', authMiddleware, changePasswordValidator, authController.changePassword);
 router.post('/deactivate', authMiddleware, authController.deactivate);
-router.post('/logout-all', authMiddleware, authController.logoutAll);
+
+router.post('/logout-all', authMiddleware({ strictSession: true }), authController.logoutAll);
 router.get('/me', authMiddleware, authController.getMe);
 
 module.exports = router;
