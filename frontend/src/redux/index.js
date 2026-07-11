@@ -1,6 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
 import appReducer from './slices/appSlice';
-import themeReducer from './slices/themeSlice';
 import loadingReducer from './slices/loadingSlice';
 import authReducer from './slices/authSlice';
 import scholarReducer from './slices/scholarSlice';
@@ -22,7 +21,6 @@ import settingsReducer from './slices/settingsSlice';
 export const store = configureStore({
   reducer: {
     app: appReducer,
-    theme: themeReducer,
     loading: loadingReducer,
     auth: authReducer,
     scholar: scholarReducer,

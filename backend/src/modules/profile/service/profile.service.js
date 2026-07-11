@@ -141,6 +141,7 @@ class ProfileService {
         searchEngineIndexing: true,
         researchVisibility: true
       },
+      notificationSettings: profile.notificationSettings || {},
       education: education || [],
       experience: experience || [],
       skills: skills || [],

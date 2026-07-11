@@ -115,6 +115,15 @@ class NotificationService extends BaseService {
       { new: true, upsert: true, setDefaultsOnInsert: true }
     ).lean();
 
+    try {
+      const { ProfileCache } = require('../../../cache/cache.service');
+      if (ProfileCache) {
+        await ProfileCache.del(recipientId.toString());
+      }
+    } catch (err) {
+      logger.error(`Failed to invalidate ProfileCache: ${err.message}`);
+    }
+
     return profile.notificationSettings;
   }
 

@@ -155,10 +155,6 @@ const PrivacySettings = ({ profile, refetch }) => {
             disabled={isSubmitting}
           />
         </div>
-        
-        <div className="text-[10px] text-slate-400 font-semibold border-t border-slate-100 pt-3">
-          <span className="font-extrabold text-amber-500 uppercase mr-1">Note:</span> Except for Show Email, these privacy options toggle locally. Storing them requires creating a dedicated Settings document or schema extension for `publicProfile`, `showInstitution`, `showFollowers`, `searchEngineIndexing`, and `researchVisibility` fields.
-        </div>
       </div>
 
       {/* Save Button */}

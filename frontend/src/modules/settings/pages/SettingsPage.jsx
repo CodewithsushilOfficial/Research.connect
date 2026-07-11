@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { User, Palette, Bell, Lock, Shield, Link2, AlertTriangle, Save } from 'lucide-react';
+import { User, Bell, Lock, Shield, Link2, AlertTriangle, Save } from 'lucide-react';
 import GeneralSettings from '../components/GeneralSettings';
-import AppearanceSettings from '../components/AppearanceSettings';
 import NotificationSettings from '../components/NotificationSettings';
 import PrivacySettings from '../components/PrivacySettings';
 import SecuritySettings from '../components/SecuritySettings';
@@ -26,7 +25,7 @@ const SettingsPage = ({ profile, refetch, isOwnProfile }) => {
     return id;
   };
 
-  const validTabIds = ['general', 'appearance', 'notifications', 'privacy', 'security', 'connected', 'danger'];
+  const validTabIds = ['general', 'notifications', 'privacy', 'security', 'connected', 'danger'];
   const rawTab = searchParams.get('tab');
   const activeTab = validTabIds.includes(mapUrlToId(rawTab)) ? mapUrlToId(rawTab) : 'general';
 
@@ -36,7 +35,6 @@ const SettingsPage = ({ profile, refetch, isOwnProfile }) => {
 
   const tabs = [
     { id: 'general', name: 'General', icon: User, component: GeneralSettings },
-    { id: 'appearance', name: 'Appearance', icon: Palette, component: AppearanceSettings },
     { id: 'notifications', name: 'Notifications', icon: Bell, component: NotificationSettings },
     { id: 'privacy', name: 'Privacy', icon: Lock, component: PrivacySettings },
     { id: 'security', name: 'Security', icon: Shield, component: SecuritySettings },
