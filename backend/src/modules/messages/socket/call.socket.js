@@ -40,6 +40,7 @@ module.exports = (io, socket) => {
     }
   });
 
+  
   /**
    * Receiver accepts WebRTC call
    */
