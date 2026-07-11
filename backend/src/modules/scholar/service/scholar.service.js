@@ -382,12 +382,14 @@ class ScholarService {
             // Step 1: Lookup missing DOI
             if (!pubDoi) {
               pubDoi = await enrichmentService.lookupDOI(article.title, article.year, article.authors);
+              await new Promise(resolve => setTimeout(resolve, 400)); // Respect external API rate limits
             }
 
             // Step 2: Fetch enriched metadata from external providers
             let enrichedMeta = {};
             try {
               enrichedMeta = await enrichmentService.fetchMetadata(pubDoi, article.title);
+              await new Promise(resolve => setTimeout(resolve, 400)); // Respect external API rate limits
               if (enrichedMeta && Object.keys(enrichedMeta).length > 0) {
                 enrichedCount++;
               }

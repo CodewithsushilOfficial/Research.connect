@@ -49,6 +49,30 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
+// Keep track of active toasts to avoid spamming the same error repeatedly
+const activeToasts = new Map();
+
+const showDeduplicatedError = (message, options) => {
+  const now = Date.now();
+  const lastTime = activeToasts.get(message);
+  
+  // If the same message was displayed within the last 3 seconds, skip it
+  if (lastTime && (now - lastTime < 3000)) {
+    return;
+  }
+  
+  activeToasts.set(message, now);
+  
+  // Clean up key after 3 seconds
+  setTimeout(() => {
+    if (activeToasts.get(message) === now) {
+      activeToasts.delete(message);
+    }
+  }, 3000);
+
+  toast.error(message, options);
+};
+
 // Response Interceptor
 axiosInstance.interceptors.response.use(
   (response) => {
@@ -79,7 +103,7 @@ axiosInstance.interceptors.response.use(
         
         // Visual feedback for invalid credentials or refresh failure
         const errorMsg = error.response?.data?.message || 'Invalid email or password.';
-        toast.error(errorMsg, toastStyle);
+        showDeduplicatedError(errorMsg, toastStyle);
         
         return Promise.reject(error);
       }
@@ -117,7 +141,7 @@ axiosInstance.interceptors.response.use(
             localStorage.removeItem('user');
             localStorage.removeItem('profile');
             store.dispatch(logoutSuccess());
-            toast.error('Session expired. Please log in again.', toastStyle);
+            showDeduplicatedError('Session expired. Please log in again.', toastStyle);
             setTimeout(() => {
               window.location.href = '/login';
             }, 1500);
@@ -128,15 +152,15 @@ axiosInstance.interceptors.response.use(
           });
       });
     } else if (status === 403) {
-      toast.error('You do not have permission to perform this action.', toastStyle);
+      showDeduplicatedError('You do not have permission to perform this action.', toastStyle);
     } else if (status === 429) {
-      toast.error('Too many requests. Please slow down and try again later.', toastStyle);
+      showDeduplicatedError('Too many requests. Please slow down and try again later.', toastStyle);
     } else if (status >= 500) {
-      toast.error('Internal server error. Our engineering team has been notified.', toastStyle);
+      showDeduplicatedError('Internal server error. Our engineering team has been notified.', toastStyle);
     } else {
       // Local operational errors
       const errorMsg = error.response?.data?.message || 'Something went wrong. Please try again.';
-      toast.error(errorMsg, toastStyle);
+      showDeduplicatedError(errorMsg, toastStyle);
     }
 
     return Promise.reject(error.response?.data || error);

@@ -33,6 +33,9 @@ const REQUEST_TIMEOUT_MS = 2500;
 class EnrichmentService {
   constructor() {
     this.isMockMode = !environment.serpApi?.key || environment.serpApi.key === 'demoserpapikey';
+    this.politeEmail = environment.email?.user || 'help.research.connect@gmail.com';
+    this.doiCache = new Map();
+    this.metadataCache = new Map();
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -55,6 +58,11 @@ class EnrichmentService {
       return this._mockDOI(title);
     }
 
+    const cacheKey = title.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (this.doiCache.has(cacheKey)) {
+      return this.doiCache.get(cacheKey);
+    }
+
     // Try each provider in order, return first DOI found
     const strategies = [
       () => this._crossrefDOI(title, year, authorString),
@@ -67,13 +75,15 @@ class EnrichmentService {
         const doi = await strategy();
         if (doi) {
           logger.info(`[Enrichment] DOI found for title "${title.substring(0, 60)}...": ${doi}`);
+          this.doiCache.set(cacheKey, doi);
           return doi;
         }
       } catch (err) {
-        logger.warn(`[Enrichment] DOI lookup strategy failed: ${err.message}`);
+        logger.debug(`[Enrichment] DOI lookup strategy failed for "${title.substring(0, 45)}": ${err.message}`);
       }
     }
 
+    this.doiCache.set(cacheKey, null);
     return null;
   }
 
@@ -93,6 +103,11 @@ class EnrichmentService {
       return this._mockMetadata(doi || title);
     }
 
+    const cacheKey = doi ? this._normalizeDOI(doi) : `title:${title.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+    if (this.metadataCache.has(cacheKey)) {
+      return this.metadataCache.get(cacheKey);
+    }
+
     let metadata = {};
 
     // Crossref
@@ -101,7 +116,7 @@ class EnrichmentService {
         const crossref = await this._crossrefMetadata(doi);
         metadata = this._mergeMetadata(metadata, crossref);
       } catch (err) {
-        logger.warn(`[Enrichment] Crossref metadata fetch failed for DOI ${doi}: ${err.message}`);
+        logger.debug(`[Enrichment] Crossref metadata fetch failed for DOI ${doi}: ${err.message}`);
       }
     }
 
@@ -111,7 +126,7 @@ class EnrichmentService {
         const openalex = await this._openAlexMetadata(doi);
         metadata = this._mergeMetadata(metadata, openalex);
       } catch (err) {
-        logger.warn(`[Enrichment] OpenAlex metadata fetch failed for DOI ${doi}: ${err.message}`);
+        logger.debug(`[Enrichment] OpenAlex metadata fetch failed for DOI ${doi}: ${err.message}`);
       }
     }
 
@@ -121,7 +136,7 @@ class EnrichmentService {
         const semScholar = await this._semanticScholarMetadata(doi, title);
         metadata = this._mergeMetadata(metadata, semScholar);
       } catch (err) {
-        logger.warn(`[Enrichment] Semantic Scholar metadata fetch failed: ${err.message}`);
+        logger.debug(`[Enrichment] Semantic Scholar metadata fetch failed: ${err.message}`);
       }
     }
 
@@ -131,10 +146,11 @@ class EnrichmentService {
         const unpaywall = await this._unpaywallMetadata(doi);
         metadata = this._mergeMetadata(metadata, unpaywall);
       } catch (err) {
-        logger.warn(`[Enrichment] Unpaywall fetch failed for DOI ${doi}: ${err.message}`);
+        logger.debug(`[Enrichment] Unpaywall fetch failed for DOI ${doi}: ${err.message}`);
       }
     }
 
+    this.metadataCache.set(cacheKey, metadata);
     return metadata;
   }
 
@@ -196,7 +212,7 @@ class EnrichmentService {
     const params = {
       query: title,
       rows: 1,
-      mailto: 'researchconnect@example.com'
+      mailto: this.politeEmail
     };
     if (year) params.filter = `from-pub-date:${year - 1},until-pub-date:${year + 1}`;
 
@@ -225,7 +241,7 @@ class EnrichmentService {
     const params = {
       search: title,
       per_page: 1,
-      mailto: 'researchconnect@example.com'
+      mailto: this.politeEmail
     };
     if (year) params.filter = `publication_year:${year}`;
 
@@ -279,7 +295,7 @@ class EnrichmentService {
    */
   async _crossrefMetadata(doi) {
     const response = await axios.get(`https://api.crossref.org/works/${encodeURIComponent(doi)}`, {
-      params: { mailto: 'researchconnect@example.com' },
+      params: { mailto: this.politeEmail },
       timeout: REQUEST_TIMEOUT_MS
     });
 
@@ -319,7 +335,7 @@ class EnrichmentService {
    */
   async _openAlexMetadata(doi) {
     const response = await axios.get(`https://api.openalex.org/works/https://doi.org/${doi}`, {
-      params: { mailto: 'researchconnect@example.com' },
+      params: { mailto: this.politeEmail },
       timeout: REQUEST_TIMEOUT_MS
     });
 
@@ -388,9 +404,8 @@ class EnrichmentService {
    * Requires a valid DOI.
    */
   async _unpaywallMetadata(doi) {
-    const email = 'researchconnect@example.com';
     const response = await axios.get(`https://api.unpaywall.org/v2/${encodeURIComponent(doi)}`, {
-      params: { email },
+      params: { email: this.politeEmail },
       timeout: REQUEST_TIMEOUT_MS
     });
 
