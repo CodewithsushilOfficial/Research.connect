@@ -672,9 +672,7 @@ class PublicationService {
     }
 
     // Authorization check
-    if (publication.userId.toString() !== userId.toString()) {
-      throw new ForbiddenError('You are not authorized to update this publication.');
-    }
+    this.verifyOwnership(publication, userId);
 
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -819,6 +817,39 @@ class PublicationService {
       // Recalculate metrics
       await profileService.calculateAndSaveResearchMetrics(userId);
 
+      // Invalidate caches
+      try {
+        const { ProfileCache, FeedCache, PublicationCache } = require('../../../cache/cache.service');
+        await Promise.all([
+          ProfileCache.del(String(userId)),
+          PublicationCache.del(String(publication.slug)),
+          PublicationCache.del(String(publication._id)),
+          FeedCache.flush()
+        ]);
+      } catch (cacheErr) {
+        console.error('[Cache Invalidation Failed]:', cacheErr.message);
+      }
+
+      // Emit Socket.IO Events
+      try {
+        const socket = require('../../../socket');
+        if (socket) {
+          const publicationDTO = require('../dto/publication.dto');
+          const formatted = publicationDTO.formatPublication(publication);
+          
+          socket.emitToUser(String(userId), 'publicationEdited', formatted);
+          socket.emitToUser(String(userId), 'publicationUpdated', formatted);
+          
+          const io = socket.getIO();
+          if (io) {
+            io.emit('publicationUpdated', formatted);
+            io.emit('publicationEdited', formatted);
+          }
+        }
+      } catch (sockErr) {
+        console.error('[Socket Emission Failed]:', sockErr.message);
+      }
+
       return publication;
     } catch (error) {
       await session.abortTransaction();
@@ -836,12 +867,17 @@ class PublicationService {
       throw new NotFoundError('Publication not found.');
     }
 
-    if (publication.userId.toString() !== userId.toString()) {
-      throw new ForbiddenError('You are not authorized to delete this publication.');
-    }
+    // Verify Ownership
+    this.verifyOwnership(publication, userId);
 
     // Permanent delete if already soft deleted, or if permanent is explicitly requested
     if (publication.isDeleted || permanent) {
+      // Delete document from R2 if it exists
+      if (publication.document && publication.document.objectKey) {
+        const r2Service = require('../../upload/service/r2.service');
+        await r2Service.deleteFile(publication.document.objectKey, 'raw');
+      }
+
       await Publication.deleteOne({ _id: id });
       await PublicationFile.deleteMany({ publicationId: id });
       await PublicationAuthor.deleteMany({ publicationId: id });
@@ -887,6 +923,37 @@ class PublicationService {
 
     // Recalculate metrics
     await profileService.calculateAndSaveResearchMetrics(userId);
+
+    // Invalidate caches
+    try {
+      const { ProfileCache, FeedCache, PublicationCache } = require('../../../cache/cache.service');
+      await Promise.all([
+        ProfileCache.del(String(userId)),
+        PublicationCache.del(String(publication.slug)),
+        PublicationCache.del(String(publication._id)),
+        FeedCache.flush()
+      ]);
+    } catch (cacheErr) {
+      console.error('[Cache Invalidation Failed]:', cacheErr.message);
+    }
+
+    // Emit Socket.IO Events
+    try {
+      const socket = require('../../../socket');
+      if (socket) {
+        const publicationDTO = require('../dto/publication.dto');
+        const formatted = publicationDTO.formatPublication(publication);
+        
+        socket.emitToUser(String(userId), 'publicationUpdated', formatted);
+        
+        const io = socket.getIO();
+        if (io) {
+          io.emit('publicationUpdated', formatted);
+        }
+      }
+    } catch (sockErr) {
+      console.error('[Socket Emission Failed]:', sockErr.message);
+    }
 
     return publication;
   }
@@ -1757,6 +1824,188 @@ class PublicationService {
 
     await comment.save();
     return { liked, likeCount: comment.likes.length };
+  }
+
+  /**
+   * Verify publication ownership
+   */
+  verifyOwnership(publication, userId) {
+    const isOwner = (publication.ownerId && publication.ownerId.toString() === userId.toString()) ||
+                    (publication.userId && publication.userId.toString() === userId.toString()) ||
+                    (publication.createdBy && publication.createdBy.toString() === userId.toString());
+    if (!isOwner) {
+      throw new ForbiddenError('You are not authorized to edit this publication.');
+    }
+  }
+
+  /**
+   * Upload research paper PDF to Cloudflare R2
+   */
+  async uploadPaper(publicationId, userId, file) {
+    const publication = await Publication.findById(publicationId);
+    if (!publication) {
+      throw new NotFoundError('Publication not found.');
+    }
+
+    // Verify Ownership
+    this.verifyOwnership(publication, userId);
+
+    const r2Service = require('../../upload/service/r2.service');
+    const PublicationFile = require('../../../models/PublicationFile');
+
+    // Delete old PDF from R2 if it exists to avoid orphan files
+    if (publication.document && publication.document.objectKey) {
+      await r2Service.deleteFile(publication.document.objectKey, 'raw');
+    }
+
+    // Upload new PDF to structured R2 folder
+    const r2Result = await r2Service.uploadFileBuffer(
+      file.buffer,
+      file.originalname,
+      userId,
+      'publication-pdf',
+      publication.publicationId || publication._id,
+      file.mimetype
+    );
+
+    // Save document details in MongoDB
+    publication.document = {
+      url: r2Result.secure_url,
+      objectKey: r2Result.public_id,
+      fileName: file.originalname || 'document.pdf',
+      mimeType: file.mimetype || 'application/pdf',
+      fileSize: file.size || r2Result.bytes || 0,
+      uploadedBy: userId,
+      uploadedAt: new Date(),
+      lastModified: new Date(),
+      storageProvider: 'cloudflare_r2',
+      version: (publication.document?.version || 0) + 1
+    };
+
+    // Keep legacy URL fields for backward compatibility
+    publication.cloudinaryFileUrl = r2Result.secure_url;
+    publication.pdfURL = r2Result.secure_url;
+    publication.lastUpdatedBy = userId;
+
+    await publication.save();
+
+    // Keep PublicationFile synced
+    await PublicationFile.deleteMany({ publicationId: publication._id });
+    const fileDoc = new PublicationFile({
+      publicationId: publication._id,
+      secure_url: r2Result.secure_url,
+      public_id: r2Result.public_id,
+      resource_type: r2Result.resource_type || 'raw',
+      bytes: r2Result.bytes || file.size || 0,
+      format: r2Result.format || 'pdf',
+      pages: r2Result.pages || 0,
+      asset_id: r2Result.asset_id || ''
+    });
+    await fileDoc.save();
+
+    // Invalidate caches
+    try {
+      const { ProfileCache, FeedCache, PublicationCache } = require('../../../cache/cache.service');
+      await Promise.all([
+        ProfileCache.del(String(userId)),
+        PublicationCache.del(String(publication.slug)),
+        PublicationCache.del(String(publication._id)),
+        FeedCache.flush()
+      ]);
+    } catch (cacheErr) {
+      console.error('[Cache Invalidation Failed]:', cacheErr.message);
+    }
+
+    // Emit Socket.IO Events
+    try {
+      const socket = require('../../../socket');
+      if (socket) {
+        const publicationDTO = require('../dto/publication.dto');
+        const formatted = publicationDTO.formatPublication(publication);
+        const payload = { userId: String(userId), publicationId: String(publication._id), document: publication.document };
+        
+        socket.emitToUser(String(userId), 'publicationDocumentUploaded', payload);
+        socket.emitToUser(String(userId), 'publicationUpdated', formatted);
+        
+        const io = socket.getIO();
+        if (io) {
+          io.emit('publicationUpdated', formatted);
+          io.emit('publicationDocumentUploaded', payload);
+        }
+      }
+    } catch (sockErr) {
+      console.error('[Socket Emission Failed]:', sockErr.message);
+    }
+
+    return publication;
+  }
+
+  /**
+   * Delete research paper PDF from Cloudflare R2
+   */
+  async deletePaper(publicationId, userId) {
+    const publication = await Publication.findById(publicationId);
+    if (!publication) {
+      throw new NotFoundError('Publication not found.');
+    }
+
+    // Verify Ownership
+    this.verifyOwnership(publication, userId);
+
+    const r2Service = require('../../upload/service/r2.service');
+    const PublicationFile = require('../../../models/PublicationFile');
+
+    // Delete file from R2
+    if (publication.document && publication.document.objectKey) {
+      await r2Service.deleteFile(publication.document.objectKey, 'raw');
+    }
+
+    // Clear document metadata fields
+    publication.document = undefined;
+    publication.cloudinaryFileUrl = '';
+    publication.pdfURL = '';
+    publication.lastUpdatedBy = userId;
+
+    await publication.save();
+
+    // Keep PublicationFile synced
+    await PublicationFile.deleteMany({ publicationId: publication._id });
+
+    // Invalidate caches
+    try {
+      const { ProfileCache, FeedCache, PublicationCache } = require('../../../cache/cache.service');
+      await Promise.all([
+        ProfileCache.del(String(userId)),
+        PublicationCache.del(String(publication.slug)),
+        PublicationCache.del(String(publication._id)),
+        FeedCache.flush()
+      ]);
+    } catch (cacheErr) {
+      console.error('[Cache Invalidation Failed]:', cacheErr.message);
+    }
+
+    // Emit Socket.IO Events
+    try {
+      const socket = require('../../../socket');
+      if (socket) {
+        const publicationDTO = require('../dto/publication.dto');
+        const formatted = publicationDTO.formatPublication(publication);
+        const payload = { userId: String(userId), publicationId: String(publication._id) };
+
+        socket.emitToUser(String(userId), 'publicationDocumentRemoved', payload);
+        socket.emitToUser(String(userId), 'publicationUpdated', formatted);
+
+        const io = socket.getIO();
+        if (io) {
+          io.emit('publicationUpdated', formatted);
+          io.emit('publicationDocumentRemoved', payload);
+        }
+      }
+    } catch (sockErr) {
+      console.error('[Socket Emission Failed]:', sockErr.message);
+    }
+
+    return publication;
   }
 }
 

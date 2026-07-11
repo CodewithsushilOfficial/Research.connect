@@ -79,6 +79,11 @@ router.get('/:slug', optionalAuth, responseCache(30), publicationController.getP
 router.patch('/:id', authMiddleware, publicationController.updatePublication);
 router.put('/:id', authMiddleware, publicationController.updatePublication);
 
+// 10.5. Upload/Delete publication document/paper PDF
+router.post('/:id/upload-paper', authMiddleware, universalUpload.single('file'), validateUpload, publicationController.uploadPaper);
+router.patch('/:id/document', authMiddleware, universalUpload.single('file'), validateUpload, publicationController.uploadPaper);
+router.delete('/:id/document', authMiddleware, publicationController.deletePaper);
+
 // 11. Delete publication
 router.delete('/:id', authMiddleware, publicationController.deletePublication);
 

@@ -119,6 +119,38 @@ const PublicationSchema = new Schema(
       pages: { type: Number, default: 0 },
       asset_id: { type: String, default: '' }
     },
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    lastUpdatedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    document: {
+      url: { type: String, default: '' },
+      objectKey: { type: String, default: '' },
+      fileName: { type: String, default: '' },
+      mimeType: { type: String, default: '' },
+      fileSize: { type: Number, default: 0 },
+      uploadedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+      uploadedAt: { type: Date },
+      lastModified: { type: Date },
+      storageProvider: { type: String, default: 'cloudflare_r2' },
+      version: { type: Number, default: 1 }
+    },
+    attachments: [
+      {
+        url: { type: String, default: '' },
+        objectKey: { type: String, default: '' },
+        fileName: { type: String, default: '' },
+        mimeType: { type: String, default: '' },
+        fileSize: { type: Number, default: 0 },
+        uploadedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+        uploadedAt: { type: Date },
+        attachmentType: { type: String, default: 'supplementary' }
+      }
+    ],
     license: {
       type: String,
       default: ''
@@ -287,6 +319,13 @@ PublicationSchema.pre('save', async function (next) {
   //    Uses ULID-based generation — no countDocuments(), no race condition.
   if (!this.publicationCode) {
     this.publicationCode = generatePublicationCode();
+  }
+
+  if (!this.ownerId && this.userId) {
+    this.ownerId = this.userId;
+  }
+  if (!this.createdBy && this.userId) {
+    this.createdBy = this.userId;
   }
 
   next();

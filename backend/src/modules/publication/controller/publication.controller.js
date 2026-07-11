@@ -449,6 +449,39 @@ class PublicationController {
     return res.success('Publication deleted successfully.');
   });
 
+  // Upload research paper PDF
+  uploadPaper = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    if (!req.file) {
+      throw new ValidationError('No file was uploaded.');
+    }
+
+    const mimeType = req.file.mimetype || '';
+    const isPDF = mimeType === 'application/pdf' || req.file.originalname?.toLowerCase().endsWith('.pdf');
+
+    if (isPDF) {
+      await validatePDFBuffer(req.file.buffer, req.file.originalname);
+    }
+
+    const pub = await publicationService.uploadPaper(id, req.user._id, req.file);
+
+    return res.success(
+      'Research paper document uploaded successfully.',
+      publicationDTO.formatPublication(pub)
+    );
+  });
+
+  // Delete research paper PDF
+  deletePaper = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const pub = await publicationService.deletePaper(id, req.user._id);
+
+    return res.success(
+      'Research paper document removed successfully.',
+      publicationDTO.formatPublication(pub)
+    );
+  });
+
   // Restore soft deleted publication
   restorePublication = asyncHandler(async (req, res) => {
     const { id } = req.params;
