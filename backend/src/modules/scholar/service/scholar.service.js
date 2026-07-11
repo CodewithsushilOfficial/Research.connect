@@ -19,6 +19,7 @@ const Profile = require('../../../models/Profile');
 const User = require('../../../models/User');
 const SyncHistory = require('../../../models/SyncHistory');
 const DerivedAnalytics = require('../../../models/DerivedAnalytics');
+const Upload = require('../../../models/Upload');
 const { ValidationError, NotFoundError, AppError } = require('../../../common/errors/AppError');
 const logger = require('../../../common/logger/winston');
 
@@ -167,8 +168,48 @@ class ScholarService {
       const i10Index = data.cited_by?.table?.[2]?.i10_index?.all || 0;
       importedCitationsCount = totalCitations;
 
-      // Delete any other scholar profiles connected to this user to avoid conflicts
-      await googleScholarProfileRepository.model.deleteMany({ userId, authorId: { $ne: authorId } });
+      // Check if there is an existing scholar profile for this user
+      const existingScholarProfile = await googleScholarProfileRepository.model.findOne({ userId });
+      const isDifferentProfile = existingScholarProfile && existingScholarProfile.authorId !== authorId;
+
+      if (isDifferentProfile) {
+        logger.info(`[ScholarSync] Different profile detected for user ${userId}. Old: ${existingScholarProfile.authorId}, New: ${authorId}. Cleaning up old profile data...`);
+
+        // 1. Find and delete all publications imported from Google Scholar
+        const scholarPubs = await publicationRepository.model.find({
+          userId,
+          $or: [
+            { googleScholarVerified: true },
+            { googleScholarPublicationId: { $exists: true, $ne: null } }
+          ]
+        });
+
+        const scholarPubIds = scholarPubs.map(p => p._id);
+
+        if (scholarPubIds.length > 0) {
+          // Delete publication authors associated with these publications
+          await publicationAuthorRepository.model.deleteMany({ publicationId: { $in: scholarPubIds } });
+
+          // Delete metrics associated with these publications
+          const PublicationMetric = require('../../../models/PublicationMetric');
+          await PublicationMetric.deleteMany({ publicationId: { $in: scholarPubIds } });
+
+          // Delete publications themselves
+          await publicationRepository.model.deleteMany({ _id: { $in: scholarPubIds } });
+        }
+
+        // 2. Delete co-authors
+        await coAuthorRepository.deleteByUserId(userId);
+
+        // 3. Delete citation graph
+        await citationGraphRepository.deleteByUserId(userId);
+
+        // 4. Delete old google scholar profiles
+        await googleScholarProfileRepository.model.deleteMany({ userId });
+      } else {
+        // Same profile: delete any other conflicting profiles if they somehow exist
+        await googleScholarProfileRepository.model.deleteMany({ userId, authorId: { $ne: authorId } });
+      }
 
       // Google Scholar profile details - upsert by authorId (globally unique) instead of userId
       await googleScholarProfileRepository.model.findOneAndUpdate(
@@ -195,6 +236,10 @@ class ScholarService {
         { upsert: true, new: true }
       );
 
+      // Check if the user has custom-uploaded a profile image to Cloudflare R2
+      const activeAvatarUpload = await Upload.findOne({ userId, purpose: 'profile-avatar', isDeleted: { $ne: true } });
+      const profileImageUrl = activeAvatarUpload ? activeAvatarUpload.secure_url : (data.author.thumbnail || '');
+
       // Sync basic profile data back to main researcher profile using Data Source Tracking
       const mainProfile = await Profile.findOne({ userId });
       if (mainProfile) {
@@ -218,14 +263,13 @@ class ScholarService {
 
         syncField(mainProfile, 'institution', data.author.affiliation || '');
         syncField(mainProfile, 'displayName', data.author.name || '');
-        syncField(mainProfile, 'profileImage', data.author.thumbnail || '');
+        syncField(mainProfile, 'profileImage', profileImageUrl);
         await mainProfile.save();
       }
 
       const mainUser = await User.findById(userId).select('+password');
       if (mainUser) {
-        // Fallback update to user profileImage if not custom set
-        mainUser.profileImage = mainUser.profileImage || data.author.thumbnail || '';
+        mainUser.profileImage = profileImageUrl;
         await mainUser.save();
       }
 
