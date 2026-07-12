@@ -2,10 +2,6 @@ const messageService = require('../service/message.service');
 const logger = require('../../../common/logger/winston');
 const Message = require('../model/Message');
 
-const messageService = require('../service/message.service');
-const logger = require('../../../common/logger/winston');
-const Message = require('../model/Message');
-
 module.exports = (io, socket) => {
   const userId = socket.user.id || socket.user._id;
   const userIdStr = userId.toString();
@@ -161,7 +157,10 @@ module.exports = (io, socket) => {
   socket.on('reactionAdded', async ({ messageId, reaction }) => {
     try {
       await messageService.reactToMessage(userId, messageId, reaction);
-      socket.to(`conversation:${messageId}`).emit('reactionAdded', { messageId, userId: userIdStr, reaction });
+      const msg = await Message.findById(messageId).select('conversationId').lean();
+      if (msg) {
+        socket.to(`conversation:${msg.conversationId}`).emit('reactionAdded', { messageId, userId: userIdStr, reaction });
+      }
     } catch (err) {
       logger.error(`Socket reactionAdded error: ${err.message}`);
     }
@@ -170,7 +169,10 @@ module.exports = (io, socket) => {
   socket.on('reactionRemoved', async ({ messageId }) => {
     try {
       await messageService.reactToMessage(userId, messageId, '');
-      socket.to(`conversation:${messageId}`).emit('reactionRemoved', { messageId, userId: userIdStr });
+      const msg = await Message.findById(messageId).select('conversationId').lean();
+      if (msg) {
+        socket.to(`conversation:${msg.conversationId}`).emit('reactionRemoved', { messageId, userId: userIdStr });
+      }
     } catch (err) {
       logger.error(`Socket reactionRemoved error: ${err.message}`);
     }
