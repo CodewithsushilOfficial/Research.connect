@@ -8,6 +8,35 @@ import {
   ChevronRight, BarChart2, Globe, Database, X
 } from 'lucide-react';
 
+const NAV_SECTIONS = [
+  {
+    label: 'Overview',
+    links: [
+      { name: 'Home Feed', path: '/home', icon: Home, end: true },
+      { name: 'Profile', path: '/profile/:slug', icon: User, end: true },
+      { name: 'Research Identity', path: '/profile/:slug/research-identity', icon: Globe },
+      { name: 'Publications', path: '/profile/:slug/publications', icon: FileText }
+    ]
+  },
+  {
+    label: 'Collaborate',
+    links: [
+      { name: 'Projects', path: '/projects', icon: Briefcase },
+      { name: 'My Network', path: '/network', icon: Users },
+      { name: 'Messages', path: '/messages', icon: MessageSquare }
+    ]
+  },
+  {
+    label: 'Community',
+    links: [
+      { name: 'Followers', path: '/profile/:slug/followers', icon: UserCheck },
+      { name: 'Following', path: '/profile/:slug/following', icon: UserPlus },
+      { name: 'Analytics', path: '/profile/:slug/analytics', icon: BarChart2 },
+      { name: 'Settings', path: '/profile/:slug/settings', icon: Settings }
+    ]
+  }
+];
+
 const ProfileSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen }) => {
   const navigate = useNavigate();
   const { username } = useParams();
@@ -15,20 +44,13 @@ const ProfileSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
 
   const profileSlug = username || user?.slug || user?.profileSlug || 'me';
 
-  const links = [
-    { name: 'Home Feed', path: '/', icon: Home, end: true },
-    { name: 'Profile', path: `/profile/${profileSlug}`, icon: User, end: true },
-    { name: 'Research Identity', path: `/profile/${profileSlug}/research-identity`, icon: Globe },
-    { name: 'Publications', path: `/profile/${profileSlug}/publications`, icon: FileText },
-    { name: 'Projects', path: '/projects', icon: Briefcase },
-    { name: 'My Network', path: '/network', icon: Users },
-    { name: 'Messages', path: '/messages', icon: MessageSquare },
-    { name: 'Followers', path: `/profile/${profileSlug}/followers`, icon: UserCheck },
-    { name: 'Following', path: `/profile/${profileSlug}/following`, icon: UserPlus },
-    { name: 'Analytics',  path: `/profile/${profileSlug}/analytics`,  icon: BarChart2 },
-    { name: 'Settings',      path: `/profile/${profileSlug}/settings`, icon: Settings }
-
-  ];
+  const sections = NAV_SECTIONS.map((section) => ({
+    ...section,
+    links: section.links.map((link) => ({
+      ...link,
+      path: link.path.replace(':slug', profileSlug)
+    }))
+  }));
 
   const handleUploadPublication = () => {
     setIsMobileOpen(false);
@@ -46,8 +68,8 @@ const ProfileSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
 
       <aside
         className={`bg-white border-r border-slate-200 h-full fixed top-0 left-0 z-[60] flex flex-col transition-transform duration-300 ease-out md:sticky md:top-[65px] md:h-[calc(100vh-65px)] md:z-30 md:translate-x-0 overflow-visible shadow-2xl md:shadow-none
-          ${isMobileOpen ? 'translate-x-0 w-[80vw] max-w-72' : '-translate-x-full md:translate-x-0'}
-          ${isCollapsed ? 'md:w-20' : 'md:w-64'}
+          ${isMobileOpen ? 'translate-x-0 w-[82vw] max-w-80' : '-translate-x-full md:translate-x-0'}
+          ${isCollapsed ? 'md:w-[88px]' : 'md:w-72'}
         `}
       >
         <button
@@ -57,50 +79,66 @@ const ProfileSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
           {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
         </button>
 
-        <div className="flex md:hidden items-center justify-between px-4 h-16 border-b border-slate-100 sticky top-0 bg-white z-10 shrink-0">
+        <div className="flex items-center justify-between px-5 h-12 md:hidden border-b border-slate-100 sticky top-0 bg-white z-10 shrink-0">
           <span className="font-bold text-sm text-slate-900">Menu</span>
           <button
             onClick={() => setIsMobileOpen(false)}
-            className="p-1.5 bg-slate-100 text-slate-500 rounded-lg hover:bg-slate-200"
+            className="p-1.5 bg-slate-100 text-slate-500 rounded-lg hover:bg-slate-200 shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="h-2 hidden md:block shrink-0" />
+        <div className="h-2.5 hidden md:block shrink-0" />
 
-        <div className="flex-1 px-3 py-2 overflow-y-auto">
-          <ul className="space-y-1">
-            {links.map((link) => {
-              const Icon = link.icon;
-              return (
-                <li key={link.name}>
-                  <NavLink
-                    to={link.path}
-                    end={link.end}
-                    onClick={() => setIsMobileOpen(false)}
-                    className={({ isActive }) =>
-                      `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
-                        isActive
-                          ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/25'
-                          : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
-                      } ${isCollapsed ? 'md:justify-center' : ''}`
-                    }
-                    title={isCollapsed ? link.name : ''}
-                  >
-                    <Icon className="w-4 h-4 flex-shrink-0" />
-                    <span className={isCollapsed ? 'md:hidden' : ''}>{link.name}</span>
-                  </NavLink>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+        <nav className="flex-1 px-3 pt-1.5 pb-1 overflow-y-auto">
+          {sections.map((section, idx) => (
+            <div key={section.label} className={idx > 0 ? 'mt-3 pt-3 border-t border-slate-100' : ''}>
+              <p className={`px-3 mb-1 text-[10.5px] font-bold uppercase tracking-wider text-slate-400 ${isCollapsed ? 'md:hidden' : ''}`}>
+                {section.label}
+              </p>
+              <ul className="space-y-0.5">
+                {section.links.map((link) => {
+                  const Icon = link.icon;
+                  return (
+                    <li key={link.name}>
+                      <NavLink
+                        to={link.path}
+                        end={link.end}
+                        onClick={() => setIsMobileOpen(false)}
+                        className={({ isActive }) =>
+                          `group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14.5px] font-semibold transition-colors ${
+                            isActive
+                              ? 'bg-blue-50 text-blue-700'
+                              : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
+                          } ${isCollapsed ? 'md:justify-center' : ''}`
+                        }
+                        title={isCollapsed ? link.name : ''}
+                      >
+                        {({ isActive }) => (
+                          <>
+                            <span
+                              className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 rounded-r-full bg-blue-600 transition-all ${
+                                isActive ? 'h-4.5 opacity-100' : 'h-0 opacity-0'
+                              }`}
+                            />
+                            <Icon className={`w-4.5 h-4.5 flex-shrink-0 ${isActive ? 'text-blue-600' : ''}`} />
+                            <span className={isCollapsed ? 'md:hidden' : ''}>{link.name}</span>
+                          </>
+                        )}
+                      </NavLink>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </nav>
 
-        <div className="p-3 border-t border-slate-200 bg-slate-50/60 shrink-0">
+        <div className="border-t border-slate-200 bg-slate-50/60 shrink-0 p-2.5">
           <button
             onClick={handleUploadPublication}
-            className={`w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-2.5 rounded-lg shadow-sm transition-all active:scale-[0.98] ${
+            className={`w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-[14.5px] font-bold py-2.5 rounded-lg shadow-sm transition-all active:scale-[0.98] ${
               isCollapsed ? 'md:px-0' : 'px-4'
             }`}
             title="Upload Publication"
