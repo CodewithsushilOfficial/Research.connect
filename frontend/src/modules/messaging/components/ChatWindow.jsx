@@ -235,6 +235,7 @@ const ChatWindow = ({
               message={msg}
               onReply={() => setReplyContext(msg)}
               onEditInit={() => setEditContext(msg)}
+              otherParticipant={otherParticipant}
             />
           );
         })}
