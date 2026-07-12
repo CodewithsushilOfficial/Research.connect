@@ -35,7 +35,7 @@ const NotificationCard = ({ notification }) => {
   const { _id, actorId, title, message, isRead, createdAt, targetUrl } = notification;
 
   const actorName = actorId ? `${actorId.firstName} ${actorId.lastName}` : 'Someone';
-  const actorImage = actorId?.profileImage?.url || actorId?.profileImage;
+  const actorImage = typeof actorId?.profileImage === 'string' ? actorId?.profileImage : actorId?.profileImage?.url;
 
   // Mark read mutation
   const markReadMutation = useMutation({

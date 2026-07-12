@@ -132,7 +132,7 @@ const NotificationDropdown = ({ onClose }) => {
               {/* Avatar */}
               <div className="relative shrink-0">
                 <img
-                  src={n.actorId?.profileImage?.url || n.actorId?.profileImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"}
+                  src={(typeof n.actorId?.profileImage === 'string' ? n.actorId?.profileImage : n.actorId?.profileImage?.url) || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"}
                   alt={n.actorId?.firstName || 'User'}
                   className="w-10 h-10 rounded-full object-cover shadow-sm ring-2 ring-white"
                 />
