@@ -139,7 +139,7 @@ const MessageInput = ({ conversationId, onSend, replyContext, onClearReply, edit
   };
 
   return (
-    <div className="p-4 bg-white border-t border-slate-100 flex flex-col gap-2 relative z-25">
+    <div className="p-2.5 sm:p-4 bg-white border-t border-slate-100 flex flex-col gap-2 relative z-25">
       
       {/* Reply Scope Preview */}
       {replyContext && (
@@ -194,7 +194,7 @@ const MessageInput = ({ conversationId, onSend, replyContext, onClearReply, edit
 
             {/* Inline Quick Emojis */}
             {showEmojiPicker && (
-              <div className="absolute bottom-11 left-0 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 flex items-center gap-1.5 animate-in fade-in zoom-in-95 duration-100">
+              <div className="absolute bottom-11 left-0 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 flex flex-wrap items-center gap-1.5 w-[min(16rem,calc(100vw-2rem))] animate-in fade-in zoom-in-95 duration-100">
                 {QUICK_EMOJIS.map((emoji) => (
                   <button
                     key={emoji}
@@ -215,7 +215,7 @@ const MessageInput = ({ conversationId, onSend, replyContext, onClearReply, edit
             onChange={handleInputChange}
             onKeyDown={(e) => { if (e.key === 'Enter') handleSend(); }}
             placeholder={editContext ? "Edit message..." : "Type a message..."}
-            className="flex-1 bg-transparent border-none outline-none text-xs font-bold text-slate-700 placeholder-slate-400"
+            className="flex-1 bg-transparent border-none outline-none text-base sm:text-xs font-bold text-slate-700 placeholder-slate-400"
           />
 
           {/* Attachment uploader inside Pill */}
@@ -247,7 +247,7 @@ const MessageInput = ({ conversationId, onSend, replyContext, onClearReply, edit
 
               {/* Publication Dropdown */}
               {showPubDropdown && (
-                <div className="absolute bottom-11 right-0 w-72 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-3 max-h-60 overflow-y-auto space-y-2 text-left animate-in fade-in duration-200">
+                <div className="absolute bottom-11 right-0 w-[min(18rem,calc(100vw-2rem))] bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-3 max-h-60 overflow-y-auto space-y-2 text-left animate-in fade-in duration-200">
                   <div className="flex justify-between items-center border-b border-slate-100 pb-1.5 mb-1">
                     <h6 className="text-[10px] font-black uppercase text-slate-800 tracking-wider">
                       Share a Publication

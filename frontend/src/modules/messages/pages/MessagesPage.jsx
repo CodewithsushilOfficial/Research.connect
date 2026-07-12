@@ -11,7 +11,7 @@ import CallOverlay from '../components/CallOverlay';
 import { 
   ArrowLeft, MessageSquare, Mail, Star, Archive, Users, 
   Lightbulb, UserPlus, PhoneCall, FolderOpen, FileText, Ban, 
-  Settings, Loader2, Shield, X, Check, Phone, Video, Search, Download, ExternalLink
+  Settings, Loader2, Shield, X, Check, Phone, Video, Search, Download, ExternalLink, ChevronDown
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -26,7 +26,8 @@ const MessagesPage = () => {
 
   const [activeId, setActiveId] = useState(conversationId || null);
   const [mobileView, setMobileView] = useState('list'); // 'list' or 'chat'
-  const [showInfoPanel, setShowInfoPanel] = useState(true);
+  const [showInfoPanel, setShowInfoPanel] = useState(false);
+  const [showMobileFolders, setShowMobileFolders] = useState(false);
   
   // Navigation tabs state
   const [activeTab, setActiveTab] = useState('inbox'); // inbox, unread, starred, archived, groups, collaboration, requests, calls, files, settings
@@ -386,10 +387,106 @@ const MessagesPage = () => {
     { id: 'settings', label: 'Settings', icon: Settings }
   ];
 
+  const activeFolder = sidebarFolders.find(f => f.id === activeTab);
+  const ActiveFolderIcon = activeFolder?.icon || MessageSquare;
+
   return (
-    <div className="flex h-[calc(100vh-64px)] bg-slate-50/50 overflow-hidden relative select-none">
-      
-      {/* 1. Folders Sub-sidebar (Left side) */}
+    <div className="flex flex-col md:flex-row h-[calc(100dvh-64px)] -m-6 md:-m-8 bg-slate-50/50 overflow-hidden relative select-none">
+
+      {/* Mobile folder switcher — only visible when browsing the list, hidden once a chat is open */}
+          {/* Mobile folder switcher */}
+      {mobileView === 'list' && (
+        <div className="md:hidden shrink-0 border-b border-slate-200 bg-white relative z-30">
+          <button
+            onClick={() => setShowMobileFolders(!showMobileFolders)}
+            className="w-full flex items-center justify-end px-4 py-3 cursor-pointer active:bg-slate-50 gap-3"
+          >
+            {/* Folder Label + Selected Folder (near Switch) */}
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Folder:</span>
+              <ActiveFolderIcon className="w-4 h-4 text-blue-600" />
+              <span className="text-xs font-black text-slate-800">
+                {activeFolder?.label || 'Inbox'}
+              </span>
+              {activeFolder?.badge && (
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-blue-600 text-white">
+                  {activeFolder.badge}
+                </span>
+              )}
+            </div>
+
+            {/* Switch Button */}
+            <div className="flex items-center gap-1 text-blue-600 border-l border-slate-200 pl-3">
+              <span className="text-[10px] font-bold">
+                {showMobileFolders ? 'Close' : 'Switch'}
+              </span>
+              <ChevronDown 
+                className={`w-4 h-4 transition-transform ${showMobileFolders ? 'rotate-180' : ''}`} 
+              />
+            </div>
+          </button>
+
+          {/* Dropdown remains same */}
+          {showMobileFolders && (
+            <>
+              <div
+                className="fixed inset-0 bg-slate-900/40 z-40"
+                onClick={() => setShowMobileFolders(false)}
+              />
+
+              <div className="absolute left-2 right-2 top-full mt-1.5 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/60">
+                  <span className="text-xs font-black text-slate-800 uppercase tracking-wide">All Folders</span>
+                  <button
+                    onClick={() => setShowMobileFolders(false)}
+                    className="p-1 rounded-lg hover:bg-slate-200/60 text-slate-500 cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="max-h-[55vh] overflow-y-auto py-1.5">
+                  {sidebarFolders.map((folder) => {
+                    const IconComponent = folder.icon;
+                    const isActive = activeTab === folder.id;
+                    return (
+                      <button
+                        key={folder.id}
+                        onClick={() => {
+                          setActiveTab(folder.id);
+                          if (folder.id === 'unread') setActiveSubTab('unread');
+                          else if (folder.id === 'groups') setActiveSubTab('groups');
+                          else setActiveSubTab('all');
+                          setShowMobileFolders(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-4 py-3 text-xs font-bold transition-all cursor-pointer ${
+                          isActive ? 'bg-blue-50 text-blue-600' : 'text-slate-600 active:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${isActive ? 'bg-blue-100' : 'bg-slate-100'}`}>
+                            <IconComponent className={`w-3.5 h-3.5 ${isActive ? 'text-blue-600' : 'text-slate-450'}`} />
+                          </span>
+                          <span>{folder.label}</span>
+                          {isActive && <Check className="w-3.5 h-3.5 text-blue-600" />}
+                        </div>
+                        {folder.badge && (
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                            isActive ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {folder.badge}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* 1. Folders Sub-sidebar (Left side) — desktop only */}
       <div className="w-60 h-full border-r border-slate-200 bg-white flex-col shrink-0 text-left select-none p-4 space-y-6 hidden md:flex">
         <div className="px-2">
           <h2 className="text-sm font-extrabold text-slate-800 tracking-tight flex items-center gap-2">
@@ -437,7 +534,7 @@ const MessagesPage = () => {
       <div className="flex-1 h-full flex overflow-hidden bg-white">
         {activeTab === 'requests' ? (
           /* Connection Requests List Page View */
-          <div className="flex-1 h-full overflow-y-auto p-6 bg-slate-50/20 text-left">
+          <div className="flex-1 h-full overflow-y-auto p-4 sm:p-6 bg-slate-50/20 text-left">
             <div className="mb-6">
               <h3 className="text-base font-extrabold text-slate-800">Connection Requests</h3>
               <p className="text-xs text-slate-450 font-semibold mt-0.5">Manage incoming collaborations from fellow researchers.</p>
@@ -527,7 +624,7 @@ const MessagesPage = () => {
           </div>
         ) : activeTab === 'calls' ? (
           /* Calls History Logs View */
-          <div className="flex-1 h-full overflow-y-auto p-6 bg-slate-50/20 text-left">
+          <div className="flex-1 h-full overflow-y-auto p-4 sm:p-6 bg-slate-50/20 text-left">
             <div className="mb-6 flex justify-between items-center">
               <div>
                 <h3 className="text-base font-extrabold text-slate-800">Call History</h3>
@@ -540,8 +637,8 @@ const MessagesPage = () => {
                 <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
               </div>
             ) : callHistoryData && callHistoryData.length > 0 ? (
-              <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-                <table className="w-full text-left border-collapse">
+              <div className="bg-white border border-slate-200 rounded-3xl overflow-x-auto shadow-sm">
+                <table className="w-full text-left border-collapse min-w-[560px]">
                   <thead>
                     <tr className="bg-slate-50/80 border-b border-slate-200 text-[10px] font-black uppercase text-slate-450 tracking-wider">
                       <th className="p-4">Contact</th>
@@ -602,13 +699,13 @@ const MessagesPage = () => {
           </div>
         ) : activeTab === 'files' ? (
           /* Shared Files Gallery View */
-          <div className="flex-1 h-full overflow-y-auto p-6 bg-slate-50/20 text-left">
+          <div className="flex-1 h-full overflow-y-auto p-4 sm:p-6 bg-slate-50/20 text-left">
             <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h3 className="text-base font-extrabold text-slate-800">Shared Files</h3>
                 <p className="text-xs text-slate-450 font-semibold mt-0.5">Access all PDFs, research papers, and datasets exchanged.</p>
               </div>
-              <div className="relative w-64 shrink-0">
+              <div className="relative w-full sm:w-64 shrink-0">
                 <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
                 <input 
                   type="text" 
@@ -679,7 +776,7 @@ const MessagesPage = () => {
           </div>
         ) : activeTab === 'settings' ? (
           /* Chat Settings View */
-          <div className="flex-1 h-full overflow-y-auto p-6 bg-slate-50/20 text-left">
+          <div className="flex-1 h-full overflow-y-auto p-4 sm:p-6 bg-slate-50/20 text-left">
             <div className="mb-6">
               <h3 className="text-base font-extrabold text-slate-800">Chat Settings</h3>
               <p className="text-xs text-slate-450 font-semibold mt-0.5">Manage preferences, blocklists, and security keys.</p>
@@ -745,7 +842,7 @@ const MessagesPage = () => {
             {/* Main chat window center view */}
             <div 
               className={`flex-1 h-full flex flex-col min-w-0 bg-white relative ${
-                mobileView === 'list' && activeId ? 'hidden md:flex' : 'flex'
+                mobileView === 'list' ? 'hidden md:flex' : 'flex'
               }`}
             >
               {/* Mobile Header navigation */}
@@ -773,15 +870,45 @@ const MessagesPage = () => {
               />
             </div>
 
-            {/* Right details sidebar */}
+            {/* Right details sidebar (desktop) + full-screen overlay (mobile/tablet) */}
             {activeConversation && showInfoPanel && (
-              <div className="hidden lg:block h-full shrink-0">
-                <ResearcherInfo
-                  participant={activeConversation.otherParticipant}
-                  conversation={activeConversation}
-                  messages={messagesList}
-                />
-              </div>
+              <>
+                <div className="hidden lg:block h-full shrink-0">
+                  <ResearcherInfo
+                    participant={activeConversation.otherParticipant}
+                    conversation={activeConversation}
+                    messages={messagesList}
+                  />
+                </div>
+
+                <div
+                  className="lg:hidden fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm"
+                  onClick={() => setShowInfoPanel(false)}
+                >
+                  <div
+                    className="absolute right-0 top-0 h-full w-full sm:w-96 max-w-full bg-white shadow-2xl flex flex-col"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 shrink-0">
+                      <h3 className="text-xs font-black text-slate-800 uppercase tracking-wide">Researcher Info</h3>
+                      <button
+                        onClick={() => setShowInfoPanel(false)}
+                        className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto">
+                      <ResearcherInfo
+                        participant={activeConversation.otherParticipant}
+                        conversation={activeConversation}
+                        messages={messagesList}
+                        containerClassName="p-5 flex flex-col gap-6 text-left select-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </>
             )}
           </>
         )}

@@ -121,13 +121,13 @@ const ChatWindow = ({
   return (
     <div className="flex-1 h-full bg-slate-50/30 flex flex-col min-w-0 relative">
       {/* Chat header */}
-      <div className="px-5 py-3 bg-white border-b border-slate-200 flex justify-between items-center z-15 shadow-sm select-none text-left">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="relative">
+      <div className="px-3 sm:px-5 py-2.5 sm:py-3 bg-white border-b border-slate-200 flex justify-between items-center z-15 shadow-sm select-none text-left">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="relative shrink-0">
             <img
               src={otherImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"}
               alt={otherName}
-              className="w-10 h-10 rounded-full object-cover border border-slate-100 shadow-sm"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border border-slate-100 shadow-sm"
             />
             {otherParticipant?.isOnline && (
               <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white bg-emerald-500" />
@@ -138,9 +138,9 @@ const ChatWindow = ({
               <h4 className="text-xs font-black text-slate-900 truncate leading-tight">
                 {otherName}
               </h4>
-              {!conversation.isGroup && <Shield className="w-3.5 h-3.5 text-blue-600 fill-blue-600" title="Verified Researcher" />}
+              {!conversation.isGroup && <Shield className="w-3.5 h-3.5 text-blue-600 fill-blue-600 shrink-0" title="Verified Researcher" />}
             </div>
-            <p className="text-[10px] font-bold text-slate-400 truncate max-w-md">
+            <p className="text-[10px] font-bold text-slate-400 truncate max-w-[140px] xs:max-w-[200px] sm:max-w-md">
               {otherParticipant?.designation ? `${otherParticipant.designation} at ` : ''}
               {otherParticipant?.institution || (otherParticipant?.isOnline ? 'Online' : 'Offline')}
             </p>
@@ -148,24 +148,24 @@ const ChatWindow = ({
         </div>
 
         {/* Action buttons */}
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
           <button 
             onClick={() => onStartCall('voice')}
-            className="p-2 rounded-xl hover:bg-slate-50 hover:scale-105 active:scale-95 text-slate-500 hover:text-slate-800 transition-all cursor-pointer border border-slate-200/50 shadow-xs" 
+            className="p-1.5 sm:p-2 rounded-xl hover:bg-slate-50 hover:scale-105 active:scale-95 text-slate-500 hover:text-slate-800 transition-all cursor-pointer border border-slate-200/50 shadow-xs" 
             title="Voice Call"
           >
             <Phone className="w-4 h-4 text-slate-650" />
           </button>
           <button 
             onClick={() => onStartCall('video')}
-            className="p-2 rounded-xl hover:bg-slate-50 hover:scale-105 active:scale-95 text-slate-500 hover:text-slate-800 transition-all cursor-pointer border border-slate-200/50 shadow-xs" 
+            className="p-1.5 sm:p-2 rounded-xl hover:bg-slate-50 hover:scale-105 active:scale-95 text-slate-500 hover:text-slate-800 transition-all cursor-pointer border border-slate-200/50 shadow-xs" 
             title="Video Call"
           >
             <Video className="w-4 h-4 text-slate-650" />
           </button>
           <button 
             onClick={() => setShowInfoPanel(!showInfoPanel)}
-            className={`p-2 rounded-xl hover:bg-slate-50 hover:scale-105 active:scale-95 transition-all cursor-pointer border border-slate-200/50 shadow-xs ${showInfoPanel ? 'bg-blue-50 text-blue-600 border-blue-200' : 'text-slate-500 hover:text-slate-800'}`}
+            className={`p-1.5 sm:p-2 rounded-xl hover:bg-slate-50 hover:scale-105 active:scale-95 transition-all cursor-pointer border border-slate-200/50 shadow-xs ${showInfoPanel ? 'bg-blue-50 text-blue-600 border-blue-200' : 'text-slate-500 hover:text-slate-800'}`}
             title="More Info"
           >
             <Info className="w-4 h-4" />
@@ -177,7 +177,7 @@ const ChatWindow = ({
       <div 
         ref={viewportRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto p-5 flex flex-col gap-4.5 bg-slate-50/20"
+        className="flex-1 overflow-y-auto p-3 sm:p-5 flex flex-col gap-4.5 bg-slate-50/20"
       >
         {/* Date / Welcome separator */}
         <div className="flex items-center justify-center my-2.5">
@@ -224,7 +224,7 @@ const ChatWindow = ({
       {showScrollDown && (
         <button
           onClick={() => scrollToBottom('smooth')}
-          className="absolute bottom-24 right-6 p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg hover:shadow-blue-500/20 active:scale-95 transition-all z-20 cursor-pointer animate-bounce border border-blue-500"
+          className="absolute bottom-20 right-4 sm:bottom-24 sm:right-6 p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg hover:shadow-blue-500/20 active:scale-95 transition-all z-20 cursor-pointer animate-bounce border border-blue-500"
         >
           <ArrowDown className="w-4 h-4" />
         </button>

@@ -100,7 +100,7 @@ const ConversationList = ({
   };
 
   return (
-    <div className="w-80 h-full border-r border-slate-200 bg-white flex flex-col shrink-0 select-none text-left">
+    <div className="w-full md:w-80 h-full border-r border-slate-200 bg-white flex flex-col shrink-0 select-none text-left">
       {/* Search Header */}
       <div className="p-4 border-b border-slate-100 space-y-3">
         <div className="flex items-center justify-between">

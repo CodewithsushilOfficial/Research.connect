@@ -61,7 +61,7 @@ const MessageBubble = ({ message, onReply, onEditInit }) => {
 
   return (
     <div 
-      className={`flex flex-col max-w-[70%] space-y-1 relative group ${
+      className={`flex flex-col max-w-[82%] sm:max-w-[70%] space-y-1 relative group ${
         isMe ? 'self-end items-end' : 'self-start items-start'
       }`}
       onMouseEnter={() => setShowActions(true)}
@@ -72,15 +72,16 @@ const MessageBubble = ({ message, onReply, onEditInit }) => {
     >
       {/* Reply header preview */}
       {replyTo && !deleted && (
-        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1">
-          <Reply className="w-3 h-3 text-slate-350" />
-          <span>Replied to: {replyTo.deleted ? 'Deleted message' : replyTo.text}</span>
+        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1 max-w-full">
+          <Reply className="w-3 h-3 text-slate-350 shrink-0" />
+          <span className="truncate">Replied to: {replyTo.deleted ? 'Deleted message' : replyTo.text}</span>
         </div>
       )}
 
-      {/* Main Bubble */}
+      {/* Main Bubble — tap to reveal actions on touch devices */}
       <div 
-        className={`p-3 rounded-2xl relative shadow-xs leading-relaxed text-xs border ${
+        onClick={() => setShowActions((prev) => !prev)}
+        className={`p-3 rounded-2xl relative shadow-xs leading-relaxed text-xs border cursor-pointer sm:cursor-auto ${
           deleted
             ? 'bg-slate-50 border-slate-200 text-slate-400 italic'
             : isMe
@@ -107,6 +108,7 @@ const MessageBubble = ({ message, onReply, onEditInit }) => {
             )}
             <a 
               href={parsedMeta.url || `/publication/${parsedMeta.slug}`}
+              onClick={(e) => e.stopPropagation()}
               target="_blank"
               rel="noopener noreferrer"
               className={`flex items-center gap-1 text-[10px] font-black uppercase pt-1.5 w-fit ${
@@ -129,13 +131,14 @@ const MessageBubble = ({ message, onReply, onEditInit }) => {
                 src={attachment.url} 
                 alt={attachment.filename} 
                 className="max-h-48 rounded-xl object-cover border border-slate-200 cursor-pointer"
-                onClick={() => window.open(attachment.url, '_blank')}
+                onClick={(e) => { e.stopPropagation(); window.open(attachment.url, '_blank'); }}
               />
             ) : (
               <a 
                 href={attachment.url} 
                 target="_blank" 
                 rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
                 className={`flex items-center gap-2 p-2 rounded-xl text-[10px] font-bold border transition-all ${
                   isMe 
                     ? 'bg-blue-700/50 border-blue-500 text-white hover:bg-blue-700' 
@@ -178,9 +181,11 @@ const MessageBubble = ({ message, onReply, onEditInit }) => {
       {/* Bubble Action Floating Controls */}
       {showActions && !deleted && (
         <div 
-          className={`absolute top-0 p-1 bg-white border border-slate-200 rounded-xl shadow-lg z-10 flex items-center gap-1 animate-in fade-in duration-100 ${
-            isMe ? 'left-0 -translate-x-full -ml-2' : 'right-0 translate-x-full mr-2'
-          }`}
+          onClick={(e) => e.stopPropagation()}
+          className={`absolute z-10 p-1 bg-white border border-slate-200 rounded-xl shadow-lg flex items-center gap-1 animate-in fade-in duration-100 flex-wrap max-w-[calc(100vw-2.5rem)]
+            top-full mt-1 ${isMe ? 'right-0' : 'left-0'}
+            sm:top-0 sm:mt-0 ${isMe ? 'sm:left-0 sm:-translate-x-full sm:-ml-2 sm:right-auto' : 'sm:right-0 sm:translate-x-full sm:mr-2 sm:left-auto'}
+          `}
         >
           {/* Reaction Picker Button */}
           <div className="relative">

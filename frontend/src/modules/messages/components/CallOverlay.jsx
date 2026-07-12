@@ -226,16 +226,16 @@ const CallOverlay = ({ callState, onAccept, onDecline, onHangup, socket }) => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-[#0F172A] flex flex-col items-center justify-between p-6 text-white select-none animate-in fade-in"
+        className="fixed inset-0 z-50 bg-[#0F172A] flex flex-col items-center justify-between p-3 sm:p-6 text-white select-none animate-in fade-in"
       >
         {/* Top Header */}
         <div className="w-full flex items-center justify-between max-w-6xl">
-          <div className="flex items-center gap-2 bg-white/10 px-3.5 py-1.5 rounded-full border border-white/5 text-xs font-bold uppercase tracking-wider">
-            <Volume2 className="w-4 h-4 text-emerald-400" />
+          <div className="flex items-center gap-1.5 sm:gap-2 bg-white/10 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full border border-white/5 text-[10px] sm:text-xs font-bold uppercase tracking-wider">
+            <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
             <span>Secure WebRTC {type} call</span>
           </div>
           {status === 'active' && (
-            <div className="text-sm font-black text-slate-300 tabular-nums bg-white/5 px-4 py-1.5 rounded-full border border-white/5">
+            <div className="text-xs sm:text-sm font-black text-slate-300 tabular-nums bg-white/5 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full border border-white/5">
               {formatTime(callDuration)}
             </div>
           )}
@@ -287,7 +287,7 @@ const CallOverlay = ({ callState, onAccept, onDecline, onHangup, socket }) => {
                 )}
               </div>
               <div className="text-center space-y-2">
-                <h2 className="text-2xl font-black">{callerName || 'Researcher'}</h2>
+                <h2 className="text-xl sm:text-2xl font-black px-4 break-words">{callerName || 'Researcher'}</h2>
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">
                   {status === 'dialing' && 'Dialing call...'}
                   {status === 'incoming' && 'Incoming Call'}
@@ -304,7 +304,7 @@ const CallOverlay = ({ callState, onAccept, onDecline, onHangup, socket }) => {
         </div>
 
         {/* Bottom Call Action Controls Bar */}
-        <div className="w-full max-w-md flex items-center justify-center gap-6 py-4 bg-white/5 border border-white/5 rounded-3xl backdrop-blur-md px-8 shadow-xl mb-4">
+        <div className="w-full max-w-md flex items-center justify-center flex-wrap gap-3 sm:gap-6 py-3 sm:py-4 bg-white/5 border border-white/5 rounded-3xl backdrop-blur-md px-4 sm:px-8 shadow-xl mb-2 sm:mb-4">
           {status === 'incoming' ? (
             <>
               {/* Accept button */}

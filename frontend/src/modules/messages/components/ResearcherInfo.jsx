@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, Users, FileText, Share2, Shield, Landmark, BookOpen, GraduationCap } from 'lucide-react';
 
-const ResearcherInfo = ({ participant, conversation, messages = [] }) => {
+const ResearcherInfo = ({ participant, conversation, messages = [], containerClassName }) => {
   if (!participant) return null;
 
   const {
@@ -38,7 +38,7 @@ const ResearcherInfo = ({ participant, conversation, messages = [] }) => {
     : '12 May 2024';
 
   return (
-    <div className="h-full bg-white border-l border-slate-200 w-80 p-6 flex flex-col gap-6 text-left overflow-y-auto shrink-0 select-none shadow-sm">
+    <div className={containerClassName || "h-full bg-white border-l border-slate-200 w-80 p-6 flex flex-col gap-6 text-left overflow-y-auto shrink-0 select-none shadow-sm"}>
       {/* Profile summary */}
       <div className="flex flex-col items-center text-center space-y-4 pb-6 border-b border-slate-100">
         <div className="relative">
