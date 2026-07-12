@@ -68,23 +68,25 @@ const AppRoutes = () => {
       <Routes>
         {/* Dynamic Landing / Feed Hub */}
         <Route path="/" element={<HomeHub />} />
+        {/* Standalone Full-Screen Auth Pages */}
+        <Route path="login" element={
+          <PublicRoute>
+            <LoginPage />
+          </PublicRoute>
+        } />
+        <Route path="register" element={
+          <PublicRoute>
+            <RegisterPage />
+          </PublicRoute>
+        } />
+        <Route path="otp" element={
+          <PublicRoute>
+            <OtpVerificationPage />
+          </PublicRoute>
+        } />
+
         {/* Authentication Layout */}
         <Route element={<AuthLayout />}>
-          <Route path="login" element={
-            <PublicRoute>
-              <LoginPage />
-            </PublicRoute>
-          } />
-          <Route path="register" element={
-            <PublicRoute>
-              <RegisterPage />
-            </PublicRoute>
-          } />
-          <Route path="otp" element={
-            <PublicRoute>
-              <OtpVerificationPage />
-            </PublicRoute>
-          } />
           <Route path="forgot-password" element={
             <PublicRoute>
               <ForgotPasswordPage />

@@ -14,7 +14,10 @@ const startServer = async () => {
 
     // 1.5 Establish Redis Connection
     try {
-      await redisClient.connect();
+      await Promise.race([
+        redisClient.connect(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Redis connection timeout')), 2000))
+      ]);
     } catch (redisErr) {
       logger.error('Failed to connect to Redis on startup. Proceeding in fallback mode:', redisErr.message);
     }

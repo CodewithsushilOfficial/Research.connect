@@ -8,8 +8,14 @@ const createStore = (prefix) => {
     return new RedisStore({
       sendCommand: async (...args) => {
         if (!redisClient.isOpen || !redisClient.isReady) {
-          // Return dummy value during import/compile phase or when Redis is not ready yet
-          return 'dummy';
+          const cmd = Array.isArray(args[0]) ? args[0] : args;
+          
+          if (cmd[0] === 'SCRIPT' && cmd[1] === 'LOAD') {
+            return 'dummy_sha1_hash';
+          }
+          
+          // For EVALSHA and everything else, return a dummy [hits, ttl] to prevent crashes
+          return [1, 500];
         }
         return await redisClient.sendCommand(args);
       },
