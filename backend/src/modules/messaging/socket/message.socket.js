@@ -134,4 +134,6 @@ module.exports = (io, socket) => {
       logger.error(`message:ack error: ${err.message}`);
     }
   });
+
 };
+

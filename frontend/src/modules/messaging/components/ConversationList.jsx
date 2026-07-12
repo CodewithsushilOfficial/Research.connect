@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Pin, Archive, MessageSquareCode, MoreVertical, Edit, Shield } from 'lucide-react';
+import { Search, Pin, Archive, MessageSquareCode, MoreVertical, Edit, Shield, UserPlus } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import messagesService from '../services/messages.service';
@@ -9,7 +9,10 @@ const ConversationList = ({
   activeId, 
   onSelect,
   activeSubTab = 'all',
-  setActiveSubTab
+  setActiveSubTab,
+  contacts = null,        // { connections, followers, following } from /messages/contacts
+  onStartNewChat = null,  // callback(userId) to open/create a DM
+  onComposeClick = null
 }) => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
@@ -108,6 +111,7 @@ const ConversationList = ({
             Messages
           </h3>
           <button 
+            onClick={onComposeClick}
             className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-800 transition-all cursor-pointer"
             title="New Conversation"
           >
@@ -249,11 +253,75 @@ const ConversationList = ({
             );
           })
         ) : (
-          <div className="py-16 text-center text-slate-400 space-y-2">
+          <div className="py-10 text-center text-slate-400 space-y-2">
             <MessageSquareCode className="w-8 h-8 mx-auto opacity-30 animate-pulse" />
-            <p className="text-xs font-bold">No chats found</p>
+            <p className="text-xs font-bold">No chats yet</p>
           </div>
         )}
+
+        {/* ── People Section: followers/connections without a conversation yet ── */}
+        {contacts && onStartNewChat && (() => {
+          // Merge all contacts, deduplicate by _id, keep only those without existing conversation
+          const existingParticipantIds = new Set(
+            conversations
+              .map(c => c.otherParticipant?._id?.toString())
+              .filter(Boolean)
+          );
+
+          const seen = new Set();
+          const allPeople = [
+            ...(contacts.connections || []),
+            ...(contacts.followers  || []),
+            ...(contacts.following  || [])
+          ].filter(p => {
+            const id = p._id?.toString();
+            if (!id || seen.has(id) || existingParticipantIds.has(id)) return false;
+            seen.add(id);
+            return true;
+          });
+
+          if (allPeople.length === 0) return null;
+
+          // Apply search filter
+          const searchLower = search.toLowerCase();
+          const filteredPeople = allPeople.filter(p =>
+            !searchLower || `${p.firstName} ${p.lastName}`.toLowerCase().includes(searchLower)
+          );
+
+          if (filteredPeople.length === 0) return null;
+
+          return (
+            <div className="pt-3">
+              <div className="px-4 pb-2 flex items-center gap-2">
+                <UserPlus className="w-3 h-3 text-slate-400" />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">People — Start a Chat</span>
+              </div>
+              {filteredPeople.map(person => (
+                <div
+                  key={person._id}
+                  onClick={() => onStartNewChat(person._id)}
+                  className="px-4 py-3 flex items-center gap-3 hover:bg-slate-50 cursor-pointer transition-colors border-t border-slate-50"
+                >
+                  <div className="relative shrink-0">
+                    <img
+                      src={person.profileImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"}
+                      alt={`${person.firstName} ${person.lastName}`}
+                      className="w-9 h-9 rounded-full object-cover border border-slate-100"
+                    />
+                    <span className={`absolute bottom-0 right-0 w-2 h-2 rounded-full border-2 border-white ${person.isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-black text-slate-700 truncate">{person.firstName} {person.lastName}</p>
+                    <p className="text-[10px] text-slate-400 font-semibold truncate">{person.designation || 'Researcher'}</p>
+                  </div>
+                  <span className="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full shrink-0">
+                    Start Chat
+                  </span>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

@@ -66,14 +66,14 @@ class SocketGateway {
 
         // Register messaging socket router
         try {
-          require('../../modules/messages/socket/message.socket')(this.io, socket);
+          require('../../modules/messaging/socket/message.socket')(this.io, socket);
         } catch (err) {
           logger.error(`Failed mounting messaging socket listeners: ${err.message}`);
         }
 
         // Register call socket router
         try {
-          require('../../modules/messages/socket/call.socket')(this.io, socket);
+          require('../../modules/messaging/socket/call.socket')(this.io, socket);
         } catch (err) {
           logger.error(`Failed mounting call socket listeners: ${err.message}`);
         }

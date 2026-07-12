@@ -13,6 +13,11 @@ const ConnectionCard = ({ connection, currentUserId }) => {
     navigate(`/profile/${user.profileSlug || user.username}`);
   };
 
+  const handleMessageClick = (e) => {
+    e.stopPropagation();
+    navigate(`/messages?user=${user._id}`);
+  };
+
   const researchAreas = profile?.researchAreas || [];
 
   return (
@@ -76,11 +81,9 @@ const ConnectionCard = ({ connection, currentUserId }) => {
         </button>
 
         <div className="flex gap-2">
-          {/* Message button (disabled for future Messaging phase) */}
           <button
-            disabled
-            className="flex items-center gap-1 px-3 py-2 bg-slate-100 text-slate-400 rounded-xl text-xs font-bold cursor-not-allowed border border-slate-200"
-            title="Messaging coming in Phase 4"
+            onClick={handleMessageClick}
+            className="flex items-center gap-1 px-3 py-2 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer border border-blue-200 hover:border-blue-600"
           >
             <MessageSquare className="w-3.5 h-3.5" />
             <span>Message</span>

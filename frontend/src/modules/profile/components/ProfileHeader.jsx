@@ -221,7 +221,7 @@ const ProfileHeader = ({
               </button>
               <FollowButton targetUserId={profile?.userId} username={profile?.profileSlug || profile?.username} />
               <ConnectButton targetUserId={profile?.userId} username={profile?.profileSlug || profile?.username} />
-              {isConnected && (
+              {(isConnected || isFollowing) && (
                 <Link
                   to={`/messages?user=${profile?.userId}`}
                   className="flex items-center gap-1.5 px-4 py-2 bg-blue-650 hover:bg-blue-700 hover:scale-105 active:scale-95 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md shadow-blue-500/10"

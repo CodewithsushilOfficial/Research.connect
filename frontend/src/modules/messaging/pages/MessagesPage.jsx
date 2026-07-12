@@ -8,6 +8,7 @@ import ConversationList from '../components/ConversationList';
 import ChatWindow from '../components/ChatWindow';
 import ResearcherInfo from '../components/ResearcherInfo';
 import CallOverlay from '../components/CallOverlay';
+import NewChatModal from '../components/NewChatModal';
 import { 
   ArrowLeft, MessageSquare, Mail, Star, Archive, Users, 
   Lightbulb, UserPlus, PhoneCall, FolderOpen, FileText, Ban, 
@@ -23,10 +24,12 @@ const MessagesPage = () => {
   const { socket } = useSocket();
 
   const userQueryId = searchParams.get('user');
+  const conversationQueryId = searchParams.get('conversation');
 
   const [activeId, setActiveId] = useState(conversationId || null);
   const [mobileView, setMobileView] = useState('list'); // 'list' or 'chat'
   const [showInfoPanel, setShowInfoPanel] = useState(true);
+  const [isComposeOpen, setIsComposeOpen] = useState(false);
   
   // Navigation tabs state
   const [activeTab, setActiveTab] = useState('inbox'); // inbox, unread, starred, archived, groups, collaboration, requests, calls, files, settings
@@ -70,7 +73,7 @@ const MessagesPage = () => {
 
   // Handle "?user=userId" query parameter to auto-open or create conversation
   useEffect(() => {
-    if (!userQueryId || !conversations.length) return;
+    if (!userQueryId || isConvLoading) return;
 
     // Check if we already have a conversation with this participant
     const existingConv = conversations.find(
@@ -85,6 +88,7 @@ const MessagesPage = () => {
           const res = await messagesService.createConversation(userQueryId);
           if (res.success && res.data) {
             queryClient.invalidateQueries({ queryKey: ['conversations'] });
+            queryClient.invalidateQueries({ queryKey: ['messagingContacts'] });
             handleSelectConversation(res.data._id);
           }
         } catch (err) {
@@ -93,7 +97,14 @@ const MessagesPage = () => {
       };
       startNewChat();
     }
-  }, [userQueryId, conversations]);
+  }, [userQueryId, isConvLoading, conversations]);
+
+  // Handle "?conversation=conversationId" query parameter to auto-select conversation
+  useEffect(() => {
+    if (conversationQueryId) {
+      handleSelectConversation(conversationQueryId);
+    }
+  }, [conversationQueryId]);
 
   const activeConversation = conversations.find(c => c._id === activeId);
 
@@ -308,6 +319,20 @@ const MessagesPage = () => {
         attachmentId: payload.attachmentId,
         replyTo: payload.replyTo
       });
+    }
+  };
+
+  // Start a new DM from the ConversationList People section
+  const handleStartNewChatFromList = async (userId) => {
+    try {
+      const res = await messagesService.createConversation(userId);
+      if (res.success && res.data) {
+        queryClient.invalidateQueries({ queryKey: ['conversations'] });
+        queryClient.invalidateQueries({ queryKey: ['messagingContacts'] });
+        handleSelectConversation(res.data._id);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not start conversation.');
     }
   };
 
@@ -863,6 +888,9 @@ const MessagesPage = () => {
                 onSelect={handleSelectConversation}
                 activeSubTab={activeSubTab}
                 setActiveSubTab={setActiveSubTab}
+                contacts={contactsData}
+                onStartNewChat={handleStartNewChatFromList}
+                onComposeClick={() => setIsComposeOpen(true)}
               />
             </div>
 
@@ -918,6 +946,14 @@ const MessagesPage = () => {
         onDecline={handleDeclineCall}
         onHangup={handleHangupCall}
         socket={socket}
+      />
+
+      {/* Compose / New Chat Modal */}
+      <NewChatModal
+        isOpen={isComposeOpen}
+        onClose={() => setIsComposeOpen(false)}
+        contacts={contactsData}
+        onSelectContact={handleStartNewChatFromList}
       />
     </div>
   );

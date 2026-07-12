@@ -391,6 +391,7 @@ class AuthService {
     await cacheService.set(cooldownKey, { createdAt: Date.now() }, 60);
 
     // Send Email OTP
+    logger.info(`[DEV ONLY] Login OTP for ${user.email} is: ${otpCode}`);
     await emailHelper.sendLoginOtp(user.email, otpCode, clientInfo);
 
     await this._logSecurityEvent(user._id, email, 'LOGIN_OTP_TRIGGERED', 'Credentials valid. Login 2FA OTP sent.', clientInfo);

@@ -480,21 +480,39 @@ const NetworkPage = () => {
                     )}
 
                     {networkTab === 'following' && (
-                      <button
-                        onClick={() => unfollowMutation.mutate({ userId: item.id })}
-                        className="px-2.5 py-1 border border-slate-200 hover:border-rose-200 text-slate-500 hover:text-rose-600 text-[9px] font-black uppercase rounded-lg hover:bg-rose-50 transition-all cursor-pointer"
-                      >
-                        Unfollow
-                      </button>
+                      <>
+                        <button
+                          onClick={() => navigate(`/messages?user=${item.id}`)}
+                          className="p-1.5 hover:bg-blue-50 text-blue-600 hover:text-blue-700 border border-slate-200 hover:border-blue-200 rounded-lg transition-all cursor-pointer"
+                          title="Send Message"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => unfollowMutation.mutate({ userId: item.id })}
+                          className="px-2.5 py-1 border border-slate-200 hover:border-rose-200 text-slate-500 hover:text-rose-600 text-[9px] font-black uppercase rounded-lg hover:bg-rose-50 transition-all cursor-pointer"
+                        >
+                          Unfollow
+                        </button>
+                      </>
                     )}
 
                     {networkTab === 'followers' && (
-                      <button
-                        onClick={() => followMutation.mutate({ userId: item.id })}
-                        className="px-2.5 py-1 border border-blue-200 hover:bg-blue-600 text-blue-600 hover:text-white text-[9px] font-black uppercase rounded-lg transition-all cursor-pointer"
-                      >
-                        Follow Back
-                      </button>
+                      <>
+                        <button
+                          onClick={() => navigate(`/messages?user=${item.id}`)}
+                          className="p-1.5 hover:bg-blue-50 text-blue-600 hover:text-blue-700 border border-slate-200 hover:border-blue-200 rounded-lg transition-all cursor-pointer"
+                          title="Send Message"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => followMutation.mutate({ userId: item.id })}
+                          className="px-2.5 py-1 border border-blue-200 hover:bg-blue-600 text-blue-600 hover:text-white text-[9px] font-black uppercase rounded-lg transition-all cursor-pointer"
+                        >
+                          Follow Back
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>

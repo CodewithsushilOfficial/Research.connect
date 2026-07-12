@@ -1,6 +1,6 @@
 const Presence = require('./Presence');
 const SocketSession = require('../sessions/SocketSession');
-const Conversation = require('../../modules/messages/model/Conversation');
+const Conversation = require('../../modules/messaging/model/Conversation');
 const logger = require('../../common/logger/winston');
 
 class PresenceManager {

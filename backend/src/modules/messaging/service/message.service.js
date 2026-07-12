@@ -463,6 +463,43 @@ class MessageService {
   }
 
   /**
+   * Add or remove a reaction on a message
+   */
+  async reactToMessage(userId, messageId, reaction) {
+    const MessageReaction = require('../model/MessageReaction');
+    const Message = require('../model/Message');
+
+    const msg = await Message.findById(messageId);
+    if (!msg) {
+      throw new ValidationError('Message not found.');
+    }
+
+    // If reaction string is empty/null, delete the reaction (toggle behavior)
+    if (!reaction || reaction.trim() === '') {
+      await MessageReaction.findOneAndDelete({ messageId, userId });
+    } else {
+      await MessageReaction.findOneAndUpdate(
+        { messageId, userId },
+        { reaction: reaction.trim() },
+        { upsert: true, new: true }
+      );
+    }
+
+    // Fetch all current reactions for this message
+    const reactions = await MessageReaction.find({ messageId })
+      .select('userId reaction')
+      .lean();
+
+    // Emit live reaction event to the conversation room
+    emitToRoom(`conversation:${msg.conversationId}`, 'message:reaction', {
+      messageId,
+      reactions
+    });
+
+    return reactions;
+  }
+
+  /**
    * Get shared files in user's conversations
    */
   async getSharedFiles(userId) {

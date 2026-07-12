@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Send, Paperclip, Smile, FileText, X, AlertCircle } from 'lucide-react';
+import { Send, Paperclip, Smile, FileText, X, AlertCircle, Sparkles, GraduationCap } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import messagesService from '../services/messages.service';
 import publicationService from '../../../services/publication.service';
@@ -14,7 +14,18 @@ const MessageInput = ({ conversationId, onSend, replyContext, onClearReply, edit
   const [attachedFile, setAttachedFile] = useState(null);
   const [showPubDropdown, setShowPubDropdown] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showAiAssistant, setShowAiAssistant] = useState(false);
+  const [showCitationHelper, setShowCitationHelper] = useState(false);
   const typingTimeoutRef = useRef(null);
+  const textareaRef = useRef(null);
+
+  // Auto-resize textarea logic
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+    }
+  }, [text]);
 
   // Load user's publications for sharing
   const { data: pubsData } = useQuery({
@@ -140,6 +151,61 @@ const MessageInput = ({ conversationId, onSend, replyContext, onClearReply, edit
 
   return (
     <div className="p-4 bg-white border-t border-slate-100 flex flex-col gap-2 relative z-25">
+      {/* AI & Citation Assistant bar */}
+      <div className="flex gap-2 mb-1">
+        <button
+          onClick={() => setShowAiAssistant(!showAiAssistant)}
+          className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100 hover:bg-indigo-100 transition-all cursor-pointer"
+        >
+          <Sparkles className="w-3 h-3 text-indigo-500 fill-indigo-150" /> AI Assistant
+        </button>
+        <button
+          onClick={() => setShowCitationHelper(!showCitationHelper)}
+          className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-teal-50 text-teal-600 border border-teal-100 hover:bg-teal-100 transition-all cursor-pointer"
+        >
+          <GraduationCap className="w-3 h-3 text-teal-500 fill-teal-150" /> Citation Helper
+        </button>
+      </div>
+
+      {showAiAssistant && (
+        <div className="flex flex-wrap gap-1.5 p-2 bg-indigo-50/50 border border-indigo-100 rounded-xl mb-1 text-[10px] animate-in fade-in slide-in-from-top-1 duration-150">
+          <button 
+            onClick={() => { setText("Hi, following up on our previous discussion regarding collaboration. Let me know your thoughts."); setShowAiAssistant(false); }}
+            className="px-2 py-1 bg-white hover:bg-indigo-50 border border-indigo-200/50 rounded-lg text-slate-600 font-bold cursor-pointer"
+          >
+            ✉️ Follow-up message
+          </button>
+          <button 
+            onClick={() => { setText("Hi, would you mind reviewing my latest publication draft when you get a chance? I would appreciate your feedback."); setShowAiAssistant(false); }}
+            className="px-2 py-1 bg-white hover:bg-indigo-50 border border-indigo-200/50 rounded-lg text-slate-600 font-bold cursor-pointer"
+          >
+            📝 Request Paper Review
+          </button>
+          <button 
+            onClick={() => { setText("Hi, are you available for a quick voice/video call sometime this week to discuss research ideas?"); setShowAiAssistant(false); }}
+            className="px-2 py-1 bg-white hover:bg-indigo-50 border border-indigo-200/50 rounded-lg text-slate-600 font-bold cursor-pointer"
+          >
+            📞 Invite to Call
+          </button>
+        </div>
+      )}
+
+      {showCitationHelper && (
+        <div className="flex flex-wrap gap-1.5 p-2 bg-teal-50/50 border border-teal-100 rounded-xl mb-1 text-[10px] animate-in fade-in slide-in-from-top-1 duration-150">
+          <button 
+            onClick={() => { setText(prev => prev + " (Smith et al., 2026)"); setShowCitationHelper(false); }}
+            className="px-2 py-1 bg-white hover:bg-teal-50 border border-teal-200/50 rounded-lg text-slate-600 font-bold cursor-pointer"
+          >
+            🎓 APA (Short)
+          </button>
+          <button 
+            onClick={() => { setText(prev => prev + " Smith, A., & Jones, B. (2026). Deep Learning for Molecular Design. Journal of Computational Chemistry, 47(3), 112-120. DOI: 10.1002/jcc.27182"); setShowCitationHelper(false); }}
+            className="px-2 py-1 bg-white hover:bg-teal-50 border border-teal-200/50 rounded-lg text-slate-600 font-bold cursor-pointer"
+          >
+            📚 Full APA Citation
+          </button>
+        </div>
+      )}
       
       {/* Reply Scope Preview */}
       {replyContext && (
@@ -208,14 +274,20 @@ const MessageInput = ({ conversationId, onSend, replyContext, onClearReply, edit
             )}
           </div>
 
-          {/* Text Input inside Pill */}
-          <input
-            type="text"
+          {/* Text Area inside Pill */}
+          <textarea
+            ref={textareaRef}
             value={text}
             onChange={handleInputChange}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleSend(); }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
             placeholder={editContext ? "Edit message..." : "Type a message..."}
-            className="flex-1 bg-transparent border-none outline-none text-xs font-bold text-slate-700 placeholder-slate-400"
+            rows={1}
+            className="flex-1 bg-transparent border-none outline-none text-xs font-bold text-slate-700 placeholder-slate-400 resize-none max-h-24 overflow-y-auto py-1"
           />
 
           {/* Attachment uploader inside Pill */}
