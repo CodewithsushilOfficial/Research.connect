@@ -24,34 +24,48 @@ router.get('/contacts', messageController.getMessagingContacts);
 // GET Pending connection requests for the messaging Requests tab
 router.get('/requests', messageController.getConnectionRequests);
 
+// ── LinkedIn-Style Message APIs (New) ──
+// POST Send message
+router.post('/', validateSendMessage, messageController.sendMessage);
+
 // GET Message history
 router.get('/:conversationId', validateConversationId, messageController.getConversationMessages);
 
-// POST Send message
-router.post('/send', validateSendMessage, messageController.sendMessage);
-
-// PATCH Mark read
-router.patch('/:conversationId/read', validateConversationId, messageController.markAsRead);
-
-// PATCH Pin / Unpin
-router.patch('/:conversationId/pin', validateConversationId, messageController.pinConversation);
-router.patch('/:conversationId/unpin', validateConversationId, messageController.unpinConversation);
-
-// PATCH Archive / Unarchive
-router.patch('/:conversationId/archive', validateConversationId, messageController.archiveConversation);
-router.patch('/:conversationId/restore', validateConversationId, messageController.restoreConversation);
-
 // PATCH Edit Message
-router.patch('/edit', messageController.editMessage);
+router.patch('/:id', messageController.editMessage);
 
 // DELETE Delete Message (both Everyone and Me)
-router.delete('/delete', validateMessageId, messageController.deleteMessage);
+router.delete('/:id', messageController.deleteMessage);
+
+// POST Reply to message
+router.post('/:id/reply', validateSendMessage, (req, res, next) => {
+  req.body.replyTo = req.params.id;
+  messageController.sendMessage(req, res, next);
+});
 
 // POST Reactions
-router.post('/reaction', validateReaction, messageController.reactToMessage);
+router.post('/:id/react', validateReaction, messageController.reactToMessage);
+
+// PATCH Mark read
+router.patch('/read', messageController.markAsRead);
+
+// PATCH Mark delivered
+router.patch('/delivered', (req, res) => res.status(200).json({ success: true, message: 'Delivered' }));
 
 // POST File Attachment Upload
 router.post('/upload', upload.single('file'), validateUpload, messageController.uploadAttachment);
+
+
+// ── Legacy/Compatibility routes ──
+router.post('/send', validateSendMessage, messageController.sendMessage);
+router.patch('/:conversationId/read', validateConversationId, messageController.markAsRead);
+router.patch('/:conversationId/pin', validateConversationId, messageController.pinConversation);
+router.patch('/:conversationId/unpin', validateConversationId, messageController.unpinConversation);
+router.patch('/:conversationId/archive', validateConversationId, messageController.archiveConversation);
+router.patch('/:conversationId/restore', validateConversationId, messageController.restoreConversation);
+router.patch('/edit', messageController.editMessage);
+router.delete('/delete', validateMessageId, messageController.deleteMessage);
+router.post('/reaction', validateReaction, messageController.reactToMessage);
 
 // ── Conversation-scoped aliases (matches frontend messagingApi.js routes) ─────
 // GET  /conversations          → list all conversations

@@ -5,7 +5,7 @@ class MessagesService {
    * Get list of conversations for current user
    */
   async getConversations() {
-    const res = await axiosInstance.get('/v1/messages');
+    const res = await axiosInstance.get('/v1/conversations');
     return res.data;
   }
 
@@ -13,12 +13,12 @@ class MessagesService {
    * Create or fetch a direct conversation with a participant
    */
   async createConversation(participantId) {
-    const res = await axiosInstance.post('/v1/messages/conversations', { participantId });
+    const res = await axiosInstance.post('/v1/conversations', { participantId });
     return res.data;
   }
 
   /**
-   * Get cursor paginated messages of a conversation
+   * Get paginated messages of a conversation
    */
   async getMessages(conversationId, params = {}) {
     const res = await axiosInstance.get(`/v1/messages/${conversationId}`, { params });
@@ -28,8 +28,14 @@ class MessagesService {
   /**
    * Send a new message
    */
-  async sendMessage(payload) {
-    const res = await axiosInstance.post('/v1/messages/send', payload);
+  async sendMessage(payload, content, attachments) {
+    let body;
+    if (typeof payload === 'object' && payload !== null) {
+      body = payload;
+    } else {
+      body = { conversationId: payload, text: content, attachments };
+    }
+    const res = await axiosInstance.post('/v1/messages', body);
     return res.data;
   }
 
@@ -37,15 +43,19 @@ class MessagesService {
    * Mark all messages in a conversation as read
    */
   async markAsRead(conversationId) {
-    const res = await axiosInstance.patch(`/v1/messages/${conversationId}/read`);
+    const res = await axiosInstance.patch('/v1/messages/read', { conversationId });
     return res.data;
+  }
+
+  async markConversationRead(conversationId) {
+    return this.markAsRead(conversationId);
   }
 
   /**
    * Pin a conversation
    */
   async pinConversation(conversationId) {
-    const res = await axiosInstance.patch(`/v1/messages/${conversationId}/pin`);
+    const res = await axiosInstance.patch(`/v1/conversations/${conversationId}/pin`);
     return res.data;
   }
 
@@ -53,7 +63,7 @@ class MessagesService {
    * Unpin a conversation
    */
   async unpinConversation(conversationId) {
-    const res = await axiosInstance.patch(`/v1/messages/${conversationId}/unpin`);
+    const res = await axiosInstance.patch(`/v1/conversations/${conversationId}/unpin`);
     return res.data;
   }
 
@@ -61,7 +71,7 @@ class MessagesService {
    * Archive a conversation
    */
   async archiveConversation(conversationId) {
-    const res = await axiosInstance.patch(`/v1/messages/${conversationId}/archive`);
+    const res = await axiosInstance.patch(`/v1/conversations/${conversationId}/archive`);
     return res.data;
   }
 
@@ -69,7 +79,31 @@ class MessagesService {
    * Restore/Unarchive a conversation
    */
   async restoreConversation(conversationId) {
-    const res = await axiosInstance.patch(`/v1/messages/${conversationId}/restore`);
+    const res = await axiosInstance.patch(`/v1/conversations/${conversationId}/restore`);
+    return res.data;
+  }
+
+  /**
+   * Mute a conversation
+   */
+  async muteConversation(conversationId) {
+    const res = await axiosInstance.patch(`/v1/conversations/${conversationId}/mute`);
+    return res.data;
+  }
+
+  /**
+   * Unmute a conversation
+   */
+  async unmuteConversation(conversationId) {
+    const res = await axiosInstance.patch(`/v1/conversations/${conversationId}/unmute`);
+    return res.data;
+  }
+
+  /**
+   * Delete a conversation
+   */
+  async deleteConversation(conversationId) {
+    const res = await axiosInstance.delete(`/v1/conversations/${conversationId}`);
     return res.data;
   }
 
@@ -77,7 +111,7 @@ class MessagesService {
    * Edit a message text
    */
   async editMessage(messageId, text) {
-    const res = await axiosInstance.patch('/v1/messages/edit', { messageId, text });
+    const res = await axiosInstance.patch(`/v1/messages/${messageId}`, { text });
     return res.data;
   }
 
@@ -87,8 +121,8 @@ class MessagesService {
    * @param {string} deleteType - 'everyone' or 'me'
    */
   async deleteMessage(messageId, deleteType = 'everyone') {
-    const res = await axiosInstance.delete('/v1/messages/delete', {
-      data: { messageId, deleteType }
+    const res = await axiosInstance.delete(`/v1/messages/${messageId}`, {
+      data: { deleteType }
     });
     return res.data;
   }
@@ -97,7 +131,7 @@ class MessagesService {
    * Add a reaction to a message
    */
   async reactToMessage(messageId, reaction) {
-    const res = await axiosInstance.post('/v1/messages/reaction', { messageId, reaction });
+    const res = await axiosInstance.post(`/v1/messages/${messageId}/react`, { reaction });
     return res.data;
   }
 
@@ -117,7 +151,15 @@ class MessagesService {
    * Search messages across user's conversations
    */
   async searchMessages(query) {
-    const res = await axiosInstance.get('/v1/messages/search', { params: { q: query } });
+    const res = await axiosInstance.get('/v1/search/messages', { params: { q: query } });
+    return res.data;
+  }
+
+  /**
+   * Search conversations
+   */
+  async searchConversations(query) {
+    const res = await axiosInstance.get('/v1/search/conversations', { params: { q: query } });
     return res.data;
   }
 
@@ -171,7 +213,6 @@ class MessagesService {
 
   /**
    * Get pending connection requests
-   * Now served by the messaging module directly (same data, avoids cross-module coupling)
    */
   async getRequests() {
     const res = await axiosInstance.get('/v1/messages/requests');
@@ -197,7 +238,6 @@ class MessagesService {
   /**
    * Get messaging contacts — returns connections, followers, and following
    * each enriched with online status and existingConversationId.
-   * Used to populate the Followers / Following / Connections panels in MessagesPage.
    */
   async getContacts() {
     const res = await axiosInstance.get('/v1/messages/contacts');

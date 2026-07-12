@@ -38,6 +38,25 @@ const messageSchema = new mongoose.Schema(
       ],
       default: 'text'
     },
+    messageType: {
+      type: String,
+      enum: [
+        'text',
+        'image',
+        'pdf',
+        'publication',
+        'dataset',
+        'project',
+        'patent',
+        'conference',
+        'journal',
+        'research_profile',
+        'citation',
+        'file',
+        'system'
+      ],
+      default: 'text'
+    },
     text: {
       type: String
     },
@@ -45,9 +64,13 @@ const messageSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'MessageAttachment'
     },
+    attachmentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'MessageAttachment'
+    },
     status: {
       type: String,
-      enum: ['sending', 'sent', 'delivered', 'seen', 'failed'],
+      enum: ['sending', 'sent', 'delivered', 'read', 'seen', 'failed'],
       default: 'sent',
       index: true
     },
@@ -68,7 +91,22 @@ const messageSchema = new mongoose.Schema(
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
       }
-    ]
+    ],
+    reactions: [
+      {
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User'
+        },
+        reaction: String
+      }
+    ],
+    readAt: {
+      type: Date
+    },
+    deliveredAt: {
+      type: Date
+    }
   },
   {
     timestamps: true
@@ -76,5 +114,7 @@ const messageSchema = new mongoose.Schema(
 );
 
 messageSchema.index({ conversationId: 1, createdAt: -1 });
+messageSchema.index({ senderId: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Message', messageSchema);
+

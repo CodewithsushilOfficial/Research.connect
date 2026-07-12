@@ -115,7 +115,11 @@ class MessageController {
    */
   async markAsRead(req, res, next) {
     try {
-      const data = await messageService.markAsRead(req.user.id, req.params.conversationId);
+      const conversationId = req.params.conversationId || req.body.conversationId || req.params.id || req.body.id;
+      if (!conversationId) {
+        throw new ValidationError('conversationId is required.');
+      }
+      const data = await messageService.markAsRead(req.user.id, conversationId);
       res.status(200).json({
         success: true,
         message: 'Messages marked as read',
@@ -200,7 +204,8 @@ class MessageController {
    */
   async editMessage(req, res, next) {
     try {
-      const { messageId, text } = req.body;
+      const messageId = req.params.id || req.body.messageId;
+      const { text } = req.body;
       if (!text || text.trim() === '') {
         throw new ValidationError('Message text is required to edit.');
       }
@@ -221,7 +226,8 @@ class MessageController {
    */
   async deleteMessage(req, res, next) {
     try {
-      const { messageId, deleteType } = req.body; // 'everyone' or 'me'
+      const messageId = req.params.id || req.body.messageId;
+      const { deleteType } = req.body; // 'everyone' or 'me'
       const data = await messageService.deleteMessage(req.user.id, messageId, deleteType);
       res.status(200).json({
         success: true,
@@ -239,7 +245,8 @@ class MessageController {
    */
   async reactToMessage(req, res, next) {
     try {
-      const { messageId, reaction } = req.body;
+      const messageId = req.params.id || req.body.messageId;
+      const { reaction } = req.body;
       const data = await messageService.reactToMessage(req.user.id, messageId, reaction);
       res.status(200).json({
         success: true,
@@ -446,6 +453,74 @@ class MessageController {
       res.status(200).json({
         success: true,
         message: 'Connection requests retrieved successfully',
+        data,
+        error: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * Get single conversation details
+   */
+  async getConversationById(req, res, next) {
+    try {
+      const data = await messageService.getConversationById(req.user.id, req.params.conversationId);
+      res.status(200).json({
+        success: true,
+        message: 'Conversation details retrieved successfully',
+        data,
+        error: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * Mute conversation
+   */
+  async muteConversation(req, res, next) {
+    try {
+      const data = await messageService.muteConversation(req.user.id, req.params.conversationId);
+      res.status(200).json({
+        success: true,
+        message: 'Conversation muted successfully',
+        data,
+        error: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * Unmute conversation
+   */
+  async unmuteConversation(req, res, next) {
+    try {
+      const data = await messageService.unmuteConversation(req.user.id, req.params.conversationId);
+      res.status(200).json({
+        success: true,
+        message: 'Conversation unmuted successfully',
+        data,
+        error: null
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * Delete conversation
+   */
+  async deleteConversation(req, res, next) {
+    try {
+      const data = await messageService.deleteConversation(req.user.id, req.params.conversationId);
+      res.status(200).json({
+        success: true,
+        message: 'Conversation deleted successfully',
         data,
         error: null
       });

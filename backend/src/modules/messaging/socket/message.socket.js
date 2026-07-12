@@ -2,22 +2,23 @@ const messageService = require('../service/message.service');
 const logger = require('../../../common/logger/winston');
 const Message = require('../model/Message');
 
+const messageService = require('../service/message.service');
+const logger = require('../../../common/logger/winston');
+const Message = require('../model/Message');
+
 module.exports = (io, socket) => {
   const userId = socket.user.id || socket.user._id;
+  const userIdStr = userId.toString();
 
-  /**
-   * Listen for user joining conversation room.
-   * Auto-marks messages as read and emits message:delivered to the sender.
-   */
-  socket.on('chat:join', async ({ conversationId }) => {
+  // Helper for joining rooms
+  const handleJoin = async (conversationId) => {
     if (!conversationId) return;
     const roomId = `conversation:${conversationId}`;
     socket.join(roomId);
-    logger.info(`💬 Socket ${socket.id} (User: ${userId}) joined room: ${roomId}`);
+    logger.info(`💬 Socket ${socket.id} (User: ${userIdStr}) joined room: ${roomId}`);
 
-    // Auto-mark incoming messages as seen and notify sender
     try {
-      // Find undelivered messages sent by the other participant
+      // Auto-mark incoming messages as read and notify sender
       const undelivered = await Message.find({
         conversationId,
         senderId: { $ne: userId },
@@ -25,115 +26,154 @@ module.exports = (io, socket) => {
       }).select('_id senderId').lean();
 
       if (undelivered.length > 0) {
-        // Mark all as 'seen'
+        const now = new Date();
+        await Message.updateMany(
+          { _id: { $in: undelivered.map(m => m._id) } },
+          { $set: { status: 'read', readAt: now } }
+        );
+
+        // Also update backward compatible seen status
         await Message.updateMany(
           { _id: { $in: undelivered.map(m => m._id) } },
           { $set: { status: 'seen' } }
         );
 
-        // Group by sender and emit message:read to each unique sender
+        // Reset unread count for current user
+        const Conversation = require('../model/Conversation');
+        await Conversation.findByIdAndUpdate(conversationId, {
+          $set: { [`unreadCounts.${userIdStr}`]: 0 }
+        });
+
+        // Group by sender and emit messageRead to each unique sender
         const senderIds = [...new Set(undelivered.map(m => m.senderId.toString()))];
         senderIds.forEach(senderId => {
-          io.to(`user:${senderId}`).emit('message:read', {
-            conversationId,
-            readBy: userId
-          });
+          io.to(`user:${senderId}`).emit('message:read', { conversationId, readBy: userIdStr, readAt: now });
+          io.to(`user:${senderId}`).emit('messageRead', { conversationId, readBy: userIdStr, readAt: now });
         });
 
         // Refresh conversation list for current user
-        io.to(`user:${userId}`).emit('conversation:update', { conversationId });
+        io.to(`user:${userIdStr}`).emit('conversation:update', { conversationId });
+        io.to(`user:${userIdStr}`).emit('conversationUpdated', { conversationId });
       }
     } catch (err) {
       logger.error(`Auto-read on chat:join error: ${err.message}`);
     }
-  });
+  };
 
-  /**
-   * Listen for user leaving conversation room
-   */
-  socket.on('chat:leave', ({ conversationId }) => {
+  // Helper for leaving rooms
+  const handleLeave = (conversationId) => {
     if (!conversationId) return;
     const roomId = `conversation:${conversationId}`;
     socket.leave(roomId);
-    logger.info(`💬 Socket ${socket.id} (User: ${userId}) left room: ${roomId}`);
-  });
+    logger.info(`💬 Socket ${socket.id} (User: ${userIdStr}) left room: ${roomId}`);
+  };
 
-  /**
-   * Listen for user typing
-   */
-  socket.on('chat:typing', async ({ conversationId }) => {
+  // Join/Leave events (both old and new style)
+  socket.on('chat:join', ({ conversationId }) => handleJoin(conversationId));
+  socket.on('joinConversation', ({ conversationId }) => handleJoin(conversationId));
+
+  socket.on('chat:leave', ({ conversationId }) => handleLeave(conversationId));
+  socket.on('leaveConversation', ({ conversationId }) => handleLeave(conversationId));
+
+  // Typing indicators
+  const handleTypingStart = (conversationId) => {
     if (!conversationId) return;
-    try {
-      const redisClient = require('../../../config/redis');
-      if (redisClient && redisClient.isOpen && redisClient.isReady) {
-        await redisClient.set(`typing:${conversationId}:${userId}`, 'true', { EX: 5 });
-      }
-    } catch (err) {
-      logger.error(`Redis typing start error: ${err.message}`);
-    }
-    socket.to(`conversation:${conversationId}`).emit('typing:start', {
-      conversationId,
-      userId
-    });
-  });
+    socket.to(`conversation:${conversationId}`).emit('typing:start', { conversationId, userId: userIdStr });
+    socket.to(`conversation:${conversationId}`).emit('typing', { conversationId, userId: userIdStr });
+  };
 
-  /**
-   * Listen for user stop typing
-   */
-  socket.on('chat:stopTyping', async ({ conversationId }) => {
+  const handleTypingStop = (conversationId) => {
     if (!conversationId) return;
-    try {
-      const redisClient = require('../../../config/redis');
-      if (redisClient && redisClient.isOpen && redisClient.isReady) {
-        await redisClient.del(`typing:${conversationId}:${userId}`);
-      }
-    } catch (err) {
-      logger.error(`Redis typing stop error: ${err.message}`);
-    }
-    socket.to(`conversation:${conversationId}`).emit('typing:stop', {
-      conversationId,
-      userId
-    });
-  });
+    socket.to(`conversation:${conversationId}`).emit('typing:stop', { conversationId, userId: userIdStr });
+    socket.to(`conversation:${conversationId}`).emit('stopTyping', { conversationId, userId: userIdStr });
+  };
 
-  /**
-   * Listen for chat read receipts (explicit mark-read from frontend)
-   */
-  socket.on('chat:read', async ({ conversationId }) => {
+  socket.on('chat:typing', ({ conversationId }) => handleTypingStart(conversationId));
+  socket.on('typing', ({ conversationId }) => handleTypingStart(conversationId));
+
+  socket.on('chat:stopTyping', ({ conversationId }) => handleTypingStop(conversationId));
+  socket.on('stopTyping', ({ conversationId }) => handleTypingStop(conversationId));
+
+  // Mark Read events
+  const handleMarkRead = async (conversationId) => {
     if (!conversationId) return;
     try {
       await messageService.markAsRead(userId, conversationId);
     } catch (err) {
       logger.error(`Error marking message as read via socket: ${err.message}`);
     }
+  };
+
+  socket.on('chat:read', ({ conversationId }) => handleMarkRead(conversationId));
+  socket.on('messageRead', ({ conversationId }) => handleMarkRead(conversationId));
+
+  // Send Message socket event
+  socket.on('sendMessage', async (payload) => {
+    try {
+      await messageService.sendMessage(userId, payload);
+    } catch (err) {
+      logger.error(`Socket sendMessage handler failed: ${err.message}`);
+    }
   });
 
-  /**
-   * Emit message:delivered to the sender when the message arrives
-   * at the recipient's socket room. Called by the sendMessage flow via
-   * the emitToRoom helper — no client event needed.
-   * This handler allows the client to manually acknowledge delivery.
-   */
-  socket.on('message:ack', async ({ messageId, conversationId }) => {
+  // Acknowledge Delivery
+  const handleAckDelivery = async ({ messageId, conversationId }) => {
     if (!messageId) return;
     try {
+      const now = new Date();
       const msg = await Message.findOneAndUpdate(
         { _id: messageId, senderId: { $ne: userId }, status: 'sent' },
-        { $set: { status: 'delivered' } },
+        { $set: { status: 'delivered', deliveredAt: now } },
         { new: true }
       ).lean();
 
       if (msg) {
-        io.to(`user:${msg.senderId}`).emit('message:delivered', {
-          messageId,
-          conversationId,
-          deliveredTo: userId
-        });
+        io.to(`user:${msg.senderId}`).emit('message:delivered', { messageId, conversationId, deliveredTo: userIdStr, deliveredAt: now });
+        io.to(`user:${msg.senderId}`).emit('messageDelivered', { messageId, conversationId, deliveredTo: userIdStr, deliveredAt: now });
       }
     } catch (err) {
-      logger.error(`message:ack error: ${err.message}`);
+      logger.error(`Socket message acknowledgement error: ${err.message}`);
+    }
+  };
+
+  socket.on('message:ack', handleAckDelivery);
+  socket.on('messageDelivered', handleAckDelivery);
+
+  // Edit message
+  socket.on('messageEdited', async ({ messageId, text }) => {
+    try {
+      await messageService.editMessage(userId, messageId, text);
+    } catch (err) {
+      logger.error(`Socket messageEdited error: ${err.message}`);
     }
   });
 
+  // Delete message
+  socket.on('messageDeleted', async ({ messageId, deleteType }) => {
+    try {
+      await messageService.deleteMessage(userId, messageId, deleteType);
+    } catch (err) {
+      logger.error(`Socket messageDeleted error: ${err.message}`);
+    }
+  });
+
+  // Reactions
+  socket.on('reactionAdded', async ({ messageId, reaction }) => {
+    try {
+      await messageService.reactToMessage(userId, messageId, reaction);
+      socket.to(`conversation:${messageId}`).emit('reactionAdded', { messageId, userId: userIdStr, reaction });
+    } catch (err) {
+      logger.error(`Socket reactionAdded error: ${err.message}`);
+    }
+  });
+
+  socket.on('reactionRemoved', async ({ messageId }) => {
+    try {
+      await messageService.reactToMessage(userId, messageId, '');
+      socket.to(`conversation:${messageId}`).emit('reactionRemoved', { messageId, userId: userIdStr });
+    } catch (err) {
+      logger.error(`Socket reactionRemoved error: ${err.message}`);
+    }
+  });
 };
 

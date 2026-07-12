@@ -108,6 +108,7 @@ app.use("/api/v1/notifications", notificationsModule.routes);
 app.use("/api/v1", feedModule.routes);
 app.use("/api/v1/publications", publicationModule.routes);
 app.use("/api/v1/messages", messageModule.routes);
+app.use("/api/v1/conversations", messageModule.conversationRoutes);
 app.use("/api/v1/search", searchModule.routes);
 app.use("/api/v1/uploads", uploadModule.routes);
 app.use("/api/v1/projects", projectModule.routes);

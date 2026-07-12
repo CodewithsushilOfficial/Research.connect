@@ -594,6 +594,92 @@ class SearchService {
     await entry.save();
     return entry;
   }
+
+  /**
+   * Search conversations by participant name or group name
+   */
+  async searchConversations(userId, q) {
+    const mongoose = require('mongoose');
+    const Conversation = mongoose.model('Conversation');
+    const User = mongoose.model('User');
+    const Profile = mongoose.model('Profile');
+
+    const searchRegex = new RegExp(q, 'i');
+
+    // 1. Find users who match first name / last name
+    const matchedUsers = await User.find({
+      $or: [
+        { firstName: searchRegex },
+        { lastName: searchRegex },
+        { username: searchRegex }
+      ],
+      isDeleted: { $ne: true }
+    }).select('_id').lean();
+    const matchedUserIds = matchedUsers.map(u => u._id);
+
+    // 2. Find conversations containing the user and either group name matches or participants contain matched users
+    const conversations = await Conversation.find({
+      participants: userId,
+      $or: [
+        { name: searchRegex },
+        { participants: { $in: matchedUserIds } }
+      ]
+    })
+      .populate('participants', 'firstName lastName profileImage username profileSlug slug email')
+      .populate({
+        path: 'lastMessageId',
+        populate: { path: 'attachmentId' }
+      })
+      .sort({ lastMessageTime: -1 })
+      .lean();
+
+    // 3. Process
+    const processed = await Promise.all(
+      conversations.map(async (conv) => {
+        const otherParticipant = conv.participants.find(
+          p => p._id.toString() !== userId.toString()
+        );
+
+        let detailedParticipant = null;
+        if (otherParticipant) {
+          const profile = await Profile.findOne({ userId: otherParticipant._id }).lean();
+          detailedParticipant = {
+            ...otherParticipant,
+            isOnline: false,
+            bio: profile?.bio || '',
+            institution: profile?.institution || '',
+            designation: profile?.designation || ''
+          };
+        }
+
+        const isPinned = Array.isArray(conv.isPinned) && conv.isPinned.map(id => id.toString()).includes(userId.toString());
+        const isArchived = Array.isArray(conv.isArchived) && conv.isArchived.map(id => id.toString()).includes(userId.toString());
+        const isMuted = Array.isArray(conv.isMuted) && conv.isMuted.map(id => id.toString()).includes(userId.toString());
+
+        return {
+          ...conv,
+          lastMessage: conv.lastMessageId ? {
+            ...conv.lastMessageId,
+            attachment: conv.lastMessageId.attachmentId
+          } : null,
+          otherParticipant: detailedParticipant,
+          isPinned,
+          isArchived,
+          isMuted
+        };
+      })
+    );
+
+    return processed;
+  }
+
+  /**
+   * Search message content
+   */
+  async searchMessages(userId, q) {
+    const messageService = require('../../messaging/service/message.service');
+    return await messageService.searchMessages(userId, q);
+  }
 }
 
 module.exports = new SearchService();

@@ -13,6 +13,11 @@ const conversationSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
+    conversationType: {
+      type: String,
+      enum: ['Direct', 'Group'],
+      default: 'Direct'
+    },
     name: {
       type: String,
       default: ''
@@ -32,12 +37,47 @@ const conversationSchema = new mongoose.Schema(
       }
     ],
     lastMessage: {
+      type: String,
+      default: ''
+    },
+    lastMessageId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Message'
     },
-    lastMessageAt: {
+    lastSender: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    lastMessageTime: {
       type: Date,
       default: Date.now
+    },
+    unreadCounts: {
+      type: Map,
+      of: Number,
+      default: {}
+    },
+    isArchived: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      }
+    ],
+    isMuted: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      }
+    ],
+    isPinned: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      }
+    ],
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
     }
   },
   {
@@ -47,6 +87,10 @@ const conversationSchema = new mongoose.Schema(
 
 // Compound index on participants to speed up user conversations lookup
 conversationSchema.index({ participants: 1 });
-conversationSchema.index({ lastMessageAt: -1 });
+conversationSchema.index({ lastMessageTime: -1 });
+conversationSchema.index({ 'unreadCounts.$*': 1 });
+conversationSchema.index({ isPinned: 1 });
+conversationSchema.index({ isArchived: 1 });
 
 module.exports = mongoose.model('Conversation', conversationSchema);
+

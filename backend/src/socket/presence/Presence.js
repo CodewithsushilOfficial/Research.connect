@@ -9,6 +9,10 @@ const presenceSchema = new mongoose.Schema(
       unique: true,
       index: true
     },
+    socketId: {
+      type: String,
+      index: true
+    },
     status: {
       type: String,
       enum: ['online', 'offline', 'idle', 'busy', 'away', 'invisible'],
@@ -22,6 +26,10 @@ const presenceSchema = new mongoose.Schema(
     lastActive: {
       type: Date,
       default: Date.now
+    },
+    device: {
+      type: String,
+      default: 'desktop'
     }
   },
   {

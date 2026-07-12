@@ -21,6 +21,12 @@ router.get('/authors', searchLimiter, optionalAuth, responseCache(30), searchCon
 // GET /api/v1/search/researchers
 router.get('/researchers', searchLimiter, optionalAuth, responseCache(30), searchController.searchResearchers);
 
+// GET /api/v1/search/conversations
+router.get('/conversations', searchLimiter, authMiddleware, searchController.searchConversations);
+
+// GET /api/v1/search/messages
+router.get('/messages', searchLimiter, authMiddleware, searchController.searchMessages);
+
 // GET /api/v1/search/journals
 router.get('/journals', searchLimiter, optionalAuth, responseCache(30), searchController.searchJournals);
 

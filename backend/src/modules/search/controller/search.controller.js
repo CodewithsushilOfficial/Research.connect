@@ -105,6 +105,26 @@ class SearchController {
     const entry = await searchService.toggleFavoriteHistory(req.user._id, req.params.id);
     return res.success('Favorite toggled.', entry);
   });
+
+  // GET /api/v1/search/conversations
+  searchConversations = asyncHandler(async (req, res) => {
+    const { q } = req.query;
+    if (!q || !q.trim()) {
+      throw new ValidationError('Search query q is required.');
+    }
+    const results = await searchService.searchConversations(req.user.id, q.trim());
+    return res.success('Conversations search completed.', results);
+  });
+
+  // GET /api/v1/search/messages
+  searchMessages = asyncHandler(async (req, res) => {
+    const { q } = req.query;
+    if (!q || !q.trim()) {
+      throw new ValidationError('Search query q is required.');
+    }
+    const results = await searchService.searchMessages(req.user.id, q.trim());
+    return res.success('Messages search completed.', results);
+  });
 }
 
 module.exports = new SearchController();

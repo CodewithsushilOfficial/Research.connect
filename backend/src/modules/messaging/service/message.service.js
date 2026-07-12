@@ -54,7 +54,20 @@ class MessageService {
       throw new ValidationError('You can only message researchers you are connected with or follow.');
     }
 
-    return await messageRepository.findOrCreateConversation(userId, targetUserId);
+    let conv = await Conversation.findOne({
+      participants: { $all: [userId, targetUserId] }
+    });
+
+    if (!conv) {
+      conv = new Conversation({
+        participants: [userId, targetUserId],
+        conversationType: 'Direct',
+        createdBy: userId,
+        unreadCounts: { [userId.toString()]: 0, [targetUserId.toString()]: 0 }
+      });
+      await conv.save();
+    }
+    return conv;
   }
 
   /**
@@ -62,15 +75,17 @@ class MessageService {
    */
   async sendMessage(userId, { conversationId, receiverId, type = 'text', text, attachmentId, replyTo }) {
     let conv;
+    const userIdStr = userId.toString();
+
     if (conversationId) {
       conv = await Conversation.findById(conversationId);
       if (!conv) {
         throw new ValidationError('Conversation not found.');
       }
-      if (!conv.participants.map(p => p.toString()).includes(userId.toString())) {
+      if (!conv.participants.map(p => p.toString()).includes(userIdStr)) {
         throw new UnauthorizedError('Unauthorized access to this conversation.');
       }
-      receiverId = conv.participants.find(p => p.toString() !== userId.toString());
+      receiverId = conv.participants.find(p => p.toString() !== userIdStr);
     } else if (receiverId) {
       conv = await this.getOrCreateConversation(userId, receiverId);
       conversationId = conv._id;
@@ -78,16 +93,24 @@ class MessageService {
       throw new ValidationError('Either conversationId or receiverId must be supplied.');
     }
 
+    const receiverIdStr = receiverId.toString();
+    const isOnline = isUserOnline(receiverIdStr);
+    const messageStatus = isOnline ? 'delivered' : 'sent';
+    const deliveryDate = isOnline ? new Date() : null;
+
     // Create the message
     const message = new Message({
       conversationId,
       senderId: userId,
       receiverId,
-      type,
+      type: type || 'text',
+      messageType: type || 'text',
       text,
       attachment: attachmentId || null,
+      attachmentId: attachmentId || null,
       replyTo: replyTo || null,
-      status: 'sent'
+      status: messageStatus,
+      deliveredAt: deliveryDate
     });
 
     await message.save();
@@ -97,24 +120,68 @@ class MessageService {
       await MessageAttachment.findByIdAndUpdate(attachmentId, { messageId: message._id });
     }
 
-    // Update conversation metadata
-    await Conversation.findByIdAndUpdate(conversationId, {
-      lastMessage: message._id,
-      lastMessageAt: message.createdAt
+    // Update conversation metadata and increment unread counts
+    const updateQuery = {
+      $set: {
+        lastMessage: text || (type === 'image' ? 'Shared an image' : 'Shared a file'),
+        lastMessageId: message._id,
+        lastSender: userId,
+        lastMessageTime: message.createdAt
+      }
+    };
+
+    // Increment unread count for other participants
+    conv.participants.forEach(p => {
+      const pidStr = p.toString();
+      if (pidStr !== userIdStr) {
+        updateQuery.$inc = updateQuery.$inc || {};
+        updateQuery.$inc[`unreadCounts.${pidStr}`] = 1;
+      }
     });
+
+    await Conversation.findByIdAndUpdate(conversationId, updateQuery);
 
     const populated = await Message.findById(message._id)
       .populate('attachment')
+      .populate('attachmentId')
       .populate('replyTo')
       .lean();
 
     // Emit live events to both users
-    // 1. Emit new message event to the conversation room
+    // Emit new message event to the conversation room using both event names
     emitToRoom(`conversation:${conversationId}`, 'message:new', populated);
+    emitToRoom(`conversation:${conversationId}`, 'receiveMessage', populated);
     
-    // 2. Emit conversation updates to both participants' user rooms to refresh sidebars
+    // Emit conversation updates to both participants' user rooms to refresh sidebars
     emitToUser(userId, 'conversation:update', { conversationId, lastMessage: populated });
+    emitToUser(userId, 'conversationUpdated', { conversationId, lastMessage: populated });
     emitToUser(receiverId, 'conversation:update', { conversationId, lastMessage: populated });
+    emitToUser(receiverId, 'conversationUpdated', { conversationId, lastMessage: populated });
+
+    // Emit real-time notification Received if receiver is not in active room
+    emitToUser(receiverId, 'notificationReceived', {
+      type: 'message',
+      title: 'New Message',
+      body: text || 'Shared an attachment',
+      referenceId: message._id
+    });
+
+    // Create persistent system notification
+    try {
+      const notificationService = require('../../notifications/service/notification.service');
+      await notificationService.createNotification({
+        recipientId: receiverId,
+        actorId: userId,
+        type: 'message',
+        title: 'New Message',
+        message: text || 'Shared an attachment',
+        targetType: 'User',
+        targetId: userId,
+        targetUrl: `/messages/${conversationId}`
+      });
+    } catch (err) {
+      logger.error(`Failed creating message system notification: ${err.message}`);
+    }
 
     return populated;
   }
@@ -145,24 +212,39 @@ class MessageService {
    * Mark all messages in a conversation as read by the user
    */
   async markAsRead(userId, conversationId) {
+    const userIdStr = userId.toString();
     const conv = await Conversation.findById(conversationId);
     if (!conv) {
       throw new ValidationError('Conversation not found.');
     }
-    if (!conv.participants.map(p => p.toString()).includes(userId.toString())) {
+    if (!conv.participants.map(p => p.toString()).includes(userIdStr)) {
       throw new UnauthorizedError('Unauthorized access.');
     }
 
-    const otherParticipantId = conv.participants.find(p => p.toString() !== userId.toString());
+    const otherParticipantId = conv.participants.find(p => p.toString() !== userIdStr);
 
-    // Update message status to seen for all incoming messages
+    const now = new Date();
+    // Update message status to read for all incoming messages
+    await Message.updateMany(
+      { conversationId, senderId: otherParticipantId, status: { $ne: 'read' } },
+      { $set: { status: 'read', readAt: now } }
+    );
+
+    // Also update backward compatible seen status
     await Message.updateMany(
       { conversationId, senderId: otherParticipantId, status: { $ne: 'seen' } },
       { $set: { status: 'seen' } }
     );
 
+    // Reset unread count for the reader in Conversation document
+    await Conversation.findByIdAndUpdate(conversationId, {
+      $set: { [`unreadCounts.${userIdStr}`]: 0 }
+    });
+
     // Notify the sender that messages were read
-    emitToUser(otherParticipantId, 'message:read', { conversationId, readBy: userId });
+    emitToUser(otherParticipantId, 'message:read', { conversationId, readBy: userId, readAt: now });
+    emitToUser(otherParticipantId, 'messageRead', { conversationId, readBy: userId, readAt: now });
+    emitToRoom(`conversation:${conversationId}`, 'messageRead', { conversationId, readBy: userId, readAt: now });
 
     return { success: true };
   }
@@ -171,16 +253,22 @@ class MessageService {
    * Pin a conversation
    */
   async pinConversation(userId, conversationId) {
-    const count = await PinnedChat.countDocuments({ userId });
+    const conv = await Conversation.findById(conversationId);
+    if (!conv) {
+      throw new ValidationError('Conversation not found.');
+    }
+    
+    // Check pin count limit
+    const count = await Conversation.countDocuments({
+      isPinned: userId
+    });
     if (count >= 10) {
       throw new ValidationError('You can pin a maximum of 10 conversations.');
     }
 
-    await PinnedChat.findOneAndUpdate(
-      { userId, conversationId },
-      { userId, conversationId },
-      { upsert: true }
-    );
+    await Conversation.findByIdAndUpdate(conversationId, {
+      $addToSet: { isPinned: userId }
+    });
 
     return { success: true };
   }
@@ -189,7 +277,9 @@ class MessageService {
    * Unpin a conversation
    */
   async unpinConversation(userId, conversationId) {
-    await PinnedChat.deleteOne({ userId, conversationId });
+    await Conversation.findByIdAndUpdate(conversationId, {
+      $pull: { isPinned: userId }
+    });
     return { success: true };
   }
 
@@ -197,12 +287,9 @@ class MessageService {
    * Archive a conversation
    */
   async archiveConversation(userId, conversationId) {
-    await ArchivedChat.findOneAndUpdate(
-      { userId, conversationId },
-      { userId, conversationId },
-      { upsert: true }
-    );
-
+    await Conversation.findByIdAndUpdate(conversationId, {
+      $addToSet: { isArchived: userId }
+    });
     return { success: true };
   }
 
@@ -210,7 +297,9 @@ class MessageService {
    * Restore/Unarchive a conversation
    */
   async restoreConversation(userId, conversationId) {
-    await ArchivedChat.deleteOne({ userId, conversationId });
+    await Conversation.findByIdAndUpdate(conversationId, {
+      $pull: { isArchived: userId }
+    });
     return { success: true };
   }
 
@@ -235,10 +324,12 @@ class MessageService {
 
     const populated = await Message.findById(messageId)
       .populate('attachment')
+      .populate('attachmentId')
       .populate('replyTo')
       .lean();
 
     emitToRoom(`conversation:${msg.conversationId}`, 'message:update', populated);
+    emitToRoom(`conversation:${msg.conversationId}`, 'messageEdited', populated);
 
     return populated;
   }
@@ -259,14 +350,17 @@ class MessageService {
       msg.deleted = true;
       msg.text = 'This message was deleted';
       msg.attachment = null;
+      msg.attachmentId = null;
       await msg.save();
 
       const populated = await Message.findById(messageId)
         .populate('attachment')
+        .populate('attachmentId')
         .populate('replyTo')
         .lean();
 
       emitToRoom(`conversation:${msg.conversationId}`, 'message:update', populated);
+      emitToRoom(`conversation:${msg.conversationId}`, 'messageDeleted', { messageId, conversationId: msg.conversationId });
     } else {
       // Delete for me
       if (!msg.deletedBy.map(d => d.toString()).includes(userId.toString())) {
@@ -637,6 +731,96 @@ class MessageService {
       },
       { $sort: { createdAt: -1 } }
     ]);
+  }
+
+  /**
+   * Mute a conversation
+   */
+  async muteConversation(userId, conversationId) {
+    await Conversation.findByIdAndUpdate(conversationId, {
+      $addToSet: { isMuted: userId }
+    });
+    return { success: true };
+  }
+
+  /**
+   * Unmute a conversation
+   */
+  async unmuteConversation(userId, conversationId) {
+    await Conversation.findByIdAndUpdate(conversationId, {
+      $pull: { isMuted: userId }
+    });
+    return { success: true };
+  }
+
+  /**
+   * Delete a conversation (soft-delete for user by hiding all messages in it)
+   */
+  async deleteConversation(userId, conversationId) {
+    const conv = await Conversation.findById(conversationId);
+    if (!conv) {
+      throw new ValidationError('Conversation not found.');
+    }
+    if (!conv.participants.map(p => p.toString()).includes(userId.toString())) {
+      throw new UnauthorizedError('Unauthorized access.');
+    }
+
+    // Hide all messages in this conversation for this user
+    await Message.updateMany(
+      { conversationId },
+      { $addToSet: { deletedBy: userId } }
+    );
+
+    return { success: true };
+  }
+
+  /**
+   * Get single conversation details
+   */
+  async getConversationById(userId, conversationId) {
+    const conv = await Conversation.findById(conversationId)
+      .populate('participants', 'firstName lastName profileImage username profileSlug slug email createdAt')
+      .lean();
+
+    if (!conv) {
+      throw new ValidationError('Conversation not found.');
+    }
+
+    const userIdStr = userId.toString();
+    if (!conv.participants.map(p => p._id.toString()).includes(userIdStr)) {
+      throw new UnauthorizedError('Unauthorized access to this conversation.');
+    }
+
+    const otherParticipant = conv.participants.find(
+      p => p._id.toString() !== userIdStr
+    );
+
+    let detailedParticipant = null;
+    if (otherParticipant) {
+      const profile = await Profile.findOne({ userId: otherParticipant._id }).lean();
+      detailedParticipant = {
+        ...otherParticipant,
+        isOnline: isUserOnline(otherParticipant._id),
+        bio: profile?.bio || '',
+        institution: profile?.institution || '',
+        department: profile?.department || '',
+        designation: profile?.designation || '',
+        skills: profile?.skills || [],
+        metrics: profile?.metrics || { totalCitations: 0, researchScore: 0 }
+      };
+    }
+
+    const isPinned = Array.isArray(conv.isPinned) && conv.isPinned.map(id => id.toString()).includes(userIdStr);
+    const isArchived = Array.isArray(conv.isArchived) && conv.isArchived.map(id => id.toString()).includes(userIdStr);
+    const isMuted = Array.isArray(conv.isMuted) && conv.isMuted.map(id => id.toString()).includes(userIdStr);
+
+    return {
+      ...conv,
+      otherParticipant: detailedParticipant,
+      isPinned,
+      isArchived,
+      isMuted
+    };
   }
 }
 

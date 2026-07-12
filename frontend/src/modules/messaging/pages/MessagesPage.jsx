@@ -266,13 +266,35 @@ const MessagesPage = () => {
       }
     };
 
+    // Real-time message updates (edits, deletions, reactions)
+    const handleMessageUpdate = () => {
+      if (activeId) {
+        queryClient.invalidateQueries({ queryKey: ['messages', activeId] });
+      }
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    };
+
+    const handleConversationUpdate = () => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['unreadCount'] });
+    };
+
     socket.on('call:incoming', handleIncomingCall);
     socket.on('call:accepted', handleCallAccepted);
     socket.on('call:rejected', handleCallRejected);
     socket.on('call:hungup', handleCallHungup);
     socket.on('message:new', handleNewMessage);
+    socket.on('receiveMessage', handleNewMessage);
     socket.on('conversation:new', handleNewConversation);
     socket.on('message:delivered', handleMessageDelivered);
+    socket.on('messageDelivered', handleMessageDelivered);
+    socket.on('message:update', handleMessageUpdate);
+    socket.on('messageEdited', handleMessageUpdate);
+    socket.on('messageDeleted', handleMessageUpdate);
+    socket.on('reactionAdded', handleMessageUpdate);
+    socket.on('reactionRemoved', handleMessageUpdate);
+    socket.on('conversation:update', handleConversationUpdate);
+    socket.on('conversationUpdated', handleConversationUpdate);
 
     return () => {
       socket.off('call:incoming', handleIncomingCall);
@@ -280,8 +302,17 @@ const MessagesPage = () => {
       socket.off('call:rejected', handleCallRejected);
       socket.off('call:hungup', handleCallHungup);
       socket.off('message:new', handleNewMessage);
+      socket.off('receiveMessage', handleNewMessage);
       socket.off('conversation:new', handleNewConversation);
       socket.off('message:delivered', handleMessageDelivered);
+      socket.off('messageDelivered', handleMessageDelivered);
+      socket.off('message:update', handleMessageUpdate);
+      socket.off('messageEdited', handleMessageUpdate);
+      socket.off('messageDeleted', handleMessageUpdate);
+      socket.off('reactionAdded', handleMessageUpdate);
+      socket.off('reactionRemoved', handleMessageUpdate);
+      socket.off('conversation:update', handleConversationUpdate);
+      socket.off('conversationUpdated', handleConversationUpdate);
     };
   }, [socket, activeId]);
 

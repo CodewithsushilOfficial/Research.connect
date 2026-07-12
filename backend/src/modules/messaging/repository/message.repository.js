@@ -32,30 +32,25 @@ class MessageRepository extends BaseRepository {
    * Get all conversations for a user including lastMessage, unread count, pin and archive status
    */
   async getUserConversations(userId) {
-    // 1. Get pinned and archived conversation lists
-    const pinnedList = await PinnedChat.find({ userId }).select('conversationId').lean();
-    const archivedList = await ArchivedChat.find({ userId }).select('conversationId').lean();
+    const userIdStr = userId.toString();
 
-    const pinnedIds = pinnedList.map(p => p.conversationId.toString());
-    const archivedIds = archivedList.map(a => a.conversationId.toString());
-
-    // 2. Fetch all conversations where user is a participant
+    // Fetch all conversations where user is a participant
     const conversations = await Conversation.find({
       participants: userId
     })
       .populate('participants', 'firstName lastName profileImage username profileSlug slug email createdAt')
       .populate({
-        path: 'lastMessage',
-        populate: { path: 'attachment' }
+        path: 'lastMessageId',
+        populate: { path: 'attachmentId' }
       })
-      .sort({ lastMessageAt: -1 })
+      .sort({ lastMessageTime: -1 })
       .lean();
 
-    // 3. Process each conversation with unread counts and tags
+    // Process each conversation with unread counts and tags
     const processed = await Promise.all(
       conversations.map(async (conv) => {
         const otherParticipant = conv.participants.find(
-          p => p._id.toString() !== userId.toString()
+          p => p._id.toString() !== userIdStr
         );
 
         let detailedParticipant = null;
@@ -76,21 +71,40 @@ class MessageRepository extends BaseRepository {
           };
         }
 
-        // Count unread messages sent by the OTHER participant
-        const unreadCount = await Message.countDocuments({
-          conversationId: conv._id,
-          senderId: otherParticipant ? otherParticipant._id : null,
-          status: { $ne: 'seen' }
-        });
+        // Get unread count from precomputed Map if exists, otherwise fallback to DB count
+        let unreadCount = 0;
+        if (conv.unreadCounts) {
+          if (conv.unreadCounts instanceof Map) {
+            unreadCount = conv.unreadCounts.get(userIdStr) || 0;
+          } else {
+            unreadCount = conv.unreadCounts[userIdStr] || 0;
+          }
+        } else {
+          unreadCount = await Message.countDocuments({
+            conversationId: conv._id,
+            senderId: otherParticipant ? otherParticipant._id : null,
+            status: { $ne: 'seen' }
+          });
+        }
 
-        const convIdStr = conv._id.toString();
+        const isPinned = Array.isArray(conv.isPinned) && conv.isPinned.map(id => id.toString()).includes(userIdStr);
+        const isArchived = Array.isArray(conv.isArchived) && conv.isArchived.map(id => id.toString()).includes(userIdStr);
+        const isMuted = Array.isArray(conv.isMuted) && conv.isMuted.map(id => id.toString()).includes(userIdStr);
+
+        // Map lastMessageId to lastMessage for backward compatibility
+        const legacyLastMessage = conv.lastMessageId ? {
+          ...conv.lastMessageId,
+          attachment: conv.lastMessageId.attachmentId
+        } : null;
 
         return {
           ...conv,
+          lastMessage: legacyLastMessage,
           otherParticipant: detailedParticipant,
           unreadCount,
-          isPinned: pinnedIds.includes(convIdStr),
-          isArchived: archivedIds.includes(convIdStr)
+          isPinned,
+          isArchived,
+          isMuted
         };
       })
     );
@@ -116,6 +130,7 @@ class MessageRepository extends BaseRepository {
       .sort({ _id: -1 })
       .limit(limit + 1)
       .populate('attachment')
+      .populate('attachmentId')
       .populate('replyTo')
       .lean();
 
@@ -135,8 +150,11 @@ class MessageRepository extends BaseRepository {
       const msgReactions = reactions.filter(
         r => r.messageId.toString() === m._id.toString()
       );
+      // Map attachmentId to attachment if attachment is missing
+      const resolvedAttachment = m.attachment || m.attachmentId;
       return {
         ...m,
+        attachment: resolvedAttachment,
         reactions: msgReactions
       };
     });

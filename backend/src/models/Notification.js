@@ -34,6 +34,8 @@ const NotificationSchema = new Schema(
         'project_invitation',
         'collaboration_invitation',
         'mention',
+        'message',
+        'message_reaction',
         'system',
         'admin'
       ],
