@@ -24,6 +24,15 @@ router.get('/contacts', messageController.getMessagingContacts);
 // GET Pending connection requests for the messaging Requests tab
 router.get('/requests', messageController.getConnectionRequests);
 
+// PATCH Mark read
+router.patch('/read', messageController.markAsRead);
+
+// PATCH Mark delivered
+router.patch('/delivered', (req, res) => res.status(200).json({ success: true, message: 'Delivered' }));
+
+// POST File Attachment Upload
+router.post('/upload', upload.single('file'), validateUpload, messageController.uploadAttachment);
+
 // ── LinkedIn-Style Message APIs (New) ──
 // POST Send message
 router.post('/', validateSendMessage, messageController.sendMessage);
@@ -46,14 +55,6 @@ router.post('/:id/reply', validateSendMessage, (req, res, next) => {
 // POST Reactions
 router.post('/:id/react', validateReaction, messageController.reactToMessage);
 
-// PATCH Mark read
-router.patch('/read', messageController.markAsRead);
-
-// PATCH Mark delivered
-router.patch('/delivered', (req, res) => res.status(200).json({ success: true, message: 'Delivered' }));
-
-// POST File Attachment Upload
-router.post('/upload', upload.single('file'), validateUpload, messageController.uploadAttachment);
 
 
 // ── Legacy/Compatibility routes ──

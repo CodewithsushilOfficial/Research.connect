@@ -26,7 +26,7 @@ const projectModule = require("./modules/project");
 const datasetModule = require("./modules/dataset");
 const notificationsModule = require("./modules/notifications");
 const networkModule = require("./modules/network");
-const helpModule = require("./modules/help");
+const presenceModule = require("./modules/presence");
 
 const collaborationRoutes = require("./modules/collaborations/routes/collaboration.routes");
 
@@ -34,6 +34,9 @@ const identityRoutes = require("./modules/identity/routes/identity.routes");
 const recommendationsModule = require("./modules/recommendations");
 
 const gatewayRouter = require("./gateway");
+
+// Help Center Module import
+const helpModule = require("./modules/help");
 
 const app = express();
 
@@ -119,6 +122,9 @@ app.use("/api/v1/collaborations", collaborationRoutes);
 app.use("/api/v1/identity", identityRoutes);
 app.use("/api/v1/recommendations", recommendationsModule.routes);
 app.use("/api/v1/network", networkModule.routes);
+app.use("/api/v1/presence", presenceModule.routes);
+
+// Help Center Module routes
 app.use("/api/v1/help", helpModule.routes);
 
 // Default root redirect to /api

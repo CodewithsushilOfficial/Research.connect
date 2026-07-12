@@ -7,7 +7,7 @@ import messagesService from '../services/messages.service';
 
 const EMOJIS = ['👍', '❤️', '👏', '💡', '😮', '❓'];
 
-const MessageBubble = ({ message, onReply, onEditInit }) => {
+const MessageBubble = ({ message, onReply, onEditInit, otherParticipant }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [showReactions, setShowReactions] = useState(false);
@@ -59,10 +59,12 @@ const MessageBubble = ({ message, onReply, onEditInit }) => {
     }
   }
 
+  const avatarUrl = otherParticipant?.profileImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150";
+
   return (
     <div 
-      className={`flex flex-col max-w-[70%] space-y-1 relative group ${
-        isMe ? 'self-end items-end' : 'self-start items-start'
+      className={`flex items-start gap-2.5 max-w-[75%] relative group ${
+        isMe ? 'justify-end self-end ml-auto' : 'justify-start self-start mr-auto'
       }`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => {
@@ -70,110 +72,120 @@ const MessageBubble = ({ message, onReply, onEditInit }) => {
         setShowReactions(false);
       }}
     >
-      {/* Reply header preview */}
-      {replyTo && !deleted && (
-        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1">
-          <Reply className="w-3 h-3 text-slate-350" />
-          <span>Replied to: {replyTo.deleted ? 'Deleted message' : replyTo.text}</span>
-        </div>
+      {/* Receiver Avatar */}
+      {!isMe && (
+        <img 
+          src={avatarUrl} 
+          alt={otherParticipant?.firstName || 'User'} 
+          className="w-8 h-8 rounded-full object-cover border border-slate-200 mt-1 shrink-0 shadow-xs"
+        />
       )}
 
-      {/* Main Bubble */}
-      <div 
-        className={`p-3 rounded-2xl relative shadow-xs leading-relaxed text-xs border ${
-          deleted
-            ? 'bg-slate-50 border-slate-200 text-slate-400 italic'
-            : isMe
-              ? 'bg-blue-600 border-blue-600 text-white rounded-br-none'
-              : 'bg-white border-slate-250 text-slate-800 rounded-bl-none'
-        }`}
-      >
-        {/* Render text / parsed metadata */}
-        {deleted ? (
-          <span>{text}</span>
-        ) : parsedMeta ? (
-          <div className="space-y-2 text-left">
-            <span className="text-[10px] font-black uppercase tracking-wider block text-slate-400">
-              Shared {type}
-            </span>
-            <h5 className={`font-black text-xs ${isMe ? 'text-white' : 'text-slate-900'}`}>
-              {parsedMeta.title || parsedMeta.name}
-            </h5>
-            {parsedMeta.authors && (
-              <p className="text-[10px] opacity-90 font-semibold">{parsedMeta.authors}</p>
-            )}
-            {parsedMeta.journal && (
-              <p className="text-[9px] opacity-75 font-semibold italic">{parsedMeta.journal}</p>
-            )}
-            <a 
-              href={parsedMeta.url || `/publication/${parsedMeta.slug}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`flex items-center gap-1 text-[10px] font-black uppercase pt-1.5 w-fit ${
-                isMe ? 'text-white hover:underline' : 'text-[#2563EB] hover:text-[#1D4ED8]'
-              }`}
-            >
-              <span>View Resource</span>
-              <ExternalLink className="w-3 h-3" />
-            </a>
+      {/* Bubble + Replies + Reactions Container */}
+      <div className={`flex flex-col space-y-1 max-w-[90%] ${isMe ? 'items-end' : 'items-start'}`}>
+        {/* Reply header preview */}
+        {replyTo && !deleted && (
+          <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1">
+            <Reply className="w-3 h-3 text-slate-350" />
+            <span>Replied to: {replyTo.deleted ? 'Deleted message' : replyTo.text}</span>
           </div>
-        ) : (
-          <span className="whitespace-pre-wrap">{text}</span>
         )}
 
-        {/* Attachment rendering */}
-        {attachment && !deleted && (
-          <div className="mt-2 pt-2 border-t border-white/10 text-left space-y-1.5">
-            {attachment.fileType?.startsWith('image/') ? (
-              <img 
-                src={attachment.url} 
-                alt={attachment.filename} 
-                className="max-h-48 rounded-xl object-cover border border-slate-200 cursor-pointer"
-                onClick={() => window.open(attachment.url, '_blank')}
-              />
-            ) : (
+        {/* Main Bubble */}
+        <div 
+          className={`p-3 rounded-2xl relative shadow-xs leading-relaxed text-xs border ${
+            deleted
+              ? 'bg-slate-50 border-slate-200 text-slate-400 italic'
+              : isMe
+                ? 'bg-blue-600 border-blue-600 text-white rounded-br-none'
+                : 'bg-emerald-600 border-emerald-600 text-white rounded-bl-none'
+          }`}
+        >
+          {/* Render text / parsed metadata */}
+          {deleted ? (
+            <span>{text}</span>
+          ) : parsedMeta ? (
+            <div className="space-y-2 text-left">
+              <span className="text-[10px] font-black uppercase tracking-wider block text-white/80">
+                Shared {type}
+              </span>
+              <h5 className="font-black text-xs text-white">
+                {parsedMeta.title || parsedMeta.name}
+              </h5>
+              {parsedMeta.authors && (
+                <p className="text-[10px] opacity-90 font-semibold">{parsedMeta.authors}</p>
+              )}
+              {parsedMeta.journal && (
+                <p className="text-[9px] opacity-75 font-semibold italic">{parsedMeta.journal}</p>
+              )}
               <a 
-                href={attachment.url} 
-                target="_blank" 
-                rel="noreferrer"
-                className={`flex items-center gap-2 p-2 rounded-xl text-[10px] font-bold border transition-all ${
-                  isMe 
-                    ? 'bg-blue-700/50 border-blue-500 text-white hover:bg-blue-700' 
-                    : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                }`}
+                href={parsedMeta.url || `/publication/${parsedMeta.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-[10px] font-black uppercase pt-1.5 w-fit text-white hover:underline"
               >
-                <FileText className="w-4 h-4 text-emerald-500" />
-                <span className="truncate max-w-[150px]">{attachment.filename}</span>
-                <ExternalLink className="w-3 h-3 shrink-0" />
+                <span>View Resource</span>
+                <ExternalLink className="w-3 h-3" />
               </a>
-            )}
+            </div>
+          ) : (
+            <span className="whitespace-pre-wrap">{text}</span>
+          )}
+
+          {/* Attachment rendering */}
+          {attachment && !deleted && (
+            <div className="mt-2 pt-2 border-t border-white/10 text-left space-y-1.5">
+              {attachment.fileType?.startsWith('image/') ? (
+                <img 
+                  src={attachment.url} 
+                  alt={attachment.filename} 
+                  className="max-h-48 rounded-xl object-cover border border-slate-200 cursor-pointer"
+                  onClick={() => window.open(attachment.url, '_blank')}
+                />
+              ) : (
+                <a 
+                  href={attachment.url} 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className={`flex items-center gap-2 p-2 rounded-xl text-[10px] font-bold border transition-all ${
+                    isMe 
+                      ? 'bg-blue-700/50 border-blue-500 text-white hover:bg-blue-700' 
+                      : 'bg-emerald-700/50 border-emerald-500 text-white hover:bg-emerald-700'
+                  }`}
+                >
+                  <FileText className="w-4 h-4 text-white" />
+                  <span className="truncate max-w-[150px]">{attachment.filename}</span>
+                  <ExternalLink className="w-3 h-3 shrink-0" />
+                </a>
+              )}
+            </div>
+          )}
+
+          {/* Edit / Time footer */}
+          <div className="flex items-center justify-end gap-1.5 mt-1.5 opacity-75 text-[9px] font-bold">
+            {edited && <span>(edited)</span>}
+            <span>
+              {new Date(createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+            {isMe && !deleted && getStatusIcon()}
+          </div>
+        </div>
+
+        {/* Reactions List */}
+        {reactions.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {reactions.map((react) => (
+              <span 
+                key={react._id}
+                className="px-1.5 py-0.5 bg-slate-50 border border-slate-200 text-[10px] rounded-lg cursor-help flex items-center gap-0.5"
+                title={`${react.userId?.firstName} reacted with ${react.reaction}`}
+              >
+                <span>{react.reaction}</span>
+              </span>
+            ))}
           </div>
         )}
-
-        {/* Edit / Time footer */}
-        <div className="flex items-center justify-end gap-1.5 mt-1.5 opacity-75 text-[9px] font-bold">
-          {edited && <span>(edited)</span>}
-          <span>
-            {new Date(createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </span>
-          {isMe && !deleted && getStatusIcon()}
-        </div>
       </div>
-
-      {/* Reactions List */}
-      {reactions.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-1">
-          {reactions.map((react) => (
-            <span 
-              key={react._id}
-              className="px-1.5 py-0.5 bg-slate-50 border border-slate-200 text-[10px] rounded-lg cursor-help flex items-center gap-0.5"
-              title={`${react.userId?.firstName} reacted with ${react.reaction}`}
-            >
-              <span>{react.reaction}</span>
-            </span>
-          ))}
-        </div>
-      )}
 
       {/* Bubble Action Floating Controls */}
       {showActions && !deleted && (
@@ -200,7 +212,7 @@ const MessageBubble = ({ message, onReply, onEditInit }) => {
                       reactMutation.mutate(emoji);
                       setShowReactions(false);
                     }}
-                    className="text-sm hover:scale-125 transition-transform cursor-pointer"
+                    className="hover:scale-125 transition-transform text-sm cursor-pointer"
                   >
                     {emoji}
                   </button>
@@ -210,14 +222,6 @@ const MessageBubble = ({ message, onReply, onEditInit }) => {
           </div>
 
           <button 
-            onClick={onReply}
-            className="p-1 hover:bg-slate-50 text-slate-500 hover:text-slate-800 rounded-lg transition-colors cursor-pointer"
-            title="Reply"
-          >
-            <Reply className="w-3.5 h-3.5" />
-          </button>
-
-          <button 
             onClick={handleCopy}
             className="p-1 hover:bg-slate-50 text-slate-500 hover:text-slate-800 rounded-lg transition-colors cursor-pointer"
             title="Copy Text"
@@ -225,29 +229,38 @@ const MessageBubble = ({ message, onReply, onEditInit }) => {
             <Copy className="w-3.5 h-3.5" />
           </button>
 
+          <button 
+            onClick={onReply}
+            className="p-1 hover:bg-slate-50 text-slate-500 hover:text-slate-800 rounded-lg transition-colors cursor-pointer"
+            title="Reply"
+          >
+            <Reply className="w-3.5 h-3.5" />
+          </button>
+
           {isMe && (
-            <button 
-              onClick={onEditInit}
-              className="p-1 hover:bg-slate-50 text-slate-500 hover:text-slate-800 rounded-lg transition-colors cursor-pointer"
-              title="Edit"
-            >
-              <Edit2 className="w-3.5 h-3.5" />
-            </button>
+            <>
+              <button 
+                onClick={onEditInit}
+                className="p-1 hover:bg-slate-50 text-slate-500 hover:text-slate-800 rounded-lg transition-colors cursor-pointer"
+                title="Edit"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+              </button>
+              <button 
+                onClick={() => {
+                  if (window.confirm('Delete message for everyone?')) {
+                    deleteMutation.mutate('everyone');
+                  }
+                }}
+                className="p-1 hover:bg-red-50 text-red-500 rounded-lg transition-colors cursor-pointer"
+                title="Delete for Everyone"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </>
           )}
 
-          {isMe ? (
-            <button 
-              onClick={() => {
-                if (window.confirm('Delete message for everyone?')) {
-                  deleteMutation.mutate('everyone');
-                }
-              }}
-              className="p-1 hover:bg-red-50 text-red-500 rounded-lg transition-colors cursor-pointer"
-              title="Delete for Everyone"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          ) : (
+          {!isMe && (
             <button 
               onClick={() => {
                 if (window.confirm('Delete message for yourself?')) {

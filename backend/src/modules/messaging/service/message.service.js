@@ -3,6 +3,7 @@ const Connection = require('../../../models/Connection');
 const Follow = require('../../../models/Follow');
 const User = require('../../../models/User');
 const Profile = require('../../../models/Profile');
+const Presence = require('../../../socket/presence/Presence');
 const ConnectionRequest = require('../../connections/model/ConnectionRequest');
 const { ValidationError, UnauthorizedError } = require('../../../common/errors/AppError');
 const messageRepository = require('../repository/message.repository');
@@ -17,24 +18,57 @@ const { emitToUser, emitToRoom, isUserOnline } = require('../../../config/socket
 
 class MessageService {
   /**
+   * Resolve a identifier (ObjectId, username, or profileSlug) to a User ID
+   */
+  async resolveUserId(identifier) {
+    if (!identifier) return null;
+    const identifierStr = identifier.toString();
+
+    // Check if it is a valid ObjectId
+    if (mongoose.Types.ObjectId.isValid(identifierStr)) {
+      return new mongoose.Types.ObjectId(identifierStr);
+    }
+
+    // Search user by username, profileSlug, or slug
+    const user = await User.findOne({
+      $or: [
+        { username: identifierStr },
+        { profileSlug: identifierStr },
+        { slug: identifierStr }
+      ],
+      isDeleted: { $ne: true }
+    }).select('_id').lean();
+
+    if (!user) {
+      throw new ValidationError(`User with identifier '${identifierStr}' not found.`);
+    }
+
+    return user._id;
+  }
+
+  /**
    * Check if two users are allowed to chat:
    * - Accepted connections, OR
    * - One party follows the other (mutual or one-way)
    */
   async checkCanChat(userA, userB) {
-    const aStr = userA.toString();
-    const bStr = userB.toString();
-    const [sortedA, sortedB] = [aStr, bStr].sort();
+    const aId = new mongoose.Types.ObjectId(userA);
+    const bId = new mongoose.Types.ObjectId(userB);
 
-    // Check accepted connection
-    const isConnected = await Connection.findOne({ researcherA: sortedA, researcherB: sortedB }).lean();
+    // Check accepted connection (order-independent)
+    const isConnected = await Connection.findOne({
+      $or: [
+        { researcherA: aId, researcherB: bId },
+        { researcherA: bId, researcherB: aId }
+      ]
+    }).lean();
     if (isConnected) return true;
 
     // Check follow relationship (either direction)
     const followExists = await Follow.findOne({
       $or: [
-        { followerId: aStr, followingId: bStr },
-        { followerId: bStr, followingId: aStr }
+        { followerId: aId, followingId: bId },
+        { followerId: bId, followingId: aId }
       ]
     }).lean();
 
@@ -45,25 +79,27 @@ class MessageService {
    * Start or retrieve a conversation (enforces chat permission)
    */
   async getOrCreateConversation(userId, targetUserId) {
-    if (userId.toString() === targetUserId.toString()) {
+    const resolvedTargetId = await this.resolveUserId(targetUserId);
+
+    if (userId.toString() === resolvedTargetId.toString()) {
       throw new ValidationError('Cannot chat with yourself.');
     }
 
-    const canChat = await this.checkCanChat(userId, targetUserId);
+    const canChat = await this.checkCanChat(userId, resolvedTargetId);
     if (!canChat) {
       throw new ValidationError('You can only message researchers you are connected with or follow.');
     }
 
     let conv = await Conversation.findOne({
-      participants: { $all: [userId, targetUserId] }
+      participants: { $all: [userId, resolvedTargetId] }
     });
 
     if (!conv) {
       conv = new Conversation({
-        participants: [userId, targetUserId],
+        participants: [userId, resolvedTargetId],
         conversationType: 'Direct',
         createdBy: userId,
-        unreadCounts: { [userId.toString()]: 0, [targetUserId.toString()]: 0 }
+        unreadCounts: { [userId.toString()]: 0, [resolvedTargetId.toString()]: 0 }
       });
       await conv.save();
     }
@@ -85,8 +121,10 @@ class MessageService {
       if (!conv.participants.map(p => p.toString()).includes(userIdStr)) {
         throw new UnauthorizedError('Unauthorized access to this conversation.');
       }
-      receiverId = conv.participants.find(p => p.toString() !== userIdStr);
+      const otherId = conv.participants.find(p => p.toString() !== userIdStr);
+      receiverId = otherId ? await this.resolveUserId(otherId) : null;
     } else if (receiverId) {
+      receiverId = await this.resolveUserId(receiverId);
       conv = await this.getOrCreateConversation(userId, receiverId);
       conversationId = conv._id;
     } else {
@@ -798,9 +836,11 @@ class MessageService {
     let detailedParticipant = null;
     if (otherParticipant) {
       const profile = await Profile.findOne({ userId: otherParticipant._id }).lean();
+      const presence = await Presence.findOne({ userId: otherParticipant._id }).lean();
       detailedParticipant = {
         ...otherParticipant,
-        isOnline: isUserOnline(otherParticipant._id),
+        isOnline: presence ? presence.status === 'online' : false,
+        lastSeen: presence?.lastSeen || null,
         bio: profile?.bio || '',
         institution: profile?.institution || '',
         department: profile?.department || '',
