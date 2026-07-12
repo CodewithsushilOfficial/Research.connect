@@ -6,7 +6,7 @@ class MessagesService {
    */
   async getConversations() {
     const res = await axiosInstance.get('/v1/conversations');
-    return res.data;
+    return res;
   }
 
   /**
@@ -14,7 +14,7 @@ class MessagesService {
    */
   async createConversation(participantId) {
     const res = await axiosInstance.post('/v1/conversations', { participantId });
-    return res.data;
+    return res;
   }
 
   /**
@@ -22,7 +22,7 @@ class MessagesService {
    */
   async getMessages(conversationId, params = {}) {
     const res = await axiosInstance.get(`/v1/messages/${conversationId}`, { params });
-    return res.data;
+    return res;
   }
 
   /**
@@ -36,7 +36,7 @@ class MessagesService {
       body = { conversationId: payload, text: content, attachments };
     }
     const res = await axiosInstance.post('/v1/messages', body);
-    return res.data;
+    return res;
   }
 
   /**
@@ -44,7 +44,7 @@ class MessagesService {
    */
   async markAsRead(conversationId) {
     const res = await axiosInstance.patch('/v1/messages/read', { conversationId });
-    return res.data;
+    return res;
   }
 
   async markConversationRead(conversationId) {
@@ -56,7 +56,7 @@ class MessagesService {
    */
   async pinConversation(conversationId) {
     const res = await axiosInstance.patch(`/v1/conversations/${conversationId}/pin`);
-    return res.data;
+    return res;
   }
 
   /**
@@ -64,7 +64,7 @@ class MessagesService {
    */
   async unpinConversation(conversationId) {
     const res = await axiosInstance.patch(`/v1/conversations/${conversationId}/unpin`);
-    return res.data;
+    return res;
   }
 
   /**
@@ -72,7 +72,7 @@ class MessagesService {
    */
   async archiveConversation(conversationId) {
     const res = await axiosInstance.patch(`/v1/conversations/${conversationId}/archive`);
-    return res.data;
+    return res;
   }
 
   /**
@@ -80,7 +80,7 @@ class MessagesService {
    */
   async restoreConversation(conversationId) {
     const res = await axiosInstance.patch(`/v1/conversations/${conversationId}/restore`);
-    return res.data;
+    return res;
   }
 
   /**
@@ -88,7 +88,7 @@ class MessagesService {
    */
   async muteConversation(conversationId) {
     const res = await axiosInstance.patch(`/v1/conversations/${conversationId}/mute`);
-    return res.data;
+    return res;
   }
 
   /**
@@ -96,7 +96,7 @@ class MessagesService {
    */
   async unmuteConversation(conversationId) {
     const res = await axiosInstance.patch(`/v1/conversations/${conversationId}/unmute`);
-    return res.data;
+    return res;
   }
 
   /**
@@ -104,7 +104,7 @@ class MessagesService {
    */
   async deleteConversation(conversationId) {
     const res = await axiosInstance.delete(`/v1/conversations/${conversationId}`);
-    return res.data;
+    return res;
   }
 
   /**
@@ -112,7 +112,7 @@ class MessagesService {
    */
   async editMessage(messageId, text) {
     const res = await axiosInstance.patch(`/v1/messages/${messageId}`, { text });
-    return res.data;
+    return res;
   }
 
   /**
@@ -124,7 +124,7 @@ class MessagesService {
     const res = await axiosInstance.delete(`/v1/messages/${messageId}`, {
       data: { deleteType }
     });
-    return res.data;
+    return res;
   }
 
   /**
@@ -132,7 +132,7 @@ class MessagesService {
    */
   async reactToMessage(messageId, reaction) {
     const res = await axiosInstance.post(`/v1/messages/${messageId}/react`, { reaction });
-    return res.data;
+    return res;
   }
 
   /**
@@ -144,7 +144,7 @@ class MessagesService {
         'Content-Type': 'multipart/form-data'
       }
     });
-    return res.data;
+    return res;
   }
 
   /**
@@ -152,7 +152,7 @@ class MessagesService {
    */
   async searchMessages(query) {
     const res = await axiosInstance.get('/v1/search/messages', { params: { q: query } });
-    return res.data;
+    return res;
   }
 
   /**
@@ -160,7 +160,7 @@ class MessagesService {
    */
   async searchConversations(query) {
     const res = await axiosInstance.get('/v1/search/conversations', { params: { q: query } });
-    return res.data;
+    return res;
   }
 
   /**
@@ -168,7 +168,7 @@ class MessagesService {
    */
   async getSharedFiles() {
     const res = await axiosInstance.get('/v1/messages/shared-files');
-    return res.data;
+    return res;
   }
 
   /**
@@ -176,7 +176,7 @@ class MessagesService {
    */
   async createGroup(name, description, participantIds = []) {
     const res = await axiosInstance.post('/v1/messages/group/create', { name, description, participantIds });
-    return res.data;
+    return res;
   }
 
   /**
@@ -184,7 +184,7 @@ class MessagesService {
    */
   async inviteToGroup(conversationId, participantIds = []) {
     const res = await axiosInstance.post('/v1/messages/group/invite', { conversationId, participantIds });
-    return res.data;
+    return res;
   }
 
   /**
@@ -192,7 +192,7 @@ class MessagesService {
    */
   async startCall(payload) {
     const res = await axiosInstance.post('/v1/messages/call/start', payload);
-    return res.data;
+    return res;
   }
 
   /**
@@ -200,7 +200,7 @@ class MessagesService {
    */
   async endCall(callId, status) {
     const res = await axiosInstance.post('/v1/messages/call/end', { callId, status });
-    return res.data;
+    return res;
   }
 
   /**
@@ -208,7 +208,7 @@ class MessagesService {
    */
   async getCallHistory() {
     const res = await axiosInstance.get('/v1/messages/call/history');
-    return res.data;
+    return res;
   }
 
   /**
@@ -216,7 +216,7 @@ class MessagesService {
    */
   async getRequests() {
     const res = await axiosInstance.get('/v1/messages/requests');
-    return res.data;
+    return res;
   }
 
   /**
@@ -224,7 +224,7 @@ class MessagesService {
    */
   async acceptRequest(requestId) {
     const res = await axiosInstance.post('/v1/network/accept', { requestId });
-    return res.data;
+    return res;
   }
 
   /**
@@ -232,7 +232,7 @@ class MessagesService {
    */
   async rejectRequest(requestId) {
     const res = await axiosInstance.post('/v1/network/reject', { requestId });
-    return res.data;
+    return res;
   }
 
   /**
@@ -241,7 +241,7 @@ class MessagesService {
    */
   async getContacts() {
     const res = await axiosInstance.get('/v1/messages/contacts');
-    return res.data;
+    return res;
   }
 }
 
