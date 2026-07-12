@@ -97,6 +97,8 @@ class RedisQueue {
                                err.message?.includes('socket') || 
                                err.message?.includes('connection') || 
                                err.message?.includes('ECONNRESET') || 
+                               err.message?.includes('offline') || 
+                               err.message?.includes('rate limit') || 
                                err.name === 'AbortError';
           if (isRedisError) {
             logger.warn(`[QUEUE WORKER REDIS DISCONNECT] Queue ${queueName} waiting for connection: ${err.message}`);

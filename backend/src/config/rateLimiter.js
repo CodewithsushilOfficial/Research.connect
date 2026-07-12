@@ -3,6 +3,9 @@ const redisClient = require('./redis');
 
 // Helper to create a unique RedisStore instance for each rate limiter to prevent sharing error
 const createStore = (prefix) => {
+  if (!redisClient.isOpen || !redisClient.isReady) {
+    return undefined;
+  }
   try {
     const { RedisStore } = require('rate-limit-redis');
     return new RedisStore({
@@ -11,7 +14,11 @@ const createStore = (prefix) => {
           // Return dummy value during import/compile phase or when Redis is not ready yet
           return 'dummy';
         }
-        return await redisClient.sendCommand(args);
+        try {
+          return await redisClient.sendCommand(args);
+        } catch (err) {
+          return 'dummy';
+        }
       },
       prefix: `rl:${prefix}:`
     });
