@@ -6,8 +6,9 @@ import {
   Upload, Users, Rss, BarChart2, MessageSquare, UserPlus,
   CheckCircle, ShieldCheck, Lock, Globe, Shield, Star, Menu,
   Cpu, Binary, Atom, Dna, HeartPulse, FlaskConical,
-  Settings, Brain, Palette, Briefcase, Scale, Leaf
+  Settings, Brain, Palette, Briefcase, Scale, Leaf, Mail
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 const AnimatedSection = ({ children, className = "", delay = "0ms" }) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -246,7 +247,7 @@ const Home = () => {
           <div className="mt-12 flex flex-col md:flex-row items-center gap-4 animate-fade-up" style={{ animationDelay: '1000ms' }}>
             <div className="flex">
               {['#EF4444', '#F59E0B', '#22C55E', '#3B82F6', '#8B5CF6'].map((color, i) => (
-                <div key={i} className={`w-10 h-10 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold ${i !== 0 && '-ml-3'}`} style={{ backgroundColor: color }}>
+                <div key={i} className={`w-10 h-10 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold ${i !== 0 ? '-ml-3' : ''}`} style={{ backgroundColor: color }}>
                   {['AB', 'CD', 'EF', 'GH', 'IJ'][i]}
                 </div>
               ))}
@@ -1000,80 +1001,205 @@ const Home = () => {
       </section>
 
       {/* SECTION 10 — FOOTER */}
-      <footer className="bg-[#0F172A] pt-16 pb-8 px-6">
-        <div className="max-w-[1200px] mx-auto">
-          <div className="flex flex-wrap justify-between gap-10">
+      <footer className="bg-[#0F172A] relative overflow-hidden">
+        {/* Subtle gradient top accent */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#2563EB]/40 to-transparent" />
 
-            <div className="w-full md:w-[280px]">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2563EB] to-[#4F46E5] flex items-center justify-center">
-                  <GraduationCap className="w-5 h-5 text-white" />
+        {/* Decorative background glow */}
+        <div className="absolute bottom-0 left-1/4 w-[600px] h-[400px] bg-[#2563EB]/5 blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute top-0 right-1/4 w-[500px] h-[300px] bg-[#4F46E5]/5 blur-[100px] rounded-full pointer-events-none" />
+
+        <div className="relative z-10 max-w-[1200px] mx-auto px-6 pt-16 pb-8">
+          {/* Top section: Brand + Newsletter */}
+          <div className="flex flex-col lg:flex-row justify-between gap-10 mb-14">
+            {/* Brand column */}
+            <div className="max-w-sm">
+              <Link to="/" className="flex items-center gap-3 mb-5 group">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#2563EB] to-[#4F46E5] flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:shadow-blue-500/40 transition-shadow">
+                  <GraduationCap className="w-5.5 h-5.5 text-white" />
                 </div>
-                <span className="text-[18px] font-bold text-white">ResearchConnect</span>
-              </div>
-              <p className="text-[#94A3B8] text-[14px] mb-6">
-                The academic platform connecting researchers worldwide.
+                <span className="text-[20px] font-black text-white tracking-tight">
+                  Research<span className="text-[#60A5FA]">Connect</span>
+                </span>
+              </Link>
+              <p className="text-[#94A3B8] text-[14px] leading-relaxed mb-6">
+                The next-generation AI-driven academic collaboration and discovery network. Empowering researchers worldwide to connect, share, and accelerate global innovation.
               </p>
-              <div className="flex gap-4">
-                <a href="https://twitter.com" target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/20 transition-colors cursor-pointer font-bold text-xs">X</a>
-                <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/20 transition-colors cursor-pointer font-bold text-xs">in</a>
-                <a href="https://github.com" target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/20 transition-colors cursor-pointer font-bold text-xs">GH</a>
+              {/* Social icons with proper SVG icons */}
+              <div className="flex gap-3">
+                <a href="https://twitter.com" target="_blank" rel="noreferrer" className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-[#94A3B8] hover:text-white hover:bg-[#2563EB]/20 hover:border-[#2563EB]/30 transition-all duration-200 group" aria-label="Twitter">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
+                </a>
+                <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-[#94A3B8] hover:text-white hover:bg-[#0A66C2]/20 hover:border-[#0A66C2]/30 transition-all duration-200 group" aria-label="LinkedIn">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" /></svg>
+                </a>
+                <a href="https://github.com" target="_blank" rel="noreferrer" className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-[#94A3B8] hover:text-white hover:bg-white/10 hover:border-white/20 transition-all duration-200 group" aria-label="GitHub">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" /></svg>
+                </a>
               </div>
             </div>
 
-            <div className="w-[140px]">
-              <h4 className="text-white font-semibold text-[14px] mb-6">Platform</h4>
-              <ul className="space-y-4">
-                {[
-                  { label: 'Features', to: '/register' },
-                  { label: 'Publications', to: '/register' },
-                  { label: 'Citations', to: '/register' },
-                  { label: 'Analytics', to: '/register' },
-                  { label: 'Messaging', to: '/register' },
-                  { label: 'API', to: '/register' },
-                ].map(l => (
-                  <li key={l.label}><Link to={l.to} className="text-[#94A3B8] text-[14px] hover:text-white transition-colors">{l.label}</Link></li>
-                ))}
-              </ul>
+            {/* Newsletter */}
+            <div className="max-w-md w-full lg:w-auto">
+              <h4 className="text-white font-bold text-[14px] mb-2 flex items-center gap-2">
+                <Mail className="w-4 h-4 text-[#60A5FA]" />
+                Stay Updated
+              </h4>
+              <p className="text-[#94A3B8] text-[13px] mb-4 leading-relaxed">
+                Get the latest research insights, platform updates, and collaboration opportunities delivered to your inbox.
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-[13px] text-white placeholder-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/50 focus:border-[#2563EB]/50 transition-all"
+                />
+                <button
+                  onClick={() => toast.success('Subscribed successfully!')}
+                  className="bg-gradient-to-r from-[#2563EB] to-[#4F46E5] hover:from-[#1D4ED8] hover:to-[#4338CA] text-white font-bold text-[13px] px-5 py-2.5 rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/25 active:scale-95 whitespace-nowrap"
+                >
+                  Subscribe
+                </button>
+              </div>
+              <p className="text-[11px] text-[#475569] mt-2.5">
+                No spam, ever. Unsubscribe anytime.
+              </p>
             </div>
-
-            <div className="w-[140px]">
-              <h4 className="text-white font-semibold text-[14px] mb-6">Research</h4>
-              <ul className="space-y-4">
-                {[
-                  { label: 'Discover Papers', to: '/register' },
-                  { label: 'Top Researchers', to: '/register' },
-                  { label: 'Institutions', to: '/register' },
-                  { label: 'Open Access', to: '/register' },
-                  { label: 'Journals', to: '/register' },
-                  { label: 'Preprints', to: '/register' },
-                ].map(l => (
-                  <li key={l.label}><Link to={l.to} className="text-[#94A3B8] text-[14px] hover:text-white transition-colors">{l.label}</Link></li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="w-[140px]">
-              <h4 className="text-white font-semibold text-[14px] mb-6">Company</h4>
-              <ul className="space-y-4">
-                {[
-                  { label: 'About', to: '/register' },
-                  { label: 'Blog', to: '/register' },
-                  { label: 'Careers', to: '/register' },
-                  { label: 'Press', to: '/register' },
-                  { label: 'Privacy Policy', to: '/register' },
-                  { label: 'Terms of Service', to: '/register' },
-                ].map(l => (
-                  <li key={l.label}><Link to={l.to} className="text-[#94A3B8] text-[14px] hover:text-white transition-colors">{l.label}</Link></li>
-                ))}
-              </ul>
-            </div>
-
           </div>
 
-          <div className="mt-16 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 text-[#475569] text-sm">
-            <div>© 2024 ResearchConnect. All rights reserved.</div>
-            <div className="italic">Made for researchers, by researchers.</div>
+          {/* Divider */}
+          <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-10" />
+
+          {/* Link columns */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12">
+            {/* Platform */}
+            <div>
+              <h4 className="text-white font-bold text-[13px] uppercase tracking-wider mb-5 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB]" />
+                Platform
+              </h4>
+              <ul className="space-y-3">
+                {[
+                  { label: 'Features', to: '#features' },
+                  { label: 'Publications', to: '/register' },
+                  { label: 'Citations', to: '/register' },
+                  { label: 'Analytics Dashboard', to: '/register' },
+                  { label: 'Messaging', to: '/register' },
+                  { label: 'Developer API', to: '/register' },
+                ].map(l => (
+                  <li key={l.label}>
+                    <Link
+                      to={l.to}
+                      className="text-[#94A3B8] text-[13px] hover:text-white hover:pl-1 transition-all duration-200 inline-flex items-center gap-1.5"
+                    >
+                      <span className="text-[#475569] group-hover:text-[#2563EB] transition-colors">›</span>
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Research */}
+            <div>
+              <h4 className="text-white font-bold text-[13px] uppercase tracking-wider mb-5 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" />
+                Research
+              </h4>
+              <ul className="space-y-3">
+                {[
+                  { label: 'Discover Papers', to: '/search' },
+                  { label: 'Top Researchers', to: '/discover/researchers' },
+                  { label: 'Trending Topics', to: '/trending' },
+                  { label: 'Open Access', to: '/register' },
+                  { label: 'Journals & Preprints', to: '/register' },
+                  { label: 'Datasets', to: '/register' },
+                ].map(l => (
+                  <li key={l.label}>
+                    <Link
+                      to={l.to}
+                      className="text-[#94A3B8] text-[13px] hover:text-white hover:pl-1 transition-all duration-200 inline-flex items-center gap-1.5"
+                    >
+                      <span className="text-[#475569] group-hover:text-[#22C55E] transition-colors">›</span>
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Community */}
+            <div>
+              <h4 className="text-white font-bold text-[13px] uppercase tracking-wider mb-5 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#4F46E5]" />
+                Community
+              </h4>
+              <ul className="space-y-3">
+                {[
+                  { label: 'Network', to: '/network' },
+                  { label: 'Collaborations', to: '/collaborations' },
+                  { label: 'Events & Conferences', to: '/register' },
+                  { label: 'Funding Opportunities', to: '/register' },
+                  { label: 'Jobs Board', to: '/register' },
+                  { label: 'Help Center', to: '/register' },
+                ].map(l => (
+                  <li key={l.label}>
+                    <Link
+                      to={l.to}
+                      className="text-[#94A3B8] text-[13px] hover:text-white hover:pl-1 transition-all duration-200 inline-flex items-center gap-1.5"
+                    >
+                      <span className="text-[#475569] group-hover:text-[#4F46E5] transition-colors">›</span>
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Company */}
+            <div>
+              <h4 className="text-white font-bold text-[13px] uppercase tracking-wider mb-5 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]" />
+                Company
+              </h4>
+              <ul className="space-y-3">
+                {[
+                  { label: 'About Us', to: '/about' },
+                  { label: 'Blog', to: '/about' },
+                  { label: 'Careers', to: '/about' },
+                  { label: 'Press Kit', to: '/about' },
+                  { label: 'Privacy Policy', to: '/privacy' },
+                  { label: 'Terms of Service', to: '/terms' },
+                ].map(l => (
+                  <li key={l.label}>
+                    <Link
+                      to={l.to}
+                      className="text-[#94A3B8] text-[13px] hover:text-white hover:pl-1 transition-all duration-200 inline-flex items-center gap-1.5"
+                    >
+                      <span className="text-[#475569] group-hover:text-[#F59E0B] transition-colors">›</span>
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Bottom bar */}
+          <div className="mt-14 pt-8 border-t border-white/8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-[12px] text-[#64748B]">
+              <span>© {new Date().getFullYear()} ResearchConnect. All rights reserved.</span>
+              <span className="hidden sm:inline">•</span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] animate-pulse" />
+                All systems operational
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 text-[12px] text-[#64748B]">
+              <span>Made with</span>
+              <span className="text-[#EF4444]">♥</span>
+              <span>for researchers, by researchers</span>
+            </div>
           </div>
         </div>
       </footer>

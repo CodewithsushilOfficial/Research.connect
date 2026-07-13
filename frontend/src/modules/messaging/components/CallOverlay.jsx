@@ -65,7 +65,6 @@ const CallOverlay = ({ callState, onAccept, onDecline, onHangup, socket }) => {
 
         // Handle remote tracks
         pc.ontrack = (event) => {
-          console.log('📡 WebRTC: Received remote track');
           remoteStreamRef.current = event.streams[0];
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = event.streams[0];

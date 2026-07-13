@@ -20,25 +20,56 @@ export default {
         bg: {
           page: '#F8FAFC',
           card: '#FFFFFF',
+          surface: '#F1F5F9',
         },
         text: {
           primary: '#0F172A',
           secondary: '#475569',
+          muted: '#94A3B8',
         },
-        border: '#E2E8F0',
+        border: {
+          DEFAULT: '#E2E8F0',
+        },
         light: {
           blue: '#DBEAFE',
           green: '#DCFCE7',
           orange: '#FEF3C7',
           purple: '#EDE9FE',
-        }
+        },
+        // Extended slate shades used across the codebase
+        slate: {
+          55: '#F8FAFC',
+          105: '#E8ECF1',
+          150: '#CBD5E1',
+          405: '#94A3B8',
+          450: '#9CA3AF',
+          455: '#9CA3AF',
+          650: '#4B5563',
+          655: '#4B5563',
+          850: '#1E293B',
+        },
+        // Extended blue shades
+        blue: {
+          650: '#2563EB',
+        },
+        // Extended red shades
+        red: {
+          650: '#DC2626',
+        },
       },
       fontFamily: {
         sans: ['Inter', 'Roboto', 'Outfit', 'sans-serif'],
+        display: ['Outfit', 'sans-serif'],
       },
       backdropBlur: {
         xs: '2px',
-      }
+      },
+      width: {
+        4.5: '1.125rem',
+      },
+      height: {
+        4.5: '1.125rem',
+      },
     },
   },
   plugins: [],

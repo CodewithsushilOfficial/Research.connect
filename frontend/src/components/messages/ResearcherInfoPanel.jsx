@@ -7,10 +7,10 @@ import { useCountUp } from '../../hooks/useCountUp';
 import { Beaker, Cloud, Globe } from 'lucide-react';
 import { toast } from '../ui/Toaster';
 
-function IconByName({ name, className }) {
-  if (name === 'beaker') return <Beaker size={16} className={className} />;
-  if (name === 'cloud') return <Cloud size={16} className={className} />;
-  return <Globe size={16} className={className} />;
+function IconByName({ name, className, style }) {
+  if (name === 'beaker') return <Beaker size={16} className={className} style={style} />;
+  if (name === 'cloud') return <Cloud size={16} className={className} style={style} />;
+  return <Globe size={16} className={className} style={style} />;
 }
 
 export default function ResearcherInfoPanel() {
@@ -157,7 +157,7 @@ export default function ResearcherInfoPanel() {
                         className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0 border-l-4"
                         style={{ background: proj.bgColor, borderColor: proj.color }}
                       >
-                        <IconByName name={proj.icon} className={`project-icon text-[${proj.color}]`} />
+                        <IconByName name={proj.icon} className="project-icon" style={{ color: proj.color }} />
                       </div>
                       <span className="text-sm font-medium text-[#0F172A]">{proj.name}</span>
                     </div>

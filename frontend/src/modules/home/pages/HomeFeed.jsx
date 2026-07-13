@@ -104,7 +104,7 @@ const HomeFeed = () => {
           };
         }
       } catch (err) {
-        console.log('Google Scholar not connected yet.');
+        // Google Scholar not connected yet
       }
       return null;
     },
@@ -1232,7 +1232,7 @@ const HomeFeed = () => {
                         {author.photo && author.photo !== '#' ? (
                           <img src={author.photo} alt={author.name} className="w-full h-full object-cover" />
                         ) : (
-                          <span className="text-indigo-600 dark:text-indigo-400">{author.name[0]}</span>
+                          <span className="text-indigo-600 dark:text-indigo-400">{author.name?.[0] || '?'}</span>
                         )}
                       </div>
                       <div>
@@ -1261,99 +1261,6 @@ const HomeFeed = () => {
         )}
       </AnimatePresence>
 
-      {/* Premium Footer Section */}
-      <footer className="mt-12 sm:mt-24 border-t border-slate-200 pt-10 sm:pt-16 pb-10 sm:pb-12 bg-white text-left text-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10 sm:space-y-12">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 sm:gap-8">
-            {/* Column 1: Brand details */}
-            <div className="lg:col-span-2 space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-lg shadow-md shadow-blue-500/20">
-                  R
-                </div>
-                <span className="font-extrabold text-lg text-slate-900 tracking-tight">
-                  Research<span className="text-blue-600">.connect</span>
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 leading-relaxed font-normal max-w-sm">
-                The next-generation, AI-driven academic collaboration and discovery network. Empowering researchers worldwide to connect, share, and accelerate global innovation.
-              </p>
-              <div className="flex gap-3 pt-2">
-                {['twitter', 'linkedin', 'database'].map((social, idx) => (
-                  <a 
-                    key={idx} 
-                    href="#" 
-                    className="w-8 h-8 rounded-lg bg-slate-50 hover:bg-blue-600 hover:text-white border border-slate-200 flex items-center justify-center text-slate-450 transition-all duration-200 transform hover:scale-[1.05] shadow-sm"
-                  >
-                    <span className="text-[10px] font-bold uppercase">{social[0]}</span>
-                  </a>
-                ))}
-              </div>
-            </div>
-            
-            {/* Column 2: Research */}
-            <div>
-              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-4">Research</h4>
-              <ul className="space-y-2.5 text-xs text-slate-500 font-semibold">
-                {['Publications Feed', 'Trending Research', 'Academic Standings', 'Conferences & Events'].map(link => (
-                  <li key={link} className="hover:text-blue-600 transition-colors cursor-pointer">{link}</li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Column 3: Developers / Resources */}
-            <div>
-              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-4">Developers</h4>
-              <ul className="space-y-2.5 text-xs text-slate-500 font-semibold">
-                {['AI Summary Tool', 'Google Scholar Import', 'Open Datasets', 'Developer API'].map(link => (
-                  <li key={link} className="hover:text-blue-600 transition-colors cursor-pointer">{link}</li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Column 4: Resources / Support */}
-            <div>
-              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-4">Resources</h4>
-              <ul className="space-y-2.5 text-xs text-slate-500 font-semibold">
-                {[
-                  { label: 'Privacy Policy', to: '/privacy' },
-                  { label: 'Terms of Service', to: '/terms' },
-                  { label: 'Support Forum', to: '#' },
-                  { label: 'Contact Us', to: '#' },
-                ].map(({ label, to }) => (
-                  <li key={label}>
-                    <Link to={to} className="hover:text-blue-600 transition-colors cursor-pointer">{label}</Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* Newsletter section & copyright */}
-          <div className="pt-8 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-              <span className="text-xs font-bold text-slate-700 whitespace-nowrap">Subscribe to Newsletter:</span>
-              <div className="flex gap-2 w-full sm:w-auto">
-                <input 
-                  type="email" 
-                  placeholder="Enter your email" 
-                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-600 focus:bg-white transition-all font-semibold w-full sm:w-60"
-                />
-                <button 
-                  onClick={() => toast.success('Subscribed successfully!')}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-1.5 rounded-xl transition-all duration-200 transform hover:scale-[1.03] active:scale-95 shadow-sm shrink-0"
-                >
-                  Subscribe
-                </button>
-              </div>
-            </div>
-
-            <div className="text-[11px] text-slate-450 flex flex-col sm:flex-row items-center gap-4">
-              <p>© {new Date().getFullYear()} Research Connect. Made with ❤️ for Researchers.</p>
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

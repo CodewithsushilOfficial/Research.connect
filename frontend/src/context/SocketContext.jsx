@@ -30,7 +30,7 @@ export const SocketProvider = ({ children }) => {
     });
 
     newSocket.on('connect', () => {
-      console.log('🔌 Connected to Socket.io server');
+      // Socket connected successfully
     });
 
     newSocket.on('connect_error', (err) => {
@@ -39,7 +39,6 @@ export const SocketProvider = ({ children }) => {
 
     // Listen for new real-time notifications
     newSocket.on('notification:new', (notification) => {
-      console.log('🔔 Real-time notification received:', notification);
       setNotifications((prev) => [notification, ...prev]);
       
       // Real-time UI Toast Alert
@@ -62,7 +61,6 @@ export const SocketProvider = ({ children }) => {
 
     // Listen for real-time unread count updates
     newSocket.on('notification:count', ({ count }) => {
-      console.log('🔔 Real-time count update received:', count);
       queryClient.setQueryData(['unreadCount'], { count });
     });
 
@@ -84,7 +82,6 @@ export const SocketProvider = ({ children }) => {
 
     // Listen for new messages
     newSocket.on('message:new', (message) => {
-      console.log('💬 Socket: message:new received:', message);
       queryClient.invalidateQueries({ queryKey: ['messages', message.conversationId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     });
@@ -127,14 +124,12 @@ export const SocketProvider = ({ children }) => {
     };
   }, [user]);
 
-  // Database se purane notifications load karo
+  // Reset notifications on logout
   useEffect(() => {
     if (!user) {
       setNotifications([]);
       return;
     }
-
-    // Backend se notifications laao (chahe toh local bhi save kar sakte hain)
   }, [user]);
 
   return (
