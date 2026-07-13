@@ -28,7 +28,10 @@ const logger = require('../../../common/logger/winston');
 const environment = require('../../../config/environment');
 
 /** Request timeout in milliseconds for all external enrichment API calls */
-const REQUEST_TIMEOUT_MS = 2500;
+const REQUEST_TIMEOUT_MS = 8000; // Increased to 8 seconds to handle slower responses
+
+/** Rate limiting: minimum delay between requests to external APIs (ms) */
+const RATE_LIMIT_DELAY_MS = 2000; // 2 seconds between requests to avoid 429 errors
 
 class EnrichmentService {
   constructor() {
@@ -36,6 +39,28 @@ class EnrichmentService {
     this.politeEmail = environment.email?.user || 'help.research.connect@gmail.com';
     this.doiCache = new Map();
     this.metadataCache = new Map();
+    this.lastRequestTime = 0; // Track last request time for rate limiting
+  }
+
+  /**
+   * Sleep utility for rate limiting
+   * @param {number} ms - Milliseconds to sleep
+   */
+  _sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Wait for rate limit before making external API request
+   */
+  async _waitForRateLimit() {
+    const now = Date.now();
+    const timeSinceLastRequest = now - this.lastRequestTime;
+    if (timeSinceLastRequest < RATE_LIMIT_DELAY_MS) {
+      const waitTime = RATE_LIMIT_DELAY_MS - timeSinceLastRequest;
+      await this._sleep(waitTime);
+    }
+    this.lastRequestTime = Date.now();
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -209,35 +234,66 @@ class EnrichmentService {
    * Uses the /works endpoint with mailto for polite pool access.
    */
   async _crossrefDOI(title, year, authorString) {
+    // Skip very short titles that cause 400 errors
+    if (!title || title.trim().length < 10) {
+      logger.debug(`[Enrichment] Skipping Crossref DOI lookup for short title: "${title}"`);
+      return null;
+    }
+
+    await this._waitForRateLimit(); // Respect rate limits
+
+    // Clean title for better matching
+    const cleanTitle = title.replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (cleanTitle.length < 10) {
+      return null;
+    }
+
     const params = {
-      query: title,
+      query: cleanTitle,
       rows: 1,
       mailto: this.politeEmail
     };
     if (year) params.filter = `from-pub-date:${year - 1},until-pub-date:${year + 1}`;
 
-    const response = await axios.get('https://api.crossref.org/works', {
-      params,
-      timeout: REQUEST_TIMEOUT_MS
-    });
+    try {
+      const response = await axios.get('https://api.crossref.org/works', {
+        params,
+        timeout: REQUEST_TIMEOUT_MS
+      });
 
-    const items = response.data?.message?.items;
-    if (!items || items.length === 0) return null;
+      const items = response.data?.message?.items;
+      if (!items || items.length === 0) return null;
 
-    const item = items[0];
-    const itemTitle = (item.title?.[0] || '').toLowerCase();
-    const similarity = this._jaccardSimilarity(title.toLowerCase(), itemTitle);
+      const item = items[0];
+      const itemTitle = (item.title?.[0] || '').toLowerCase();
+      const similarity = this._jaccardSimilarity(title.toLowerCase(), itemTitle);
 
-    // Only accept if title similarity is high enough
-    if (similarity < 0.70) return null;
+      // Only accept if title similarity is high enough
+      if (similarity < 0.70) return null;
 
-    return item.DOI ? this._normalizeDOI(item.DOI) : null;
+      return item.DOI ? this._normalizeDOI(item.DOI) : null;
+    } catch (err) {
+      // Handle rate limiting specifically
+      if (err.response?.status === 429) {
+        logger.warn(`[Enrichment] Crossref rate limit hit for "${title.substring(0, 40)}..." - backing off`);
+        await this._sleep(5000); // 5 second backoff on rate limit
+        return null;
+      }
+      // Handle 400 errors gracefully
+      if (err.response?.status === 400) {
+        logger.debug(`[Enrichment] Crossref 400 error for "${title.substring(0, 40)}..." - skipping`);
+        return null;
+      }
+      throw err;
+    }
   }
 
   /**
    * OpenAlex DOI lookup by title.
    */
   async _openAlexDOI(title, year) {
+    await this._waitForRateLimit(); // Respect rate limits
+
     const params = {
       search: title,
       per_page: 1,
@@ -245,45 +301,67 @@ class EnrichmentService {
     };
     if (year) params.filter = `publication_year:${year}`;
 
-    const response = await axios.get('https://api.openalex.org/works', {
-      params,
-      timeout: REQUEST_TIMEOUT_MS
-    });
+    try {
+      const response = await axios.get('https://api.openalex.org/works', {
+        params,
+        timeout: REQUEST_TIMEOUT_MS
+      });
 
-    const results = response.data?.results;
-    if (!results || results.length === 0) return null;
+      const results = response.data?.results;
+      if (!results || results.length === 0) return null;
 
-    const work = results[0];
-    const workTitle = (work.title || '').toLowerCase();
-    const similarity = this._jaccardSimilarity(title.toLowerCase(), workTitle);
-    if (similarity < 0.70) return null;
+      const work = results[0];
+      const workTitle = (work.title || '').toLowerCase();
+      const similarity = this._jaccardSimilarity(title.toLowerCase(), workTitle);
+      if (similarity < 0.70) return null;
 
-    const doi = work.doi ? work.doi.replace('https://doi.org/', '') : null;
-    return doi ? this._normalizeDOI(doi) : null;
+      const doi = work.doi ? work.doi.replace('https://doi.org/', '') : null;
+      return doi ? this._normalizeDOI(doi) : null;
+    } catch (err) {
+      // Handle rate limiting specifically
+      if (err.response?.status === 429) {
+        logger.warn(`[Enrichment] OpenAlex rate limit hit for "${title.substring(0, 40)}..." - backing off`);
+        await this._sleep(3000); // 3 second backoff on rate limit
+        return null;
+      }
+      throw err;
+    }
   }
 
   /**
    * Semantic Scholar DOI lookup by title.
    */
   async _semanticScholarDOI(title) {
-    const response = await axios.get('https://api.semanticscholar.org/graph/v1/paper/search', {
-      params: {
-        query: title,
-        limit: 1,
-        fields: 'title,externalIds'
-      },
-      timeout: REQUEST_TIMEOUT_MS
-    });
+    await this._waitForRateLimit(); // Respect rate limits
 
-    const papers = response.data?.data;
-    if (!papers || papers.length === 0) return null;
+    try {
+      const response = await axios.get('https://api.semanticscholar.org/graph/v1/paper/search', {
+        params: {
+          query: title,
+          limit: 1,
+          fields: 'title,externalIds'
+        },
+        timeout: REQUEST_TIMEOUT_MS
+      });
 
-    const paper = papers[0];
-    const similarity = this._jaccardSimilarity(title.toLowerCase(), (paper.title || '').toLowerCase());
-    if (similarity < 0.70) return null;
+      const papers = response.data?.data;
+      if (!papers || papers.length === 0) return null;
 
-    const doi = paper.externalIds?.DOI;
-    return doi ? this._normalizeDOI(doi) : null;
+      const paper = papers[0];
+      const similarity = this._jaccardSimilarity(title.toLowerCase(), (paper.title || '').toLowerCase());
+      if (similarity < 0.70) return null;
+
+      const doi = paper.externalIds?.DOI;
+      return doi ? this._normalizeDOI(doi) : null;
+    } catch (err) {
+      // Handle rate limiting specifically
+      if (err.response?.status === 429) {
+        logger.warn(`[Enrichment] Semantic Scholar rate limit hit for DOI lookup - backing off`);
+        await this._sleep(3000); // 3 second backoff on rate limit
+        return null;
+      }
+      throw err;
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -294,63 +372,87 @@ class EnrichmentService {
    * Fetch metadata from Crossref by DOI.
    */
   async _crossrefMetadata(doi) {
-    const response = await axios.get(`https://api.crossref.org/works/${encodeURIComponent(doi)}`, {
-      params: { mailto: this.politeEmail },
-      timeout: REQUEST_TIMEOUT_MS
-    });
+    await this._waitForRateLimit(); // Respect rate limits
 
-    const item = response.data?.message;
-    if (!item) return {};
+    try {
+      const response = await axios.get(`https://api.crossref.org/works/${encodeURIComponent(doi)}`, {
+        params: { mailto: this.politeEmail },
+        timeout: REQUEST_TIMEOUT_MS
+      });
 
-    const typeMap = {
-      'journal-article': 'Journal Paper',
-      'proceedings-article': 'Conference Paper',
-      'proceedings': 'Conference Paper',
-      'book-chapter': 'Book Chapter',
-      'book': 'Book',
-      'monograph': 'Book',
-      'edited-book': 'Book'
-    };
+      const item = response.data?.message;
+      if (!item) return {};
 
-    return {
-      doi: item.DOI ? this._normalizeDOI(item.DOI) : undefined,
-      abstract: item.abstract ? this._stripHtmlTags(item.abstract) : undefined,
-      journal: item['container-title']?.[0] || undefined,
-      volume: item.volume || undefined,
-      issue: item.issue || undefined,
-      pages: item.page || undefined,
-      publisher: item.publisher || undefined,
-      isbn: item.ISBN?.[0] || undefined,
-      issn: item.ISSN?.[0] || undefined,
-      publicationType: typeMap[item.type] || undefined,
-      publicationDate: item.published?.['date-parts']?.[0]
-        ? new Date(`${item.published['date-parts'][0][0]}-${String(item.published['date-parts'][0][1] || 1).padStart(2, '0')}-01`)
-        : undefined,
-      keywords: (item.subject || []).slice(0, 10)
-    };
+      const typeMap = {
+        'journal-article': 'Journal Paper',
+        'proceedings-article': 'Conference Paper',
+        'proceedings': 'Conference Paper',
+        'book-chapter': 'Book Chapter',
+        'book': 'Book',
+        'monograph': 'Book',
+        'edited-book': 'Book'
+      };
+
+      return {
+        doi: item.DOI ? this._normalizeDOI(item.DOI) : undefined,
+        abstract: item.abstract ? this._stripHtmlTags(item.abstract) : undefined,
+        journal: item['container-title']?.[0] || undefined,
+        volume: item.volume || undefined,
+        issue: item.issue || undefined,
+        pages: item.page || undefined,
+        publisher: item.publisher || undefined,
+        isbn: item.ISBN?.[0] || undefined,
+        issn: item.ISSN?.[0] || undefined,
+        publicationType: typeMap[item.type] || undefined,
+        publicationDate: item.published?.['date-parts']?.[0]
+          ? new Date(`${item.published['date-parts'][0][0]}-${String(item.published['date-parts'][0][1] || 1).padStart(2, '0')}-01`)
+          : undefined,
+        keywords: (item.subject || []).slice(0, 10)
+      };
+    } catch (err) {
+      // Handle rate limiting specifically
+      if (err.response?.status === 429) {
+        logger.warn(`[Enrichment] Crossref metadata rate limit hit for DOI ${doi.substring(0, 30)}... - backing off`);
+        await this._sleep(3000); // 3 second backoff on rate limit
+        return {};
+      }
+      throw err;
+    }
   }
 
   /**
    * Fetch metadata from OpenAlex by DOI.
    */
   async _openAlexMetadata(doi) {
-    const response = await axios.get(`https://api.openalex.org/works/https://doi.org/${doi}`, {
-      params: { mailto: this.politeEmail },
-      timeout: REQUEST_TIMEOUT_MS
-    });
+    await this._waitForRateLimit(); // Respect rate limits
 
-    const work = response.data;
-    if (!work) return {};
+    try {
+      const response = await axios.get(`https://api.openalex.org/works/https://doi.org/${doi}`, {
+        params: { mailto: this.politeEmail },
+        timeout: REQUEST_TIMEOUT_MS
+      });
 
-    return {
-      abstract: work.abstract_inverted_index
-        ? this._invertedIndexToAbstract(work.abstract_inverted_index)
-        : undefined,
-      journal: work.host_venue?.display_name || undefined,
-      openAccess: work.open_access?.is_oa || undefined,
-      pdfURL: work.open_access?.oa_url || undefined,
-      keywords: (work.concepts || []).slice(0, 8).map(c => c.display_name)
-    };
+      const work = response.data;
+      if (!work) return {};
+
+      return {
+        abstract: work.abstract_inverted_index
+          ? this._invertedIndexToAbstract(work.abstract_inverted_index)
+          : undefined,
+        journal: work.host_venue?.display_name || undefined,
+        openAccess: work.open_access?.is_oa || undefined,
+        pdfURL: work.open_access?.oa_url || undefined,
+        keywords: (work.concepts || []).slice(0, 8).map(c => c.display_name)
+      };
+    } catch (err) {
+      // Handle rate limiting specifically
+      if (err.response?.status === 429) {
+        logger.warn(`[Enrichment] OpenAlex metadata rate limit hit for DOI ${doi.substring(0, 30)}... - backing off`);
+        await this._sleep(3000); // 3 second backoff on rate limit
+        return {};
+      }
+      throw err;
+    }
   }
 
   /**
@@ -362,6 +464,7 @@ class EnrichmentService {
 
     // Try by DOI first
     if (doi) {
+      await this._waitForRateLimit(); // Respect rate limits
       try {
         const response = await axios.get(`https://api.semanticscholar.org/graph/v1/paper/${encodeURIComponent(doi)}`, {
           params: { fields: 'title,abstract,year,fieldsOfStudy,openAccessPdf,externalIds' },
@@ -369,24 +472,42 @@ class EnrichmentService {
         });
         paper = response.data;
       } catch (err) {
-        if (err.response?.status !== 404) throw err;
+        // Handle rate limiting specifically
+        if (err.response?.status === 429) {
+          logger.warn(`[Enrichment] Semantic Scholar DOI metadata rate limit hit - backing off`);
+          await this._sleep(3000); // 3 second backoff on rate limit
+          // Don't throw, continue to title search
+        } else if (err.response?.status !== 404) {
+          throw err;
+        }
       }
     }
 
     // Fallback: search by title
     if (!paper && title) {
-      const response = await axios.get('https://api.semanticscholar.org/graph/v1/paper/search', {
-        params: {
-          query: title,
-          limit: 1,
-          fields: 'title,abstract,year,fieldsOfStudy,openAccessPdf'
-        },
-        timeout: REQUEST_TIMEOUT_MS
-      });
-      const papers = response.data?.data;
-      if (papers && papers.length > 0) {
-        const similarity = this._jaccardSimilarity(title.toLowerCase(), (papers[0].title || '').toLowerCase());
-        if (similarity >= 0.70) paper = papers[0];
+      await this._waitForRateLimit(); // Respect rate limits
+      try {
+        const response = await axios.get('https://api.semanticscholar.org/graph/v1/paper/search', {
+          params: {
+            query: title,
+            limit: 1,
+            fields: 'title,abstract,year,fieldsOfStudy,openAccessPdf'
+          },
+          timeout: REQUEST_TIMEOUT_MS
+        });
+        const papers = response.data?.data;
+        if (papers && papers.length > 0) {
+          const similarity = this._jaccardSimilarity(title.toLowerCase(), (papers[0].title || '').toLowerCase());
+          if (similarity >= 0.70) paper = papers[0];
+        }
+      } catch (err) {
+        // Handle rate limiting specifically
+        if (err.response?.status === 429) {
+          logger.warn(`[Enrichment] Semantic Scholar title search rate limit hit - backing off`);
+          await this._sleep(3000); // 3 second backoff on rate limit
+          return {};
+        }
+        throw err;
       }
     }
 
@@ -404,18 +525,30 @@ class EnrichmentService {
    * Requires a valid DOI.
    */
   async _unpaywallMetadata(doi) {
-    const response = await axios.get(`https://api.unpaywall.org/v2/${encodeURIComponent(doi)}`, {
-      params: { email: this.politeEmail },
-      timeout: REQUEST_TIMEOUT_MS
-    });
+    await this._waitForRateLimit(); // Respect rate limits
 
-    const data = response.data;
-    if (!data) return {};
+    try {
+      const response = await axios.get(`https://api.unpaywall.org/v2/${encodeURIComponent(doi)}`, {
+        params: { email: this.politeEmail },
+        timeout: REQUEST_TIMEOUT_MS
+      });
 
-    return {
-      openAccess: data.is_oa || false,
-      pdfURL: data.best_oa_location?.url_for_pdf || data.best_oa_location?.url || undefined
-    };
+      const data = response.data;
+      if (!data) return {};
+
+      return {
+        openAccess: data.is_oa || false,
+        pdfURL: data.best_oa_location?.url_for_pdf || data.best_oa_location?.url || undefined
+      };
+    } catch (err) {
+      // Handle rate limiting specifically
+      if (err.response?.status === 429) {
+        logger.warn(`[Enrichment] Unpaywall rate limit hit for DOI ${doi.substring(0, 30)}... - backing off`);
+        await this._sleep(3000); // 3 second backoff on rate limit
+        return {};
+      }
+      throw err;
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────────

@@ -322,41 +322,29 @@ class ScholarService {
           articles = data.articles;
         }
 
-        // Parallel multi-page fetching in chunks of 5 pages
+        // Sequential fetching to avoid rate limits (SerpAPI has strict limits)
         if (articles.length === 100) {
           let hasMore = true;
           let nextStart = 100;
-          const chunkSize = 5;
+          const SEQUENTIAL_DELAY_MS = 3000; // 3 second delay between sequential requests
 
           while (hasMore) {
-            await importQueueService.log(jobId, userId, `Fetching publications in parallel starting at index ${nextStart}...`);
-            
-            const promises = [];
-            for (let i = 0; i < chunkSize; i++) {
-              promises.push(serpApiService.fetchAuthorArticles(authorId, nextStart + i * 100));
-            }
+            await importQueueService.log(jobId, userId, `Fetching publications starting at index ${nextStart}...`);
 
-            const results = await Promise.all(promises);
-            let batchHasMore = true;
+            // Sequential fetching with delay between requests
+            const batch = await serpApiService.fetchAuthorArticles(authorId, nextStart);
 
-            for (let i = 0; i < results.length; i++) {
-              const batch = results[i];
-              if (batch && batch.articles && batch.articles.length > 0) {
-                articles = articles.concat(batch.articles);
-                if (batch.articles.length < 100) {
-                  batchHasMore = false;
-                  break;
-                }
+            if (batch && batch.articles && batch.articles.length > 0) {
+              articles = articles.concat(batch.articles);
+              if (batch.articles.length < 100) {
+                hasMore = false;
               } else {
-                batchHasMore = false;
-                break;
+                nextStart += 100;
+                // Add delay between requests to respect rate limits
+                await new Promise(resolve => setTimeout(resolve, SEQUENTIAL_DELAY_MS));
               }
-            }
-
-            if (!batchHasMore || serpApiService.apiKey === 'demoserpapikey') {
-              hasMore = false;
             } else {
-              nextStart += chunkSize * 100;
+              hasMore = false;
             }
           }
         }
@@ -461,14 +449,14 @@ class ScholarService {
             // Step 1: Lookup missing DOI
             if (!pubDoi) {
               pubDoi = await enrichmentService.lookupDOI(article.title, article.year, article.authors);
-              await new Promise(resolve => setTimeout(resolve, 400)); // Respect external API rate limits
+              await new Promise(resolve => setTimeout(resolve, 800)); // Respect external API rate limits (increased from 400ms)
             }
 
             // Step 2: Fetch enriched metadata from external providers
             let enrichedMeta = {};
             try {
               enrichedMeta = await enrichmentService.fetchMetadata(pubDoi, article.title);
-              await new Promise(resolve => setTimeout(resolve, 400)); // Respect external API rate limits
+              await new Promise(resolve => setTimeout(resolve, 800)); // Respect external API rate limits (increased from 400ms)
               if (enrichedMeta && Object.keys(enrichedMeta).length > 0) {
                 enrichedCount++;
               }
