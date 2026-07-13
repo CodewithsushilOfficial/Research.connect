@@ -620,7 +620,7 @@ class SearchService {
     const User = mongoose.model('User');
     const Profile = mongoose.model('Profile');
 
-    const searchRegex = new RegExp(q, 'i');
+    const searchRegex = buildRegex(q, 'i');
 
     // 1. Find users who match first name / last name
     const matchedUsers = await User.find({
