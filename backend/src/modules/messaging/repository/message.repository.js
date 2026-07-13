@@ -47,71 +47,85 @@ class MessageRepository extends BaseRepository {
       .sort({ lastMessageTime: -1 })
       .lean();
 
-    // Process each conversation with unread counts and tags
-    const processed = await Promise.all(
-      conversations.map(async (conv) => {
-        const otherParticipant = conv.participants.find(
-          p => p._id.toString() !== userIdStr
-        );
-
-        let detailedParticipant = null;
-        if (otherParticipant) {
-          const profile = await Profile.findOne({ userId: otherParticipant._id }).lean();
-          const presence = await Presence.findOne({ userId: otherParticipant._id }).lean();
-          detailedParticipant = {
-            ...otherParticipant,
-            profileImage: otherParticipant.profileImage?.url || otherParticipant.profileImage || '',
-            isOnline: presence ? presence.status === 'online' : false,
-            lastSeen: presence?.lastSeen || null,
-            bio: profile?.bio || '',
-            institution: profile?.institution || '',
-            department: profile?.department || '',
-            designation: profile?.designation || '',
-            skills: profile?.skills || [],
-            metrics: profile?.metrics || { totalCitations: 0, researchScore: 0 },
-            connectionsCount: profile?.connectionsCount || 0,
-            followersCount: profile?.followersCount || 0,
-            followingCount: profile?.followingCount || 0
-          };
+    // Extract all unique other participant IDs
+    const otherParticipantIds = [];
+    conversations.forEach((conv) => {
+      if (conv.participants) {
+        const other = conv.participants.find(p => p._id.toString() !== userIdStr);
+        if (other && other._id) {
+          otherParticipantIds.push(other._id);
         }
+      }
+    });
 
-        // Get unread count from precomputed Map if exists, otherwise fallback to DB count
-        let unreadCount = 0;
-        if (conv.unreadCounts) {
-          if (conv.unreadCounts instanceof Map) {
-            unreadCount = conv.unreadCounts.get(userIdStr) || 0;
-          } else {
-            unreadCount = conv.unreadCounts[userIdStr] || 0;
-          }
-        } else {
-          unreadCount = await Message.countDocuments({
-            conversationId: conv._id,
-            senderId: otherParticipant ? otherParticipant._id : null,
-            status: { $ne: 'seen' }
-          });
-        }
+    // Fetch all profiles and presence statuses in bulk (resolve N+1 query problem)
+    const profiles = await Profile.find({ userId: { $in: otherParticipantIds } }).lean();
+    const presences = await Presence.find({ userId: { $in: otherParticipantIds } }).lean();
 
-        const isPinned = Array.isArray(conv.isPinned) && conv.isPinned.map(id => id.toString()).includes(userIdStr);
-        const isArchived = Array.isArray(conv.isArchived) && conv.isArchived.map(id => id.toString()).includes(userIdStr);
-        const isMuted = Array.isArray(conv.isMuted) && conv.isMuted.map(id => id.toString()).includes(userIdStr);
+    const profileMap = new Map();
+    profiles.forEach(p => profileMap.set(p.userId.toString(), p));
 
-        // Map lastMessageId to lastMessage for backward compatibility
-        const legacyLastMessage = conv.lastMessageId ? {
-          ...conv.lastMessageId,
-          attachment: conv.lastMessageId.attachmentId
-        } : null;
+    const presenceMap = new Map();
+    presences.forEach(pr => presenceMap.set(pr.userId.toString(), pr));
 
-        return {
-          ...conv,
-          lastMessage: legacyLastMessage,
-          otherParticipant: detailedParticipant,
-          unreadCount,
-          isPinned,
-          isArchived,
-          isMuted
+    // Process each conversation
+    const processed = conversations.map((conv) => {
+      const otherParticipant = conv.participants ? conv.participants.find(
+        p => p._id.toString() !== userIdStr
+      ) : null;
+
+      let detailedParticipant = null;
+      if (otherParticipant) {
+        const otherIdStr = otherParticipant._id.toString();
+        const profile = profileMap.get(otherIdStr) || {};
+        const presence = presenceMap.get(otherIdStr);
+        detailedParticipant = {
+          ...otherParticipant,
+          profileImage: otherParticipant.profileImage?.url || otherParticipant.profileImage || '',
+          isOnline: presence ? presence.status === 'online' : false,
+          lastSeen: presence?.lastSeen || null,
+          bio: profile.bio || '',
+          institution: profile.institution || '',
+          department: profile.department || '',
+          designation: profile.designation || '',
+          skills: profile.skills || [],
+          metrics: profile.metrics || { totalCitations: 0, researchScore: 0 },
+          connectionsCount: profile.connectionsCount || 0,
+          followersCount: profile.followersCount || 0,
+          followingCount: profile.followingCount || 0
         };
-      })
-    );
+      }
+
+      // Get unread count from precomputed Map if exists, otherwise default to 0
+      let unreadCount = 0;
+      if (conv.unreadCounts) {
+        if (conv.unreadCounts instanceof Map) {
+          unreadCount = conv.unreadCounts.get(userIdStr) || 0;
+        } else {
+          unreadCount = conv.unreadCounts[userIdStr] || 0;
+        }
+      }
+
+      const isPinned = Array.isArray(conv.isPinned) && conv.isPinned.map(id => id.toString()).includes(userIdStr);
+      const isArchived = Array.isArray(conv.isArchived) && conv.isArchived.map(id => id.toString()).includes(userIdStr);
+      const isMuted = Array.isArray(conv.isMuted) && conv.isMuted.map(id => id.toString()).includes(userIdStr);
+
+      // Map lastMessageId to lastMessage for backward compatibility
+      const legacyLastMessage = conv.lastMessageId ? {
+        ...conv.lastMessageId,
+        attachment: conv.lastMessageId.attachmentId
+      } : null;
+
+      return {
+        ...conv,
+        lastMessage: legacyLastMessage,
+        otherParticipant: detailedParticipant,
+        unreadCount,
+        isPinned,
+        isArchived,
+        isMuted
+      };
+    });
 
     return processed;
   }
