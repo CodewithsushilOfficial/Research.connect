@@ -1,4 +1,5 @@
 import React from 'react';
+import UserAvatar from '../../../components/ui/Avatar';
 
 const MutualFollowers = ({ mutualCount = 0, mutualPreview = [], className = '' }) => {
   if (mutualCount === 0 || !mutualPreview || mutualPreview.length === 0) return null;
@@ -7,11 +8,11 @@ const MutualFollowers = ({ mutualCount = 0, mutualPreview = [], className = '' }
     <div className={`flex items-center gap-2 text-[10px] text-[#475569] font-semibold ${className}`}>
       <div className="flex -space-x-2.5 overflow-hidden">
         {mutualPreview.slice(0, 3).map((user, idx) => (
-          <img
+          <UserAvatar
             key={user.userId || user._id || idx}
-            className="inline-block h-4 w-4 rounded-full ring-1 ring-white object-cover shadow-xs"
-            src={user.profileImage || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150"}
-            alt={user.fullName || "User Avatar"}
+            user={user}
+            size="xs"
+            className="ring-1 ring-white shadow-xs"
           />
         ))}
       </div>

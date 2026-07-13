@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { GraduationCap, Check, X, Send } from 'lucide-react';
 import connectionsService from '../services/connections.service';
+import UserAvatar from '../../../components/ui/Avatar';
 
 const InvitationCard = ({ request, type = 'received', currentUserId }) => {
   const navigate = useNavigate();
@@ -65,11 +66,7 @@ const InvitationCard = ({ request, type = 'received', currentUserId }) => {
       <div className="flex gap-4 items-start">
         {/* Avatar */}
         <div className="cursor-pointer shrink-0" onClick={handleCardClick}>
-          <img
-            src={otherUser.profileImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"}
-            alt={otherUser.fullName}
-            className="w-14 h-14 rounded-full object-cover border border-slate-100"
-          />
+          <UserAvatar user={otherUser} size="lg" showBorder />
         </div>
 
         {/* User details */}

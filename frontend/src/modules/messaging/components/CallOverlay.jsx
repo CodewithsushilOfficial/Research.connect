@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Phone, PhoneOff, Video, VideoOff, Mic, MicOff, ScreenShare, Hand, Volume2, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import UserAvatar from '../../../components/ui/Avatar';
 
 const CallOverlay = ({ callState, onAccept, onDecline, onHangup, socket }) => {
   const { status, type, callerName, callerImage, callId, targetUserId } = callState;
@@ -277,10 +278,12 @@ const CallOverlay = ({ callState, onAccept, onDecline, onHangup, socket }) => {
             // Audio call view / Dialing / Incoming Call View
             <div className="flex flex-col items-center justify-center space-y-6">
               <div className="relative w-40 h-40 sm:w-48 sm:h-48 rounded-full border-4 border-white/10 flex items-center justify-center overflow-hidden shadow-2xl bg-slate-800">
-                <img 
-                  src={callerImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200"}
-                  alt={callerName}
-                  className="w-full h-full object-cover"
+                <UserAvatar
+                  src={callerImage}
+                  name={callerName}
+                  size="3xl"
+                  shape="rounded-full"
+                  className="w-full h-full"
                 />
                 {(status === 'dialing' || status === 'incoming') && (
                   <span className="absolute inset-0 rounded-full border-4 border-blue-500 animate-ping opacity-60" />

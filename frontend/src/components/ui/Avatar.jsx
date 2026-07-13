@@ -1,110 +1,171 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 
-const PALETTE = [
-  '#2563EB', // Blue
-  '#059669', // Emerald
-  '#4F46E5', // Indigo
-  '#E11D48', // Rose
-  '#D97706', // Amber
-  '#0D9488', // Teal
-  '#7C3AED', // Purple
-  '#0891B2'  // Cyan
+// ─── Color Palette (deterministic per user) ───────────────────────────────────
+const GRADIENTS = [
+  ['#2563EB', '#4F46E5'],  // Blue → Indigo
+  ['#059669', '#0D9488'],  // Emerald → Teal
+  ['#7C3AED', '#A855F7'],  // Purple → Violet
+  ['#E11D48', '#F43F5E'],  // Rose → Pink
+  ['#D97706', '#F59E0B'],  // Amber → Yellow
+  ['#0891B2', '#06B6D4'],  // Cyan → Sky
+  ['#1D4ED8', '#2563EB'],  // Blue deep → Blue
+  ['#0F766E', '#14B8A6'],  // Teal dark → Teal
 ];
 
-const getAvatarColor = (name) => {
-  if (!name) return PALETTE[0];
+const getGradientForName = (name = '') => {
+  if (!name) return GRADIENTS[0];
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
-  const index = Math.abs(hash) % PALETTE.length;
-  return PALETTE[index];
+  return GRADIENTS[Math.abs(hash) % GRADIENTS.length];
 };
 
-const getInitials = (name) => {
-  if (!name) return 'RC';
-  const parts = name.trim().split(/\s+/);
+const getInitials = (name = '') => {
+  if (!name || typeof name !== 'string') return 'RC';
+  const cleaned = name.trim();
+  if (!cleaned) return 'RC';
+  const parts = cleaned.split(/\s+/);
   if (parts.length >= 2) {
     return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
   }
-  return name.charAt(0).toUpperCase();
+  return cleaned.charAt(0).toUpperCase();
 };
 
-export const Avatar = ({
+// ─── Size Map ─────────────────────────────────────────────────────────────────
+const SIZE_MAP = {
+  xs:   { container: 'w-5 h-5',   text: '14', dot: 'w-2 h-2 border' },
+  sm:   { container: 'w-8 h-8',   text: '22', dot: 'w-2.5 h-2.5 border border-white' },
+  md:   { container: 'w-10 h-10', text: '28', dot: 'w-3 h-3 border border-white' },
+  lg:   { container: 'w-12 h-12', text: '32', dot: 'w-3 h-3 border-2 border-white' },
+  xl:   { container: 'w-16 h-16', text: '42', dot: 'w-3.5 h-3.5 border-2 border-white' },
+  '2xl':{ container: 'w-20 h-20', text: '52', dot: 'w-4 h-4 border-2 border-white' },
+  '3xl':{ container: 'w-24 h-24', text: '60', dot: 'w-4 h-4 border-2 border-white' },
+};
+
+/**
+ * Universal UserAvatar component.
+ *
+ * Accepts either:
+ *   (A) a `user` object  — extracts profileImage, fullName, firstName, lastName, isOnline automatically
+ *   (B) individual props — src, name, isOnline (for places that don't have a user object)
+ *
+ * Never shows a broken image. Always falls back to a beautiful gradient SVG with initials.
+ *
+ * Props:
+ *   user        {object}  — user object (preferred)
+ *   src         {string}  — override image URL (when no user object)
+ *   name        {string}  — override display name (for initials)
+ *   size        {string}  — 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl'
+ *   isOnline    {boolean} — show green presence dot
+ *   showStatus  {boolean} — alias for isOnline
+ *   showBorder  {boolean} — show a subtle ring border around the avatar
+ *   shape       {string}  — Tailwind class e.g. 'rounded-full' (default) or 'rounded-2xl'
+ *   className   {string}  — extra classes on the container
+ */
+const UserAvatar = memo(({
+  user,
   src,
-  name = 'User',
+  name,
   size = 'md',
+  isOnline,
+  showStatus,
+  showBorder = false,
+  shape = 'rounded-full',
   className = '',
-  isOnline = false,
-  shape = 'rounded-2xl'
 }) => {
-  const [hasError, setHasError] = useState(false);
+  // ── Resolve values from user object or individual props ──────────────────
+  const resolvedSrc = src ?? user?.profileImage ?? user?.avatar ?? null;
+  const resolvedName =
+    name ??
+    user?.fullName ??
+    (user?.firstName || user?.lastName
+      ? `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim()
+      : null) ??
+    user?.username ??
+    'User';
+  const resolvedOnline = (isOnline ?? showStatus ?? user?.isOnline ?? user?.online ?? false);
 
-  // Reset error state if src changes
+  // ── Image error state ────────────────────────────────────────────────────
+  const [imgError, setImgError] = useState(false);
+
+  // Reset error when src changes (user uploads new photo)
   useEffect(() => {
-    setHasError(false);
-  }, [src]);
+    setImgError(false);
+  }, [resolvedSrc]);
 
-  const initials = getInitials(name);
-  const bgColor = getAvatarColor(name);
+  // ── Derived values ───────────────────────────────────────────────────────
+  const initials = getInitials(resolvedName);
+  const [gradStart, gradEnd] = getGradientForName(resolvedName);
+  const sizeConfig = SIZE_MAP[size] || SIZE_MAP.md;
+  const gradId = `ua-grad-${initials}-${gradStart.replace('#', '')}`;
 
-  const sizeClasses = {
-    xs: 'w-6 h-6 text-[10px]',
-    sm: 'w-8 h-8 text-xs',
-    md: 'w-10 h-10 text-sm',
-    lg: 'w-12 h-12 text-base',
-    xl: 'w-16 h-16 text-xl',
-    '2xl': 'w-20 h-20 text-2xl',
-    '3xl': 'w-24 h-24 text-3xl'
-  };
+  const showImage = resolvedSrc && !imgError;
 
-  const resolvedSizeClass = sizeClasses[size] || size;
-
-  // Render SVG fallback
-  const renderFallback = () => (
-    <svg
-      viewBox="0 0 100 100"
-      className="w-full h-full select-none"
-      style={{ backgroundColor: bgColor }}
-    >
-      <text
-        x="50"
-        y="53"
-        dominantBaseline="middle"
-        textAnchor="middle"
-        fill="#FFFFFF"
-        fontSize="36"
-        fontWeight="800"
-        fontFamily="system-ui, -apple-system, sans-serif"
-      >
-        {initials}
-      </text>
-    </svg>
-  );
-
+  // ── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className={`relative flex-shrink-0 ${resolvedSizeClass} ${className}`}>
-      <div className={`w-full h-full overflow-hidden ${shape} bg-slate-100 border border-slate-100 flex items-center justify-center`}>
-        {src && !hasError ? (
+    <div
+      className={`relative flex-shrink-0 ${sizeConfig.container} ${className}`}
+      aria-label={resolvedName}
+    >
+      {/* Avatar shell */}
+      <div
+        className={`w-full h-full overflow-hidden ${shape} flex items-center justify-center select-none ${showBorder ? 'ring-2 ring-offset-1 ring-blue-500/30' : ''}`}
+      >
+        {showImage ? (
           <img
-            src={src}
-            alt={name}
-            onError={() => setHasError(true)}
+            src={resolvedSrc}
+            alt={resolvedName}
+            onError={() => setImgError(true)}
             className="w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
           />
         ) : (
-          renderFallback()
+          /* Gradient SVG initials fallback — pixel-perfect, no external requests */
+          <svg
+            viewBox="0 0 100 100"
+            className="w-full h-full"
+            aria-hidden="true"
+          >
+            <defs>
+              <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor={gradStart} />
+                <stop offset="100%" stopColor={gradEnd} />
+              </linearGradient>
+            </defs>
+            <rect width="100" height="100" fill={`url(#${gradId})`} />
+            <text
+              x="50"
+              y="53"
+              dominantBaseline="middle"
+              textAnchor="middle"
+              fill="#FFFFFF"
+              fontSize={sizeConfig.text}
+              fontWeight="800"
+              fontFamily="system-ui, -apple-system, 'Segoe UI', sans-serif"
+              letterSpacing="2"
+            >
+              {initials}
+            </text>
+          </svg>
         )}
       </div>
 
-      {isOnline && (
+      {/* Online presence dot */}
+      {resolvedOnline && (
         <span
-          className={`absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full shadow-sm ring-1 ring-black/5`}
+          className={`absolute bottom-0 right-0 ${sizeConfig.dot} bg-emerald-500 rounded-full shadow-sm`}
           title="Online"
         />
       )}
     </div>
   );
-};
+});
 
-export default Avatar;
+UserAvatar.displayName = 'UserAvatar';
+
+// Named export for backward compat with existing Avatar imports
+export { UserAvatar as Avatar };
+
+export default UserAvatar;

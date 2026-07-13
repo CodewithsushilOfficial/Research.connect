@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, Users, FileText, Share2, Shield, Landmark, BookOpen, GraduationCap, X } from 'lucide-react';
+import UserAvatar from '../../../components/ui/Avatar';
 
 const ResearcherInfo = ({ participant, conversation, messages = [], onClose }) => {
   if (!participant) return null;
@@ -57,12 +58,13 @@ const ResearcherInfo = ({ participant, conversation, messages = [], onClose }) =
       {/* Profile summary */}
       <div className="flex flex-col items-center text-center space-y-4 pb-6 border-b border-slate-100">
         <div className="relative">
-          <img
-            src={profileImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"}
-            alt={fullName}
-            className="w-20 h-20 rounded-full object-cover border border-slate-200 shadow-sm"
+          <UserAvatar
+            src={profileImage}
+            name={fullName}
+            size="2xl"
+            isOnline
+            showBorder
           />
-          <span className="absolute bottom-0 right-1.5 w-3.5 h-3.5 rounded-full border-2 border-white bg-emerald-500" />
         </div>
         
         <div className="space-y-1">

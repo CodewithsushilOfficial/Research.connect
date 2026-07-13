@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, Trash2, Eye, Circle, Mail, Users, FileText, Sparkles, MessageSquare } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import notificationsService from '../services/notifications.service';
+import UserAvatar from '../../../components/ui/Avatar';
 
 const formatTimeAgo = (dateStr) => {
   const date = new Date(dateStr);
@@ -85,10 +86,10 @@ const NotificationCard = ({ notification }) => {
       <div className="flex gap-3.5 items-start cursor-pointer flex-1 min-w-0" onClick={handleCardClick}>
         {/* Actor Avatar / Icon stack */}
         <div className="relative shrink-0">
-          <img
-            src={actorImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"}
-            alt={actorName}
-            className="w-11 h-11 rounded-full object-cover border border-slate-100"
+          <UserAvatar
+            src={actorImage}
+            name={actorName}
+            size="md"
           />
           <div className="absolute -bottom-1 -right-1 p-1 bg-white rounded-full shadow-xs border border-slate-100 flex items-center justify-center">
             {getNotificationIcon(notification.type)}

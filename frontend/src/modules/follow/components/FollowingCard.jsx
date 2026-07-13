@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GraduationCap } from 'lucide-react';
 import FollowButton from './FollowButton';
+import UserAvatar from '../../../components/ui/Avatar';
 
 const FollowingCard = ({ following, currentUserId }) => {
   const navigate = useNavigate();
@@ -21,11 +22,7 @@ const FollowingCard = ({ following, currentUserId }) => {
       <div className="flex gap-4 items-start">
         {/* Avatar */}
         <div className="cursor-pointer shrink-0" onClick={handleCardClick}>
-          <img
-            src={user.profileImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"}
-            alt={user.fullName}
-            className="w-14 h-14 rounded-full object-cover border border-slate-100"
-          />
+          <UserAvatar user={user} size="lg" showBorder />
         </div>
 
         {/* User Details */}

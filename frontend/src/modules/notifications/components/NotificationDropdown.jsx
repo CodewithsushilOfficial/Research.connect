@@ -5,6 +5,7 @@ import { CheckCheck, Trash2, ArrowUpRight, BellOff } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import notificationsService from '../services/notifications.service';
 import { formatTimeAgo } from './NotificationCard';
+import UserAvatar from '../../../components/ui/Avatar';
 
 const NotificationDropdown = ({ onClose }) => {
   const navigate = useNavigate();
@@ -129,10 +130,10 @@ const NotificationDropdown = ({ onClose }) => {
               )}
 
               {/* Avatar */}
-              <img
-                src={n.actorId?.profileImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"}
-                alt={n.actorId?.firstName || 'User'}
-                className="w-9 h-9 rounded-full object-cover border border-slate-100 shrink-0"
+              <UserAvatar
+                user={n.actorId}
+                size="sm"
+                className="shrink-0"
               />
 
               {/* Text content */}

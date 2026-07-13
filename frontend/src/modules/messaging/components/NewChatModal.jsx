@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Search, MessageSquare, Users } from 'lucide-react';
+import UserAvatar from '../../../components/ui/Avatar';
 
 const NewChatModal = ({ isOpen, onClose, contacts, onSelectContact }) => {
   const [search, setSearch] = useState('');
@@ -71,12 +72,7 @@ const NewChatModal = ({ isOpen, onClose, contacts, onSelectContact }) => {
                 className="flex items-center gap-3 p-2.5 rounded-2xl hover:bg-slate-50 cursor-pointer transition-colors border border-transparent hover:border-slate-100"
               >
                 <div className="relative shrink-0">
-                  <img
-                    src={person.profileImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"}
-                    alt={`${person.firstName} ${person.lastName}`}
-                    className="w-10 h-10 rounded-full object-cover border border-slate-150"
-                  />
-                  <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${person.isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                  <UserAvatar user={person} size="md" isOnline={person.isOnline} />
                 </div>
                 <div className="flex-1 min-w-0 text-left">
                   <h4 className="text-xs font-black text-slate-800 truncate">{person.firstName} {person.lastName}</h4>

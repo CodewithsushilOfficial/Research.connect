@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import feedService from '../../../services/feed.service';
+import UserAvatar from '../../../components/ui/Avatar';
 
 const MessagesView = () => {
   const dispatch = useDispatch();
@@ -363,7 +364,6 @@ const MessagesView = () => {
 
 
           const otherParticipant = activeConversation?.participants?.find(p => getUserIdStr(p) !== currentUserId);
-          const avatarUrl = otherParticipant?.profileImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150";
           const senderName = otherParticipant?.fullName || 'Researcher';
           const timeString = msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now';
 
@@ -381,11 +381,7 @@ const MessagesView = () => {
                 {!isMe && (
                   <div className="w-7 h-7 flex-shrink-0 mb-0.5">
                     {isDifferentSender ? (
-                      <img
-                        src={avatarUrl}
-                        alt={senderName}
-                        className="w-7 h-7 rounded-full object-cover shadow-xs"
-                      />
+                      <UserAvatar user={otherParticipant} size="sm" />
                     ) : (
                       <div className="w-7 h-7" />
                     )}
@@ -454,11 +450,11 @@ const MessagesView = () => {
 
               <div className="grid grid-cols-2 gap-4 h-64 mb-6">
                 <div className="bg-slate-100 rounded-2xl flex items-center justify-center relative overflow-hidden">
-                  <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=180" alt="Self" className="w-full h-full object-cover" />
+                  <UserAvatar user={user} size="2xl" className="w-full h-full" shape="rounded-2xl" />
                   <span className="absolute bottom-2 left-2 text-[10px] bg-slate-900/75 text-white px-2 py-0.5 rounded-full font-bold">You</span>
                 </div>
                 <div className="bg-slate-100 rounded-2xl flex items-center justify-center relative overflow-hidden">
-                  <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=180" alt="Peer" className="w-full h-full object-cover animate-pulse" />
+                  <UserAvatar user={activeConversation?.participants?.find(p => getUserIdStr(p) !== getUserIdStr(user))} size="2xl" className="w-full h-full" shape="rounded-2xl" />
                   <span className="absolute bottom-2 left-2 text-[10px] bg-slate-900/75 text-white px-2 py-0.5 rounded-full font-bold">{activeConversation ? getConversationTitle(activeConversation) : 'Peer'}</span>
                 </div>
               </div>

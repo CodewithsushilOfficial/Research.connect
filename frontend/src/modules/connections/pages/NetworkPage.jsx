@@ -12,6 +12,7 @@ import networkService from '../services/network.service';
 import { useSocket } from '../../../context/SocketContext';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import UserAvatar from '../../../components/ui/Avatar';
 
 const NetworkPage = () => {
   const navigate = useNavigate();
@@ -271,11 +272,7 @@ const NetworkPage = () => {
                   className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs hover:border-slate-300 transition-all duration-200 space-y-4 flex flex-col justify-between"
                 >
                   <div className="flex gap-4 items-start">
-                    <img 
-                      src={cand.user.profileImage || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150"}
-                      alt={cand.user.fullName}
-                      className="w-12 h-12 rounded-full object-cover shrink-0 border border-slate-100"
-                    />
+                    <UserAvatar user={cand.user} size="lg" showBorder />
                     <div className="min-w-0 flex-1">
                       <h4 
                         onClick={() => navigate(`/profile/${cand.user.profileSlug || cand.user.username}`)}
@@ -332,11 +329,7 @@ const NetworkPage = () => {
                   className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs hover:border-slate-300 transition-all duration-200 space-y-4"
                 >
                   <div className="flex gap-4 items-start">
-                    <img 
-                      src={req.user.profileImage || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"}
-                      alt={req.user.fullName}
-                      className="w-12 h-12 rounded-full object-cover shrink-0 border border-slate-100"
-                    />
+                    <UserAvatar user={req.user} size="lg" showBorder />
                     <div className="min-w-0 flex-1">
                       <h4 
                         onClick={() => navigate(`/profile/${req.user.profileSlug || req.user.username}`)}
@@ -438,13 +431,11 @@ const NetworkPage = () => {
                 >
                   <div className="flex gap-3 items-center min-w-0 flex-1">
                     <div className="relative shrink-0">
-                      <img 
-                        src={item.profileImage || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150"}
-                        alt={item.fullName}
-                        className="w-10 h-10 rounded-full object-cover border border-slate-100"
+                      <UserAvatar
+                        user={item}
+                        size="md"
+                        isOnline={item.presenceStatus === 'online'}
                       />
-                      {/* Presence status dot */}
-                      <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border border-white ${item.presenceStatus === 'online' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-305'}`} />
                     </div>
 
                     <div className="min-w-0 flex-1">
@@ -546,11 +537,7 @@ const NetworkPage = () => {
                 className="bg-slate-50/50 hover:bg-white rounded-2xl p-5 border border-slate-150/80 hover:border-slate-300 hover:shadow-xs transition-all duration-200 flex items-center justify-between gap-6 shrink-0 w-full md:w-72"
               >
                 <div className="flex gap-3 items-center min-w-0 flex-1">
-                  <img 
-                    src={cand.user.profileImage || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150"}
-                    alt={cand.user.fullName}
-                    className="w-10 h-10 rounded-full object-cover shrink-0 border border-white shadow-xs"
-                  />
+                  <UserAvatar user={cand.user} size="md" showBorder />
                   <div className="min-w-0 flex-1">
                     <h4 
                       onClick={() => navigate(`/profile/${cand.user.profileSlug || cand.user.username}`)}

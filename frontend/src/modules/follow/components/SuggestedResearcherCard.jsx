@@ -5,6 +5,7 @@ import { Sparkles, GraduationCap, BookOpen, Users, HelpCircle, ArrowRight, Check
 import FollowButton from './FollowButton';
 import ConnectButton from '../../connections/components/ConnectButton';
 import MutualFollowers from './MutualFollowers';
+import UserAvatar from '../../../components/ui/Avatar';
 
 const SuggestedResearcherCard = ({ suggestion, currentUserId }) => {
   const navigate = useNavigate();
@@ -87,11 +88,7 @@ const SuggestedResearcherCard = ({ suggestion, currentUserId }) => {
         {/* Avatar Container with glowing effect */}
         <div className="cursor-pointer shrink-0 relative" onClick={handleCardClick}>
           <div className="absolute inset-0 bg-blue-100 rounded-full blur-xs opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          <img
-            src={user.profileImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"}
-            alt={user.fullName}
-            className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-md relative z-10 transition-transform duration-300 group-hover:scale-105"
-          />
+          <UserAvatar user={user} size="xl" className="relative z-10 transition-transform duration-300 group-hover:scale-105" />
         </div>
 
         {/* User Details */}
