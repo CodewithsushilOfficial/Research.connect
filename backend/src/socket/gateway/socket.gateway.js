@@ -58,6 +58,19 @@ class SocketGateway {
         // Join default namespaces rooms
         roomManager.joinUserRooms(socket);
 
+        // Disconnect duplicate active socket sessions for this user ID
+        try {
+          const sockets = await this.io.in(`user:${userId}`).fetchSockets();
+          for (const s of sockets) {
+            if (s.id !== socketId) {
+              logger.info(`[SOCKET] Disconnecting older socket session ${s.id} for user ${userId}`);
+              s.disconnect(true);
+            }
+          }
+        } catch (err) {
+          logger.error(`[SOCKET] Failed to clear duplicate socket sessions: ${err.message}`);
+        }
+
         // Register notifications socket router
         try {
           require('../../modules/notifications/socket/notification.socket')(this.io, socket);

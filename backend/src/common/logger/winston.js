@@ -21,14 +21,15 @@ const logDirectory = path.join(process.cwd(), 'logs');
 
 const createCategoryLogger = (categoryName) => {
   const isProduction = process.env.NODE_ENV === 'production';
+  const defaultLevel = process.env.LOG_LEVEL || (isProduction ? 'info' : 'debug');
   return winston.createLogger({
-    level: isProduction ? 'info' : 'debug',
+    level: defaultLevel,
     format: logFormat,
     defaultMeta: { service: 'research-connect', category: categoryName },
     transports: [
       new winston.transports.Console({
         format: consoleFormat,
-        level: process.env.NODE_ENV === 'production' ? 'info' : 'debug'
+        level: defaultLevel
       }),
       new winston.transports.DailyRotateFile({
         filename: path.join(logDirectory, `${categoryName}-%DATE%.log`),

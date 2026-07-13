@@ -9,7 +9,6 @@ const logger = require('../../../common/logger/winston');
 const CACHE_TTL = 300; // 5 min
 
 const ProjectService = {
-  // ─── CREATE ────────────────────────────────────────────────────────────────
   async createProject(userId, data) {
     const project = await projectRepository.create({
       ...data,
@@ -36,6 +35,8 @@ const ProjectService = {
       resourceType: 'project',
       resourceId: project._id,
     });
+
+    await cacheService.del(`project:owner-stats:${userId}`);
 
     return project;
   },
@@ -92,6 +93,7 @@ const ProjectService = {
 
     await cacheService.del(`project:${project._id}`);
     await cacheService.del(`project:${project.slug}`);
+    await cacheService.del(`project:owner-stats:${userId}`);
 
     await activityLogRepository.log({
       projectId: project._id,
@@ -115,6 +117,7 @@ const ProjectService = {
 
     await cacheService.del(`project:${project._id}`);
     await cacheService.del(`project:${project.slug}`);
+    await cacheService.del(`project:owner-stats:${userId}`);
 
     await activityLogRepository.log({
       projectId: project._id,
@@ -136,6 +139,7 @@ const ProjectService = {
 
     await cacheService.del(`project:${project._id}`);
     await cacheService.del(`project:${project.slug}`);
+    await cacheService.del(`project:owner-stats:${userId}`);
 
     return project;
   },
@@ -150,19 +154,28 @@ const ProjectService = {
 
     await cacheService.del(`project:${project._id}`);
     await cacheService.del(`project:${project.slug}`);
+    await cacheService.del(`project:owner-stats:${userId}`);
 
     return { deleted: true, projectId };
   },
 
   // ─── DASHBOARD STATS ───────────────────────────────────────────────────────
   async getOwnerStats(userId) {
+    const cacheKey = `project:owner-stats:${userId}`;
+    try {
+      const cached = await cacheService.get(cacheKey);
+      if (cached) return cached;
+    } catch (err) {
+      logger.warn(`Failed reading owner stats cache: ${err.message}`);
+    }
+
     const mongoose = require('mongoose');
     const rows = await projectRepository.getOwnerStats(mongoose.Types.ObjectId.createFromHexString
       ? mongoose.Types.ObjectId.createFromHexString(userId.toString())
       : new mongoose.Types.ObjectId(userId.toString()));
 
     const value = (status) => rows.find((r) => r._id === status)?.count || 0;
-    return {
+    const stats = {
       totalProjects: rows.reduce((n, r) => n + r.count, 0),
       totalViews: rows.reduce((n, r) => n + (r.totalViews || 0), 0),
       totalApplications: rows.reduce((n, r) => n + (r.totalApplications || 0), 0),
@@ -173,6 +186,14 @@ const ProjectService = {
       draft: value('draft'),
       breakdown: rows,
     };
+
+    try {
+      await cacheService.set(cacheKey, stats, 300); // 5 min TTL
+    } catch (err) {
+      logger.warn(`Failed writing owner stats cache: ${err.message}`);
+    }
+
+    return stats;
   },
 
   // ─── PROGRESS ──────────────────────────────────────────────────────────────

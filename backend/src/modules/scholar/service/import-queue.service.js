@@ -55,14 +55,21 @@ class ImportQueueService {
 
     await this.log(job._id, userId, `Enqueued import job for provider: ${provider}`);
     
-    // Trigger worker immediately
-    this.processNextJob();
+    // Trigger via RedisQueue
+    try {
+      const queue = require('../../../common/queue/queue');
+      await queue.enqueue('scholar_import', { jobId: job._id, userId, authorId: metadata.authorId });
+    } catch (queueErr) {
+      logger.error(`Failed to enqueue in RedisQueue, falling back: ${queueErr.message}`);
+      // Fallback: trigger worker processing inline asynchronously
+      setImmediate(() => this.processNextJob());
+    }
 
     return job;
   }
 
   /**
-   * Core worker: picks the next pending job atomically and processes it
+   * Core worker fallback: picks the next pending job atomically and processes it
    */
   async processNextJob() {
     try {
@@ -120,12 +127,6 @@ class ImportQueueService {
 
     } catch (err) {
       logger.error(`Queue worker execution error: ${err.message}`);
-    } finally {
-      // Immediately check if there are more pending jobs
-      const nextPending = await importRepository.findNextPendingJob();
-      if (nextPending) {
-        setTimeout(() => this.processNextJob(), 100);
-      }
     }
   }
 
@@ -160,25 +161,69 @@ class ImportQueueService {
 
     logger.info('Initializing background Scholar import queue worker...');
     
-    // Check and resume interrupted jobs on startup, then process next job
+    // Check and resume interrupted jobs on startup
     this.resumeInterruptedJobs().then(() => {
-      this.processNextJob();
+      const queue = require('../../../common/queue/queue');
+      queue.process('scholar_import', async (jobData) => {
+        const { jobId, userId, authorId } = jobData;
+        const job = await importRepository.findById(jobId);
+        if (!job || job.status === 'completed' || job.status === 'failed') {
+          return;
+        }
+
+        // Atomically set running
+        job.status = 'running';
+        job.lastAttemptAt = new Date();
+        await job.save();
+
+        await this.log(job._id, userId, `Started processing job via RedisQueue. Attempt: ${job.retryCount + 1}`);
+
+        try {
+          if (!this.scholarService) {
+            this.scholarService = require('./scholar.service');
+          }
+
+          // Run the actual import logic
+          await this.scholarService.syncScholarData(job._id, userId, authorId);
+
+          // Update job to completed
+          job.status = 'completed';
+          job.progress = 100;
+          job.completedAt = new Date();
+          await job.save();
+
+          await this.log(job._id, userId, 'Import job completed successfully!', 'info');
+        } catch (err) {
+          logger.error(`Error processing import job ${job._id}: ${err.message}`, err);
+          await this.log(job._id, userId, `Job failed: ${err.message} \n ${err.stack}`, 'error');
+
+          // Increment retry count
+          job.retryCount += 1;
+          job.error = { message: err.message, stack: err.stack };
+
+          if (job.retryCount >= 3) {
+            job.status = 'failed';
+            await this.log(job._id, userId, 'Max retries exceeded. Job marked as failed.', 'error');
+          } else {
+            job.status = 'pending'; // Re-enqueue for retry
+            await this.log(job._id, userId, `Re-enqueued job for retry attempt ${job.retryCount + 1}`, 'warn');
+            // Re-enqueue in RedisQueue
+            await queue.enqueue('scholar_import', jobData);
+          }
+          
+          await job.save();
+        }
+      });
     });
 
-    // Poll database for pending jobs every 10 seconds
-    this.workerInterval = setInterval(() => {
-      this.processNextJob();
-    }, 10000);
+    this.workerInterval = true;
   }
 
   /**
    * Stop worker (for tests/shutdown)
    */
   stopQueueWorker() {
-    if (this.workerInterval) {
-      clearInterval(this.workerInterval);
-      this.workerInterval = null;
-    }
+    this.workerInterval = null;
   }
 }
 

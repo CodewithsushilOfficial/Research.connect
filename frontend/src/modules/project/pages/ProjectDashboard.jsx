@@ -58,16 +58,16 @@ export default function ProjectDashboard() {
     }
   }, [isError, projectId, navigate]);
 
-  if (isProjectLoading || isPermsLoading) {
+  if (isProjectLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4">
         <Loader className="animate-spin text-blue-650" size={32} />
-        <p className="text-xs font-black text-slate-550">Initializing Collaboration Workspace...</p>
+        <p className="text-xs font-black text-slate-550">Loading Workspace Details...</p>
       </div>
     );
   }
 
-  if (isSuspended) {
+  if (!isPermsLoading && isSuspended) {
     return (
       <div className="max-w-md mx-auto my-16 bg-white border border-red-200 rounded-3xl p-8 text-center shadow-sm">
         <ShieldAlert className="text-red-500 mx-auto mb-4" size={48} />
@@ -88,13 +88,13 @@ export default function ProjectDashboard() {
   // Section list based on permissions
   const tabs = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'chat', label: 'Team Chat', icon: MessageSquare, enabled: permissions.canSendMessages },
-    { id: 'tasks', label: 'Kanban Tasks', icon: CheckSquare, enabled: permissions.canManageTasks || permissions.canSendMessages },
+    { id: 'chat', label: 'Team Chat', icon: MessageSquare, enabled: isPermsLoading || permissions?.canSendMessages },
+    { id: 'tasks', label: 'Kanban Tasks', icon: CheckSquare, enabled: isPermsLoading || permissions?.canManageTasks || permissions?.canSendMessages },
     { id: 'milestones', label: 'Milestones', icon: Milestone, enabled: true },
-    { id: 'files', label: 'File Directory', icon: FolderOpen, enabled: permissions.canManageFiles || true },
+    { id: 'files', label: 'File Directory', icon: FolderOpen, enabled: isPermsLoading || permissions?.canManageFiles || true },
     { id: 'announcements', label: 'Announcements', icon: Megaphone, enabled: true },
     { id: 'members', label: 'Team Members', icon: Users, enabled: true },
-    { id: 'settings', label: 'Settings', icon: Settings, enabled: isOwner || permissions.canEditProject },
+    { id: 'settings', label: 'Settings', icon: Settings, enabled: isPermsLoading || isOwner || permissions?.canEditProject },
   ];
 
   return (
@@ -113,7 +113,7 @@ export default function ProjectDashboard() {
             <h2 className="text-sm font-extrabold text-slate-900 truncate leading-snug">{project?.title}</h2>
             <div className="flex items-center gap-2 mt-1.5">
               <span className="text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
-                {role?.replace('-', ' ')}
+                {isPermsLoading ? 'Loading Role...' : role?.replace('-', ' ')}
               </span>
             </div>
           </div>
@@ -157,24 +157,31 @@ export default function ProjectDashboard() {
 
       {/* Main View Area */}
       <main className="flex-1 overflow-y-auto px-6 py-6 max-w-7xl mx-auto w-full flex">
-        {/* Render sections inside localized Error Boundary for widget isolation */}
-        <ProjectErrorBoundary key={activeSection}>
-          {activeSection === 'overview' && <DashboardOverview projectId={projectId} project={project} />}
-          {activeSection === 'chat' && (
-            <ProjectChat
-              projectId={projectId}
-              typingUsers={typingUsers}
-              emitTyping={emitTyping}
-              emitStopTyping={emitStopTyping}
-            />
-          )}
-          {activeSection === 'tasks' && <TaskBoard projectId={projectId} permissions={permissions} />}
-          {activeSection === 'milestones' && <MilestoneTracker projectId={projectId} permissions={permissions} />}
-          {activeSection === 'files' && <FileExplorer projectId={projectId} permissions={permissions} />}
-          {activeSection === 'announcements' && <AnnouncementsList projectId={projectId} permissions={permissions} />}
-          {activeSection === 'members' && <MemberManagement projectId={projectId} permissions={permissions} isOwner={isOwner} />}
-          {activeSection === 'settings' && <ProjectSettings projectId={projectId} project={project} />}
-        </ProjectErrorBoundary>
+        {isPermsLoading ? (
+          <div className="flex-1 flex flex-col items-center justify-center min-h-[50vh] gap-3">
+            <Loader className="animate-spin text-blue-650" size={24} />
+            <p className="text-xs font-bold text-slate-500">Checking Team Permissions...</p>
+          </div>
+        ) : (
+          /* Render sections inside localized Error Boundary for widget isolation */
+          <ProjectErrorBoundary key={activeSection}>
+            {activeSection === 'overview' && <DashboardOverview projectId={projectId} project={project} />}
+            {activeSection === 'chat' && (
+              <ProjectChat
+                projectId={projectId}
+                typingUsers={typingUsers}
+                emitTyping={emitTyping}
+                emitStopTyping={emitStopTyping}
+              />
+            )}
+            {activeSection === 'tasks' && <TaskBoard projectId={projectId} permissions={permissions} />}
+            {activeSection === 'milestones' && <MilestoneTracker projectId={projectId} permissions={permissions} />}
+            {activeSection === 'files' && <FileExplorer projectId={projectId} permissions={permissions} />}
+            {activeSection === 'announcements' && <AnnouncementsList projectId={projectId} permissions={permissions} />}
+            {activeSection === 'members' && <MemberManagement projectId={projectId} permissions={permissions} isOwner={isOwner} />}
+            {activeSection === 'settings' && <ProjectSettings projectId={projectId} project={project} />}
+          </ProjectErrorBoundary>
+        )}
       </main>
     </div>
   );

@@ -32,9 +32,12 @@ class NotificationService extends BaseService {
       .lean();
 
     this._emitToRecipient(recipientId, 'notification:new', populated);
-    this._emitToRecipient(recipientId, 'notification:count', {
-      count: await this.repository.countUnreadByRecipient(recipientId)
-    });
+    
+    const { cacheService } = require('../../../cache/cache.service');
+    await cacheService.del(`notifications:count:${recipientId}`);
+    
+    const unreadStats = await this.getUnreadCount(recipientId);
+    this._emitToRecipient(recipientId, 'notification:count', unreadStats);
 
     return populated;
   }
@@ -44,7 +47,25 @@ class NotificationService extends BaseService {
   }
 
   async getUnreadCount(recipientId) {
+    const { cacheService } = require('../../../cache/cache.service');
+    const cacheKey = `notifications:count:${recipientId}`;
+    try {
+      const cached = await cacheService.get(cacheKey);
+      if (cached !== null && cached !== undefined) {
+        return { count: Number(cached) };
+      }
+    } catch (err) {
+      logger.warn(`Failed reading notification count cache: ${err.message}`);
+    }
+
     const count = await this.repository.countUnreadByRecipient(recipientId);
+
+    try {
+      await cacheService.set(cacheKey, count, 86400); // 24 hours
+    } catch (err) {
+      logger.warn(`Failed writing notification count cache: ${err.message}`);
+    }
+
     return { count };
   }
 
@@ -54,16 +75,23 @@ class NotificationService extends BaseService {
       return null;
     }
 
+    const { cacheService } = require('../../../cache/cache.service');
+    await cacheService.del(`notifications:count:${recipientId}`);
+
     this._emitToRecipient(recipientId, 'notification:update', updated);
-    this._emitToRecipient(recipientId, 'notification:count', {
-      count: await this.repository.countUnreadByRecipient(recipientId)
-    });
+    
+    const unreadStats = await this.getUnreadCount(recipientId);
+    this._emitToRecipient(recipientId, 'notification:count', unreadStats);
 
     return updated;
   }
 
   async markAllRead(recipientId) {
     await this.repository.markAllRead(recipientId);
+    
+    const { cacheService } = require('../../../cache/cache.service');
+    await cacheService.set(`notifications:count:${recipientId}`, 0, 86400);
+
     this._emitToRecipient(recipientId, 'notification:count', { count: 0 });
     return { success: true, count: 0 };
   }
@@ -74,16 +102,23 @@ class NotificationService extends BaseService {
       return null;
     }
 
+    const { cacheService } = require('../../../cache/cache.service');
+    await cacheService.del(`notifications:count:${recipientId}`);
+
     this._emitToRecipient(recipientId, 'notification:delete', notificationId.toString());
-    this._emitToRecipient(recipientId, 'notification:count', {
-      count: await this.repository.countUnreadByRecipient(recipientId)
-    });
+    
+    const unreadStats = await this.getUnreadCount(recipientId);
+    this._emitToRecipient(recipientId, 'notification:count', unreadStats);
 
     return { success: true, deletedId: notificationId.toString() };
   }
 
   async clearAllNotifications(recipientId) {
     await this.repository.clearAll(recipientId);
+    
+    const { cacheService } = require('../../../cache/cache.service');
+    await cacheService.set(`notifications:count:${recipientId}`, 0, 86400);
+
     this._emitToRecipient(recipientId, 'notification:delete', 'all');
     this._emitToRecipient(recipientId, 'notification:count', { count: 0 });
     return { success: true };
