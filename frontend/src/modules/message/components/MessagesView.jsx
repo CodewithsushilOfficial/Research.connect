@@ -22,7 +22,9 @@ import {
   Sparkles,
   Loader2,
   PlusCircle,
-  UserPlus
+  UserPlus,
+  Check,
+  CheckCheck
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import feedService from '../../../services/feed.service';
@@ -47,8 +49,63 @@ const MessagesView = () => {
   const [suggestedPeople, setSuggestedPeople] = useState([]);
   const messagesEndRef = useRef(null);
 
+  // Helper for date formatting (Requirement 14)
+  const getGroupDateString = (dateString) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return 'Today';
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return 'Yesterday';
+    } else {
+      return date.toLocaleDateString(undefined, { 
+        day: 'numeric',
+        month: 'long', 
+        year: 'numeric' 
+      });
+    }
+  };
+
+  const getSenderIdStr = (m) => {
+    if (!m) return '';
+    const s = m.senderId || m.sender;
+    return typeof s === 'object' && s ? (s._id || s.id)?.toString() : s?.toString();
+  };
+
   const activeConversation = conversations.find((conversation) => (conversation._id || conversation.id) === activeConversationId) || conversations[0] || null;
   const activeMessages = activeConversationId ? (messagesByConversation[activeConversationId] || []) : [];
+
+  const processedMessages = [];
+  let lastDateStr = null;
+  let lastSenderId = null;
+
+  activeMessages.forEach((msg, index) => {
+    const msgDate = new Date(msg.createdAt || Date.now()).toDateString();
+    const showDateSeparator = msgDate !== lastDateStr;
+    
+    if (showDateSeparator) {
+      lastDateStr = msgDate;
+      processedMessages.push({
+        type: 'date_separator',
+        key: `date-${msg._id || index}`,
+        date: msg.createdAt || new Date().toISOString()
+      });
+    }
+
+    const currentSenderId = getSenderIdStr(msg);
+    const isDifferentSender = showDateSeparator || currentSenderId !== lastSenderId;
+    lastSenderId = currentSenderId;
+
+    processedMessages.push({
+      type: 'message',
+      key: msg._id || `msg-${index}`,
+      msg,
+      isDifferentSender
+    });
+  });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -263,7 +320,7 @@ const MessagesView = () => {
         })}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-0 bg-slate-50 dark:bg-slate-905">
         {loading && !activeMessages.length ? (
           <div className="flex items-center justify-center py-6 text-sm text-slate-500">
             <Loader2 className="w-4 h-4 animate-spin mr-2" /> Loading messages...
@@ -276,33 +333,90 @@ const MessagesView = () => {
           </div>
         ) : null}
 
-        {activeMessages.map((message, index) => {
-          const senderId = message.sender?._id || message.sender;
-          const isMe = senderId?.toString() === user?._id?.toString();
-          return (
-            <div key={message._id || index} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} text-left`}>
-              <div
-                className={`max-w-[80%] p-3 rounded-2xl text-xs leading-relaxed ${
-                  isMe
-                    ? 'bg-blue-600 text-white rounded-tr-none'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-none'
-                }`}
-              >
-                {message.content}
-                {message.attachments?.length ? (
-                  <div className="mt-2.5 p-3 rounded-xl bg-black/10 dark:bg-white/10 border border-white/10 flex items-start gap-2.5">
-                    <FileText className="w-6 h-6 text-white/80" />
-                    <div>
-                      <h4 className="font-bold text-[11px] leading-tight text-white">Shared attachment</h4>
-                      <p className="text-[9px] text-white/60 mt-0.5">Attachment from message</p>
-                    </div>
-                  </div>
-                ) : null}
+        {processedMessages.map((item) => {
+          if (item.type === 'date_separator') {
+            return (
+              <div key={item.key} className="flex justify-center my-3.5">
+                <span className="px-4 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-semibold text-slate-500 rounded-full shadow-xs">
+                  {getGroupDateString(item.date)}
+                </span>
               </div>
-              <span className="text-[9px] text-slate-400 mt-1 flex items-center gap-1 px-1">
-                {message.createdAt ? new Date(message.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'Now'}
-              </span>
-            </div>
+            );
+          }
+
+          const { msg, isDifferentSender } = item;
+          const senderIdVal = msg.senderId || msg.sender;
+          const senderIdStr = typeof senderIdVal === 'object' && senderIdVal ? (senderIdVal._id || senderIdVal.id) : senderIdVal;
+          const isMe = senderIdStr?.toString() === (user?.id || user?._id)?.toString();
+
+          const otherParticipant = activeConversation?.participants?.find(p => (p._id || p)?.toString() !== user?._id?.toString());
+          const avatarUrl = otherParticipant?.profileImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150";
+          const senderName = otherParticipant?.fullName || 'Researcher';
+          const timeString = msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now';
+
+          return (
+            <motion.div
+              key={item.key}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25 }}
+              className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'} relative`}
+              style={{ marginTop: isDifferentSender ? '14px' : '6px' }}
+            >
+              <div className={`flex items-end gap-2 max-w-[80%] ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                {/* Avatar for receiver (incoming messages) when sender changes */}
+                {!isMe && (
+                  <div className="w-7 h-7 flex-shrink-0 mb-0.5">
+                    {isDifferentSender ? (
+                      <img
+                        src={avatarUrl}
+                        alt={senderName}
+                        className="w-7 h-7 rounded-full object-cover shadow-xs"
+                      />
+                    ) : (
+                      <div className="w-7 h-7" />
+                    )}
+                  </div>
+                )}
+
+                {/* Bubble Container */}
+                <div 
+                  className={`px-3.5 py-2.5 rounded-[18px] text-xs leading-relaxed relative ${
+                    isMe 
+                      ? 'bg-[#2563EB] text-white rounded-br-[6px] shadow-xs'
+                      : 'bg-[#34D399] text-white rounded-bl-[6px] shadow-xs'
+                  }`}
+                  style={{ minWidth: '70px' }}
+                >
+                  <div className="whitespace-pre-wrap break-words">{msg.content || msg.text || msg.message}</div>
+                  
+                  {msg.attachments?.length ? (
+                    <div className="mt-2 p-2.5 rounded-xl bg-black/10 dark:bg-white/10 border border-white/10 flex items-start gap-2.5">
+                      <FileText className="w-5 h-5 text-white/85" />
+                      <div className="min-w-0">
+                        <h4 className="font-bold text-[10px] leading-tight text-white truncate">Shared attachment</h4>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {/* Timestamp and receipts */}
+                  <div className={`flex items-center gap-1 mt-1 text-[9px] text-white/70 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                    <span>{timeString}</span>
+                    {isMe && (
+                      <span className="shrink-0 ml-0.5">
+                        {msg.status === 'seen' || msg.status === 'read' ? (
+                          <CheckCheck className="w-3 h-3 text-[#3B82F6]" />
+                        ) : msg.status === 'delivered' ? (
+                          <CheckCheck className="w-3 h-3 text-slate-355" />
+                        ) : (
+                          <Check className="w-3 h-3 text-slate-355" />
+                        )}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
           );
         })}
         <div ref={messagesEndRef} />

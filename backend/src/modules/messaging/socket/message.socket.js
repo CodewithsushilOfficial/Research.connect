@@ -49,6 +49,7 @@ module.exports = (io, socket) => {
         senderIds.forEach(senderId => {
           io.to(`user:${senderId}`).emit('message:read', { conversationId, readBy: userIdStr, readAt: now });
           io.to(`user:${senderId}`).emit('messageRead', { conversationId, readBy: userIdStr, readAt: now });
+          io.to(`user:${senderId}`).emit('message:seen', { conversationId, readBy: userIdStr, readAt: now });
         });
 
         // Refresh conversation list for current user
@@ -90,9 +91,11 @@ module.exports = (io, socket) => {
 
   socket.on('chat:typing', ({ conversationId }) => handleTypingStart(conversationId));
   socket.on('typing', ({ conversationId }) => handleTypingStart(conversationId));
+  socket.on('typing:start', ({ conversationId }) => handleTypingStart(conversationId));
 
   socket.on('chat:stopTyping', ({ conversationId }) => handleTypingStop(conversationId));
   socket.on('stopTyping', ({ conversationId }) => handleTypingStop(conversationId));
+  socket.on('typing:stop', ({ conversationId }) => handleTypingStop(conversationId));
 
   // Mark Read events
   const handleMarkRead = async (conversationId) => {
@@ -113,6 +116,14 @@ module.exports = (io, socket) => {
       await messageService.sendMessage(userId, payload);
     } catch (err) {
       logger.error(`Socket sendMessage handler failed: ${err.message}`);
+    }
+  });
+
+  socket.on('message:send', async (payload) => {
+    try {
+      await messageService.sendMessage(userId, payload);
+    } catch (err) {
+      logger.error(`Socket message:send handler failed: ${err.message}`);
     }
   });
 

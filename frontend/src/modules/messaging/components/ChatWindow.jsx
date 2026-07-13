@@ -1,8 +1,61 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Phone, Video, Info, Loader2, ArrowDown, BadgeCheck, ArrowLeft, MessageCircle } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import MessageInput from './MessageInput';
 import TypingIndicator from './TypingIndicator';
+
+// Custom Intersection Observer Hook for Virtualization
+const useIntersectionObserver = ({ root = null, rootMargin = '0px', threshold = 0 } = {}) => {
+  const [isIntersecting, setIsIntersecting] = useState(false);
+  const [target, setTarget] = useState(null);
+
+  useEffect(() => {
+    if (!target) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsIntersecting(entry.isIntersecting);
+      },
+      { root, rootMargin, threshold }
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [target, root, rootMargin, threshold]);
+
+  return [setTarget, isIntersecting];
+};
+
+// Virtualized Message Bubble Wrapper (Requirement 16)
+const VirtualMessage = ({ children, id, estimatedHeight = 80 }) => {
+  const [ref, isIntersecting] = useIntersectionObserver({
+    rootMargin: '400px 0px', // Load before entering viewport
+  });
+  const [height, setHeight] = useState(estimatedHeight);
+  const elementRef = useRef(null);
+
+  useEffect(() => {
+    if (elementRef.current && isIntersecting) {
+      const measured = elementRef.current.getBoundingClientRect().height;
+      if (measured > 0) {
+        setHeight(measured);
+      }
+    }
+  }, [isIntersecting]);
+
+  const setRefs = useCallback((node) => {
+    elementRef.current = node;
+    ref(node);
+  }, [ref]);
+
+  if (!isIntersecting) {
+    return <div ref={setRefs} style={{ height: `${height}px` }} className="w-full" data-virtual-id={id} />;
+  }
+
+  return (
+    <div ref={setRefs} className="w-full" data-virtual-id={id}>
+      {children}
+    </div>
+  );
+};
 
 const ChatWindow = ({
   conversation,
@@ -31,9 +84,9 @@ const ChatWindow = ({
     messagesEndRef.current?.scrollIntoView({ behavior });
   };
 
-  // Auto scroll on new messages
+  // Auto scroll on new messages (Requirement 7)
   useEffect(() => {
-    scrollToBottom('auto');
+    scrollToBottom(messages.length > 0 ? 'smooth' : 'auto');
   }, [messages.length]);
 
   // Typing indicators
@@ -84,6 +137,63 @@ const ChatWindow = ({
     }
   };
 
+  // Helper for date formatting (Requirement 14)
+  const getGroupDateString = (dateString) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return 'Today';
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return 'Yesterday';
+    } else {
+      return date.toLocaleDateString(undefined, { 
+        day: 'numeric',
+        month: 'long', 
+        year: 'numeric' 
+      });
+    }
+  };
+
+  // Spacing & Avatars processing (Requirement 5, 6, 14)
+  const getSenderIdStr = (m) => {
+    if (!m) return '';
+    const s = m.senderId || m.sender;
+    return typeof s === 'object' && s ? (s._id || s.id)?.toString() : s?.toString();
+  };
+
+  const processedItems = [];
+  let lastDateStr = null;
+  let lastSenderId = null;
+
+  messages.forEach((msg, index) => {
+    const msgDate = new Date(msg.createdAt).toDateString();
+    const showDateSeparator = msgDate !== lastDateStr;
+    
+    if (showDateSeparator) {
+      lastDateStr = msgDate;
+      processedItems.push({
+        type: 'date_separator',
+        key: `date-${msg._id || index}`,
+        date: msg.createdAt
+      });
+    }
+
+    const currentSenderId = getSenderIdStr(msg);
+    // If it's a date separator or the sender changes, it's a different sender context
+    const isDifferentSender = showDateSeparator || currentSenderId !== lastSenderId;
+    lastSenderId = currentSenderId;
+
+    processedItems.push({
+      type: 'message',
+      key: msg._id || `msg-${index}`,
+      msg,
+      isDifferentSender
+    });
+  });
+
   if (isLoading) {
     return (
       <div className="flex-1 h-full bg-slate-50 flex items-center justify-center">
@@ -110,7 +220,7 @@ const ChatWindow = ({
 
   return (
     <div className="flex-1 h-full bg-slate-50 flex flex-col min-w-0 relative">
-      {/* Chat Header - Improved */}
+      {/* Chat Header */}
       <div className="px-4 sm:px-6 py-4 bg-white border-b border-slate-100 flex items-center justify-between shadow-sm shrink-0 z-10">
         <div className="flex items-center gap-3 min-w-0">
           {onBack && (
@@ -163,7 +273,7 @@ const ChatWindow = ({
           </button>
           <button
             onClick={() => setShowInfoPanel(!showInfoPanel)}
-            className={`p-3 rounded-2xl transition-all ${showInfoPanel ? 'bg-blue-100 text-blue-600' : 'hover:bg-slate-100 text-slate-600'}`}
+            className={`p-3 rounded-2xl transition-all ${showInfoPanel ? 'bg-blue-100 text-blue-600' : 'hover:bg-slate-100 text-slate-650'}`}
             title="Overview"
           >
             <Info className="w-5 h-5" />
@@ -171,41 +281,51 @@ const ChatWindow = ({
         </div>
       </div>
 
-      {/* Messages Area - Optimized Scroll */}
+      {/* Messages Area - Redesigned & Virtualized (Requirement 5, 16) */}
       <div
         ref={viewportRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 bg-slate-50 flex flex-col gap-5 scroll-smooth"
+        className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 bg-slate-50 flex flex-col gap-0 scroll-smooth"
       >
-        <div className="flex justify-center my-2">
-          <span className="px-5 py-1.5 bg-white border border-slate-200 text-xs font-semibold text-slate-500 rounded-full shadow-sm">
-            Today
-          </span>
-        </div>
+        {processedItems.map((item) => {
+          if (item.type === 'date_separator') {
+            return (
+              <div key={item.key} className="flex justify-center my-3.5">
+                <span className="px-4 py-1.5 bg-white border border-slate-200 text-xs font-semibold text-slate-500 rounded-full shadow-xs">
+                  {getGroupDateString(item.date)}
+                </span>
+              </div>
+            );
+          }
 
-        {messages.map((msg) => {
+          const { msg, isDifferentSender } = item;
+
           if (msg.type === 'system') {
             return (
               <div key={msg._id} className="flex justify-center my-3">
                 <div className="bg-white border border-slate-100 px-6 py-3 rounded-3xl text-center max-w-xs shadow-sm">
-                  <p className="text-sm text-slate-600">🤝 {msg.text}</p>
+                  <p className="text-sm text-slate-605">🤝 {msg.text || msg.message}</p>
                 </div>
               </div>
             );
           }
+
           return (
-            <MessageBubble
-              key={msg._id}
-              message={msg}
-              onReply={() => setReplyContext(msg)}
-              onEditInit={() => setEditContext(msg)}
-              otherParticipant={otherParticipant}
-            />
+            <VirtualMessage key={msg._id || item.key} id={msg._id || item.key}>
+              <MessageBubble
+                message={msg}
+                onReply={() => setReplyContext(msg)}
+                onEditInit={() => setEditContext(msg)}
+                otherParticipant={otherParticipant}
+                showAvatar={isDifferentSender}
+                isDifferentSender={isDifferentSender}
+              />
+            </VirtualMessage>
           );
         })}
 
         {partnerTyping && (
-          <div className="self-start pl-3">
+          <div className="self-start pl-10 mt-2 animate-pulse">
             <TypingIndicator name={otherParticipant?.firstName || 'Researcher'} />
           </div>
         )}
@@ -217,7 +337,7 @@ const ChatWindow = ({
       {showScrollDown && (
         <button
           onClick={() => scrollToBottom('smooth')}
-          className="absolute bottom-28 right-6 p-3 bg-white border border-slate-200 text-blue-600 rounded-2xl shadow-lg hover:shadow-xl active:scale-95 transition-all z-30"
+          className="absolute bottom-28 right-6 p-3 bg-white border border-slate-200 text-blue-650 rounded-2xl shadow-lg hover:shadow-xl active:scale-95 transition-all z-30 animate-bounce"
         >
           <ArrowDown className="w-5 h-5" />
         </button>

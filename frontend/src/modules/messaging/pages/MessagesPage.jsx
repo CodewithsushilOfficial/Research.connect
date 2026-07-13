@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSocket } from '../../../context/SocketContext';
+import { useAuth } from '../../../context/AuthContext';
 import messagesService from '../services/messages.service';
 import networkService from '../../connections/services/network.service';
 import ConversationList from '../components/ConversationList';
@@ -23,11 +24,13 @@ const MessagesPage = () => {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { socket } = useSocket();
+  const { user } = useAuth();
 
   const userQueryId = searchParams.get('user');
   const conversationQueryId = searchParams.get('conversation');
 
   const [activeId, setActiveId] = useState(conversationId || null);
+  const [localMessages, setLocalMessages] = useState([]);
   const [mobileView, setMobileView] = useState('list'); // 'list' or 'chat'
   const [showInfoPanel, setShowInfoPanel] = useState(true);
   const [isComposeOpen, setIsComposeOpen] = useState(false);
@@ -168,6 +171,14 @@ const MessagesPage = () => {
 
   const messagesList = messagesData?.docs || [];
 
+  useEffect(() => {
+    if (messagesData?.docs) {
+      setLocalMessages(messagesData.docs);
+    } else {
+      setLocalMessages([]);
+    }
+  }, [messagesData, activeId]);
+
   // Mark conversation read mutation
   const markReadMutation = useMutation({
     mutationFn: async (id) => {
@@ -249,10 +260,17 @@ const MessagesPage = () => {
     };
 
     // Auto-update conversation list when new message is received globally
-    const handleNewMessage = () => {
+    const handleNewMessage = (newMsg) => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       if (activeId) {
         queryClient.invalidateQueries({ queryKey: ['messages', activeId] });
+        if (newMsg && newMsg.conversationId === activeId) {
+          setLocalMessages(prev => {
+            // Avoid duplicates
+            if (prev.some(m => m._id === newMsg._id)) return prev;
+            return [...prev, newMsg];
+          });
+        }
       }
     };
 
@@ -263,15 +281,26 @@ const MessagesPage = () => {
 
     // Listen for message delivered receipts (delivery tick on sender side)
     const handleMessageDelivered = ({ messageId, conversationId: convId }) => {
-      if (convId) {
-        queryClient.invalidateQueries({ queryKey: ['messages', convId] });
+      if (convId === activeId) {
+        setLocalMessages(prev => prev.map(m => m._id === messageId ? { ...m, status: 'delivered' } : m));
       }
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    };
+
+    const handleMessageSeen = ({ conversationId: convId }) => {
+      if (convId === activeId) {
+        setLocalMessages(prev => prev.map(m => m.status !== 'seen' ? { ...m, status: 'seen' } : m));
+      }
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
     };
 
     // Real-time message updates (edits, deletions, reactions)
-    const handleMessageUpdate = () => {
+    const handleMessageUpdate = (updatedMsg) => {
       if (activeId) {
         queryClient.invalidateQueries({ queryKey: ['messages', activeId] });
+        if (updatedMsg && updatedMsg.conversationId === activeId) {
+          setLocalMessages(prev => prev.map(m => m._id === updatedMsg._id ? updatedMsg : m));
+        }
       }
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     };
@@ -287,9 +316,13 @@ const MessagesPage = () => {
     socket.on('call:hungup', handleCallHungup);
     socket.on('message:new', handleNewMessage);
     socket.on('receiveMessage', handleNewMessage);
+    socket.on('message:received', handleNewMessage);
     socket.on('conversation:new', handleNewConversation);
     socket.on('message:delivered', handleMessageDelivered);
     socket.on('messageDelivered', handleMessageDelivered);
+    socket.on('message:seen', handleMessageSeen);
+    socket.on('message:read', handleMessageSeen);
+    socket.on('messageRead', handleMessageSeen);
     socket.on('message:update', handleMessageUpdate);
     socket.on('messageEdited', handleMessageUpdate);
     socket.on('messageDeleted', handleMessageUpdate);
@@ -305,9 +338,13 @@ const MessagesPage = () => {
       socket.off('call:hungup', handleCallHungup);
       socket.off('message:new', handleNewMessage);
       socket.off('receiveMessage', handleNewMessage);
+      socket.off('message:received', handleNewMessage);
       socket.off('conversation:new', handleNewConversation);
       socket.off('message:delivered', handleMessageDelivered);
       socket.off('messageDelivered', handleMessageDelivered);
+      socket.off('message:seen', handleMessageSeen);
+      socket.off('message:read', handleMessageSeen);
+      socket.off('messageRead', handleMessageSeen);
       socket.off('message:update', handleMessageUpdate);
       socket.off('messageEdited', handleMessageUpdate);
       socket.off('messageDeleted', handleMessageUpdate);
@@ -326,9 +363,26 @@ const MessagesPage = () => {
         ...payload
       });
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      const savedMsg = data?.data || data;
+      if (savedMsg) {
+        setLocalMessages(prev => {
+          const textToMatch = savedMsg.text || savedMsg.message;
+          const index = prev.findLastIndex(m => m.isTemp && (m.text === textToMatch || m.message === textToMatch));
+          if (index !== -1) {
+            const updated = [...prev];
+            updated[index] = savedMsg;
+            return updated;
+          }
+          return prev.map(m => m.isTemp ? savedMsg : m);
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ['messages', activeId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    },
+    onError: () => {
+      toast.error('Failed to send message');
+      setLocalMessages(prev => prev.filter(m => !m.isTemp));
     }
   });
 
@@ -346,6 +400,23 @@ const MessagesPage = () => {
     if (payload.action === 'edit') {
       editMessageMutation.mutate({ messageId: payload.messageId, text: payload.text });
     } else {
+      // Create optimistic message (Requirement 12)
+      const tempId = `temp-${Date.now()}`;
+      const tempMessage = {
+        _id: tempId,
+        conversationId: activeId,
+        senderId: user?.id || user?._id || '',
+        receiverId: activeConversation?.otherParticipant?._id || null,
+        text: payload.text,
+        message: payload.text,
+        type: payload.type || 'text',
+        messageType: payload.type || 'text',
+        createdAt: new Date().toISOString(),
+        status: 'sent', // Immediately append sender message on right. Status: sent.
+        isTemp: true
+      };
+      setLocalMessages(prev => [...prev, tempMessage]);
+
       sendMessageMutation.mutate({
         text: payload.text,
         type: payload.type,
@@ -1023,7 +1094,7 @@ const MessagesPage = () => {
             >
               <ChatWindow
                 conversation={activeConversation}
-                messages={messagesList}
+                messages={localMessages}
                 isLoading={isMessagesLoading}
                 onSendMessage={handleSendMessage}
                 onStartCall={handleStartCall}
@@ -1041,7 +1112,7 @@ const MessagesPage = () => {
                   <ResearcherInfo
                     participant={activeConversation.otherParticipant}
                     conversation={activeConversation}
-                    messages={messagesList}
+                    messages={localMessages}
                     onClose={() => setShowInfoPanel(false)}
                   />
                 </div>
@@ -1059,7 +1130,7 @@ const MessagesPage = () => {
                     <ResearcherInfo
                       participant={activeConversation.otherParticipant}
                       conversation={activeConversation}
-                      messages={messagesList}
+                      messages={localMessages}
                       onClose={() => setShowInfoPanel(false)}
                     />
                   </div>

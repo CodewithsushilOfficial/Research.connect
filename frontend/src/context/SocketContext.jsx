@@ -89,6 +89,12 @@ export const SocketProvider = ({ children }) => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     });
 
+    newSocket.on('message:received', (message) => {
+      console.log('💬 Socket: message:received:', message);
+      queryClient.invalidateQueries({ queryKey: ['messages', message.conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    });
+
     // Listen for message updates (edits, reactions, deletes)
     newSocket.on('message:update', (updatedMessage) => {
       queryClient.invalidateQueries({ queryKey: ['messages', updatedMessage.conversationId] });
@@ -96,6 +102,16 @@ export const SocketProvider = ({ children }) => {
 
     // Listen for read receipts
     newSocket.on('message:read', ({ conversationId, readBy }) => {
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    });
+
+    newSocket.on('message:delivered', ({ conversationId }) => {
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    });
+
+    newSocket.on('message:seen', ({ conversationId }) => {
       queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     });

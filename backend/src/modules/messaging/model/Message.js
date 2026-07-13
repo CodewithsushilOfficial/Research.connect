@@ -60,6 +60,9 @@ const messageSchema = new mongoose.Schema(
     text: {
       type: String
     },
+    message: {
+      type: String
+    },
     attachment: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'MessageAttachment'

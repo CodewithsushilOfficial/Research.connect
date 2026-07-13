@@ -144,6 +144,7 @@ class MessageService {
       type: type || 'text',
       messageType: type || 'text',
       text,
+      message: text,
       attachment: attachmentId || null,
       attachmentId: attachmentId || null,
       replyTo: replyTo || null,
@@ -189,6 +190,7 @@ class MessageService {
     // Emit new message event to the conversation room using both event names
     emitToRoom(`conversation:${conversationId}`, 'message:new', populated);
     emitToRoom(`conversation:${conversationId}`, 'receiveMessage', populated);
+    emitToRoom(`conversation:${conversationId}`, 'message:received', populated);
     
     // Emit conversation updates to both participants' user rooms to refresh sidebars
     emitToUser(userId, 'conversation:update', { conversationId, lastMessage: populated });
@@ -283,6 +285,8 @@ class MessageService {
     emitToUser(otherParticipantId, 'message:read', { conversationId, readBy: userId, readAt: now });
     emitToUser(otherParticipantId, 'messageRead', { conversationId, readBy: userId, readAt: now });
     emitToRoom(`conversation:${conversationId}`, 'messageRead', { conversationId, readBy: userId, readAt: now });
+    emitToUser(otherParticipantId, 'message:seen', { conversationId, readBy: userId, readAt: now });
+    emitToRoom(`conversation:${conversationId}`, 'message:seen', { conversationId, readBy: userId, readAt: now });
 
     return { success: true };
   }
@@ -357,6 +361,7 @@ class MessageService {
     }
 
     msg.text = text;
+    msg.message = text;
     msg.edited = true;
     await msg.save();
 
@@ -387,6 +392,7 @@ class MessageService {
       }
       msg.deleted = true;
       msg.text = 'This message was deleted';
+      msg.message = 'This message was deleted';
       msg.attachment = null;
       msg.attachmentId = null;
       await msg.save();
@@ -480,7 +486,8 @@ class MessageService {
       conversationId: conv._id,
       senderId: userId,
       type: 'system',
-      text: `${name} group created.`
+      text: `${name} group created.`,
+      message: `${name} group created.`
     });
     await msg.save();
 
@@ -537,7 +544,8 @@ class MessageService {
         conversationId: conv._id,
         senderId: userId,
         type: 'system',
-        text: `New members added by creator.`
+        text: `New members added by creator.`,
+        message: `New members added by creator.`
       });
       await msg.save();
 

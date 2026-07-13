@@ -44,11 +44,13 @@ const MessageInput = ({ conversationId, onSend, replyContext, onClearReply, edit
       if (!isTyping) {
         setIsTyping(true);
         socket.emit('chat:typing', { conversationId });
+        socket.emit('typing:start', { conversationId });
       }
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = setTimeout(() => {
         setIsTyping(false);
         socket.emit('chat:stopTyping', { conversationId });
+        socket.emit('typing:stop', { conversationId });
       }, 2000);
     }
   };
@@ -97,6 +99,7 @@ const MessageInput = ({ conversationId, onSend, replyContext, onClearReply, edit
     if (isTyping && socket && conversationId) {
       setIsTyping(false);
       socket.emit('chat:stopTyping', { conversationId });
+      socket.emit('typing:stop', { conversationId });
     }
   };
 
