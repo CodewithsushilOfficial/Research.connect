@@ -31,6 +31,8 @@ const PublicationAnalyticsPage = React.lazy(() => import('../modules/publication
 const SearchPage = React.lazy(() => import('../modules/search/pages/SearchPage'));
 const MessagesPage = React.lazy(() => import('../modules/messaging/pages/MessagesPage'));
 const CreateProject = React.lazy(() => import('../modules/project/pages/CreateProject'));
+const ProjectDetails = React.lazy(() => import('../modules/project/pages/ProjectDetails'));
+const ProjectDashboard = React.lazy(() => import('../modules/project/pages/ProjectDashboard'));
 
 
 // Social Collaboration Modules
@@ -132,6 +134,8 @@ const AppRoutes = () => {
           <Route path="publications/trash" element={<PublicationsLibraryPage />} />
           <Route path="publications/bookmarks" element={<PublicationsLibraryPage />} />
           <Route path="projects/create" element={<CreateProject />} />
+          <Route path="projects/:id" element={<ProjectDetails />} />
+          <Route path="projects/:projectId/dashboard" element={<ProjectDashboard />} />
           <Route path="datasets/create" element={<ComingSoon title="Share Dataset Coming Soon" />} />
           <Route path="questions/create" element={<ComingSoon title="Ask Question Coming Soon" />} />
           <Route path="collaborations/create" element={<CreateWorkspace />} />

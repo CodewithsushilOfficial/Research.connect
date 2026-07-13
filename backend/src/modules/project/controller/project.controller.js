@@ -1,18 +1,125 @@
-const Project = require('../models/Project');
-const asyncHandler = require('../../../common/middlewares/asyncHandler.middleware');
-const { NotFoundError, ForbiddenError } = require('../../../common/errors/AppError');
-const githubService = require('../services/github.service');
-const get = async (id) => { const project = await Project.findOne({ $or: [{ _id: id }, { slug: id }] }); if (!project) throw new NotFoundError('Project not found.'); return project; };
-const permitted = (project, user) => project.owner.toString() === user._id.toString() || user.role === 'admin';
-exports.create = asyncHandler(async (req, res) => res.success('Project created successfully.', await Project.create({ ...req.body, owner: req.user._id, userId: req.user._id }), 201));
-exports.list = asyncHandler(async (req, res) => { const { page = 1, limit = 12, search, status, domain, owner, sort = '-createdAt' } = req.query; const query = { isArchived: req.query.archived === 'true' }; if (search) query.$text = { $search: search }; if (status) query.status = status; if (domain) query.researchDomain = domain; if (owner === 'me') query.owner = req.user._id; const [projects, total] = await Promise.all([Project.find(query).populate('owner', 'name avatar').sort(sort).skip((page - 1) * limit).limit(Number(limit)), Project.countDocuments(query)]); res.success('Projects retrieved successfully.', { projects, pagination: { page: Number(page), limit: Number(limit), total, pages: Math.ceil(total / limit) } }); });
-exports.detail = asyncHandler(async (req, res) => res.success('Project retrieved successfully.', await get(req.params.id)));
-exports.update = asyncHandler(async (req, res) => { const project = await get(req.params.id); if (!permitted(project, req.user)) throw new ForbiddenError('Only the project owner can edit this project.'); Object.assign(project, req.body); await project.save(); res.success('Project updated successfully.', project); });
-exports.remove = asyncHandler(async (req, res) => { const project = await get(req.params.id); if (!permitted(project, req.user)) throw new ForbiddenError('Only the project owner can delete this project.'); await project.deleteOne(); res.success('Project deleted successfully.'); });
-exports.archive = asyncHandler(async (req, res) => { const project = await get(req.params.id); if (!permitted(project, req.user)) throw new ForbiddenError('Only the project owner can archive this project.'); project.isArchived = !project.isArchived; project.status = project.isArchived ? 'Archived' : 'Draft'; await project.save(); res.success('Project archive state updated.', project); });
-exports.status = asyncHandler(async (req, res) => { const project = await get(req.params.id); if (!permitted(project, req.user)) throw new ForbiddenError('Only the project owner can update status.'); project.status = req.body.status; await project.save(); res.success('Project status updated.', project); });
-exports.progress = asyncHandler(async (req, res) => { const project = await get(req.params.id); if (!permitted(project, req.user)) throw new ForbiddenError('Only the project owner can update progress.'); project.progress = req.body.progress; await project.save(); res.success('Project progress updated.', project); });
-exports.addMember = asyncHandler(async (req, res) => { const project = await get(req.params.id); if (!permitted(project, req.user)) throw new ForbiddenError('Only the project owner can add members.'); project.collaborators.push(req.body); await project.save(); res.success('Member added successfully.', project); });
-exports.removeMember = asyncHandler(async (req, res) => { const project = await get(req.params.id); if (!permitted(project, req.user)) throw new ForbiddenError('Only the project owner can remove members.'); project.collaborators.id(req.params.memberId).deleteOne(); await project.save(); res.success('Member removed successfully.', project); });
-exports.syncGitHub = asyncHandler(async (req, res) => { const project = await get(req.params.id); if (!permitted(project, req.user)) throw new ForbiddenError('Only the project owner can sync GitHub data.'); const repository = await githubService.getRepository(req.body.githubUrl || project.githubUrl); project.githubUrl = repository.url; project.githubRepository = { ...repository, syncedAt: new Date() }; if (!project.description && repository.description) project.description = repository.description; await project.save(); res.success('GitHub repository synced successfully.', project); });
-exports.stats = asyncHandler(async (req, res) => { const rows = await Project.aggregate([{ $match: { owner: req.user._id, isArchived: false } }, { $group: { _id: '$status', count: { $sum: 1 }, collaborators: { $sum: { $size: '$collaborators' } } } }]); const value = (status) => rows.find((row) => row._id === status)?.count || 0; res.success('Project dashboard statistics retrieved.', { totalProjects: rows.reduce((n, row) => n + row.count, 0), collaborators: rows.reduce((n, row) => n + row.collaborators, 0), activeProjects: value('Active') + value('In Progress'), completed: value('Completed'), breakdown: rows }); });
+const projectService = require('../service/project.service');
+const { successResponse, errorResponse } = require('../../../common/utils/response');
+const asyncHandler = require('../../../common/middleware/asyncHandler');
+
+const ProjectController = {
+  /**
+   * POST /api/v1/projects
+   * Create a new project
+   */
+  create: asyncHandler(async (req, res) => {
+    const project = await projectService.createProject(req.user._id, req.body);
+    return successResponse(res, 201, 'Project created successfully.', project);
+  }),
+
+  /**
+   * GET /api/v1/projects
+   * List & search projects (public)
+   */
+  list: asyncHandler(async (req, res) => {
+    const result = await projectService.listProjects({
+      ...req.query,
+      visibility: req.query.visibility || 'public',
+    });
+    return successResponse(res, 200, 'Projects fetched.', result);
+  }),
+
+  /**
+   * GET /api/v1/projects/trending
+   */
+  trending: asyncHandler(async (req, res) => {
+    const data = await projectService.getTrending(Number(req.query.limit) || 10);
+    return successResponse(res, 200, 'Trending projects.', data);
+  }),
+
+  /**
+   * GET /api/v1/projects/recommended
+   */
+  recommended: asyncHandler(async (req, res) => {
+    const data = await projectService.getRecommended(req.user, Number(req.query.limit) || 10);
+    return successResponse(res, 200, 'Recommended projects.', data);
+  }),
+
+  /**
+   * GET /api/v1/projects/my
+   * Projects owned by current user
+   */
+  myProjects: asyncHandler(async (req, res) => {
+    const result = await projectService.listProjects({
+      ...req.query,
+      owner: req.user._id,
+      visibility: undefined,
+    });
+    return successResponse(res, 200, 'Your projects.', result);
+  }),
+
+  /**
+   * GET /api/v1/projects/stats/owner
+   * Dashboard stats for the logged-in owner
+   */
+  ownerStats: asyncHandler(async (req, res) => {
+    const stats = await projectService.getOwnerStats(req.user._id);
+    return successResponse(res, 200, 'Owner stats.', stats);
+  }),
+
+  /**
+   * GET /api/v1/projects/:id
+   * Get project detail (public or private with access check)
+   */
+  getOne: asyncHandler(async (req, res) => {
+    const project = await projectService.getProject(
+      req.params.id,
+      req.user?._id
+    );
+    return successResponse(res, 200, 'Project fetched.', project);
+  }),
+
+  /**
+   * PUT /api/v1/projects/:id
+   * Update project (owner or admin only)
+   */
+  update: asyncHandler(async (req, res) => {
+    const project = await projectService.updateProject(
+      req.params.id,
+      req.user._id,
+      req.body
+    );
+    return successResponse(res, 200, 'Project updated.', project);
+  }),
+
+  /**
+   * PATCH /api/v1/projects/:id/status
+   */
+  updateStatus: asyncHandler(async (req, res) => {
+    const { status } = req.body;
+    const project = await projectService.updateStatus(req.params.id, req.user._id, status);
+    return successResponse(res, 200, 'Project status updated.', project);
+  }),
+
+  /**
+   * PATCH /api/v1/projects/:id/progress
+   */
+  updateProgress: asyncHandler(async (req, res) => {
+    const { progress } = req.body;
+    const project = await projectService.updateProgress(req.params.id, req.user._id, Number(progress));
+    return successResponse(res, 200, 'Project progress updated.', project);
+  }),
+
+  /**
+   * PATCH /api/v1/projects/:id/archive
+   */
+  archive: asyncHandler(async (req, res) => {
+    const project = await projectService.archiveProject(req.params.id, req.user._id);
+    return successResponse(res, 200, project.isArchived ? 'Project archived.' : 'Project unarchived.', project);
+  }),
+
+  /**
+   * DELETE /api/v1/projects/:id
+   */
+  delete: asyncHandler(async (req, res) => {
+    const result = await projectService.deleteProject(req.params.id, req.user._id);
+    return successResponse(res, 200, 'Project deleted.', result);
+  }),
+};
+
+module.exports = ProjectController;

@@ -86,6 +86,13 @@ class SocketGateway {
           logger.error(`Failed mounting collaboration socket listeners: ${err.message}`);
         }
 
+        // Register project socket router
+        try {
+          require('../../modules/project/socket/project.socket')(this.io, socket);
+        } catch (err) {
+          logger.error(`Failed mounting project socket listeners: ${err.message}`);
+        }
+
         // Heartbeat signal from client (received every 30s)
         socket.on('heartbeat', async () => {
           try {

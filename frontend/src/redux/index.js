@@ -17,6 +17,7 @@ import shareReducer from './slices/shareSlice';
 import recommendationReducer from './slices/recommendationSlice';
 import requestReducer from './slices/requestSlice';
 import settingsReducer from './slices/settingsSlice';
+import projectReducer from './slices/projectSlice';
 
 export const store = configureStore({
   reducer: {
@@ -37,7 +38,8 @@ export const store = configureStore({
     share: shareReducer,
     recommendation: recommendationReducer,
     request: requestReducer,
-    settings: settingsReducer
+    settings: settingsReducer,
+    project: projectReducer
   },
   devTools: process.env.NODE_ENV !== 'production'
 });
