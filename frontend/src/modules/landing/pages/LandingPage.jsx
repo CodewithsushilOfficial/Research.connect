@@ -9,7 +9,7 @@ import PublicationShowcase from '../components/PublicationShowcase';
 import HowItWorks from '../components/HowItWorks';
 import DashboardPreview from '../components/DashboardPreview';
 import Testimonials from '../components/Testimonials';
-import FAQ from '../components/FAQ';
+import FAQ from '../components/Faq';
 import CTA from '../components/CTA';
 import Footer from '../../../layouts/Footer/Footer';
 

@@ -1,11 +1,15 @@
 const { createClient } = require('redis');
 const logger = require('../common/logger/winston');
 
-const REDIS_URI = process.env.REDIS_URI || 'redis://localhost:6379';
+// Use REDIS_URL to fetch from .env, fallback to localhost if missing
+const REDIS_URI = process.env.REDIS_URL || 'redis://localhost:6379';
 
 const redisClient = createClient({
   url: REDIS_URI,
   socket: {
+    // Required for secure connection to Upstash Redis
+    tls: true,
+    rejectUnauthorized: false,
     reconnectStrategy: (retries) => {
       const delay = Math.min(retries * 100, 3000);
       return delay;
@@ -148,4 +152,3 @@ const clientProxy = new Proxy(redisClient, {
 });
 
 module.exports = clientProxy;
-

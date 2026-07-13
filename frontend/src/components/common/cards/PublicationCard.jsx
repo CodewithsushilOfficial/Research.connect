@@ -173,10 +173,14 @@ const PublicationCard = ({ pub }) => {
     }
   };
 
-  const handleCite = () => {
+  const handleCite = async () => {
     const citation = `${pub.authors}. "${pub.title}." ${pub.publication || pub.journal} (${pub.year}).`;
-    navigator.clipboard.writeText(citation);
-    toast.success('Citation copied in MLA format!');
+    try {
+      await navigator.clipboard.writeText(citation);
+      toast.success('Citation copied in MLA format!');
+    } catch {
+      toast.error('Failed to copy citation');
+    }
   };
 
   // Helper function to recursively render comments
@@ -418,8 +422,15 @@ const PublicationCard = ({ pub }) => {
           </button>
 
           {/* Share */}
-          <button 
-            onClick={() => { navigator.clipboard.writeText(pub.paperURL || window.location.href); toast.success('Link copied to clipboard!'); }}
+          <button
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(pub.paperURL || window.location.href);
+                toast.success('Link copied to clipboard!');
+              } catch {
+                toast.error('Failed to copy link');
+              }
+            }}
             className="p-2 rounded-lg hover:bg-slate-50 text-slate-500 transition-all text-xs font-bold"
             title="Share Paper"
           >

@@ -24,7 +24,7 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           configure: (proxy, _options) => {
             proxy.on('error', (err, _req, _res) => {
-              console.log('[Vite Proxy Error]: Backend server might be offline.', err.message);
+              console.error('[Vite Proxy Error]: Backend server might be offline.', err.message);
             });
             proxy.on('proxyReq', (proxyReq, _req, _res) => {
               proxyReq.removeHeader('cookie');
