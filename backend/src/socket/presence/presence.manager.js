@@ -2,6 +2,7 @@ const Presence = require('./Presence');
 const SocketSession = require('../sessions/SocketSession');
 const Conversation = require('../../modules/messaging/model/Conversation');
 const logger = require('../../common/logger/winston');
+const redisClient = require('../../config/redis');
 
 class PresenceManager {
   /**
@@ -46,6 +47,11 @@ class PresenceManager {
         { upsert: true }
       );
 
+      // Cache status in Redis
+      if (redisClient && redisClient.isOpen && redisClient.isReady) {
+        await redisClient.set(`presence:status:${userIdStr}`, 'online', { EX: 300 });
+      }
+
       // 3. Broadcast status change to contacts if they just logged on
       if (wasOffline && io) {
         await this.broadcastPresence(userIdStr, 'online', null, io);
@@ -85,6 +91,11 @@ class PresenceManager {
           }
         );
 
+        // Update status in Redis
+        if (redisClient && redisClient.isOpen && redisClient.isReady) {
+          await redisClient.set(`presence:status:${userIdStr}`, 'offline', { EX: 300 });
+        }
+
         // Broadcast offline presence to contacts
         if (io) {
           await this.broadcastPresence(userIdStr, 'offline', lastSeen, io);
@@ -111,6 +122,11 @@ class PresenceManager {
         { userId: userIdStr },
         { status, lastActive: new Date() }
       );
+
+      // Cache status in Redis
+      if (redisClient && redisClient.isOpen && redisClient.isReady) {
+        await redisClient.set(`presence:status:${userIdStr}`, status, { EX: 300 });
+      }
 
       if (io) {
         await this.broadcastPresence(userIdStr, status, null, io);
@@ -147,7 +163,16 @@ class PresenceManager {
    */
   async isUserOnline(userId) {
     try {
-      const presence = await Presence.findOne({ userId });
+      if (redisClient && redisClient.isOpen && redisClient.isReady) {
+        const cached = await redisClient.get(`presence:status:${userId}`);
+        if (cached) {
+          return cached === 'online';
+        }
+      }
+      const presence = await Presence.findOne({ userId }).lean();
+      if (presence && redisClient && redisClient.isOpen && redisClient.isReady) {
+        await redisClient.set(`presence:status:${userId}`, presence.status, { EX: 300 });
+      }
       return presence ? presence.status === 'online' : false;
     } catch (err) {
       return false;

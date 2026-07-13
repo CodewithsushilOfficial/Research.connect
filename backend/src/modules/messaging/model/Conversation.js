@@ -87,6 +87,7 @@ const conversationSchema = new mongoose.Schema(
 
 // Compound index on participants to speed up user conversations lookup
 conversationSchema.index({ participants: 1 });
+conversationSchema.index({ participants: 1, lastMessageTime: -1 });
 conversationSchema.index({ lastMessageTime: -1 });
 conversationSchema.index({ 'unreadCounts.$*': 1 });
 conversationSchema.index({ isPinned: 1 });

@@ -132,7 +132,7 @@ class MessageService {
     }
 
     const receiverIdStr = receiverId.toString();
-    const isOnline = isUserOnline(receiverIdStr);
+    const isOnline = await isUserOnline(receiverIdStr);
     const messageStatus = isOnline ? 'delivered' : 'sent';
     const deliveryDate = isOnline ? new Date() : null;
 
@@ -180,11 +180,20 @@ class MessageService {
 
     await Conversation.findByIdAndUpdate(conversationId, updateQuery);
 
-    const populated = await Message.findById(message._id)
-      .populate('attachment')
-      .populate('attachmentId')
-      .populate('replyTo')
-      .lean();
+    // Optimize: Avoid findById and populate queries if there are no attachments or replies (Requirement 5)
+    let populated;
+    if (attachmentId || replyTo) {
+      populated = await Message.findById(message._id)
+        .populate('attachment')
+        .populate('attachmentId')
+        .populate('replyTo')
+        .lean();
+    } else {
+      populated = message.toObject ? message.toObject() : message;
+      populated.attachment = null;
+      populated.attachmentId = null;
+      populated.replyTo = null;
+    }
 
     // Emit live events to both users
     // Emit new message event to the conversation room using both event names
@@ -206,10 +215,10 @@ class MessageService {
       referenceId: message._id
     });
 
-    // Create persistent system notification
+    // Create persistent system notification asynchronously (non-blocking)
     try {
       const notificationService = require('../../notifications/service/notification.service');
-      await notificationService.createNotification({
+      notificationService.createNotification({
         recipientId: receiverId,
         actorId: userId,
         type: 'message',
@@ -218,9 +227,11 @@ class MessageService {
         targetType: 'User',
         targetId: userId,
         targetUrl: `/messages/${conversationId}`
+      }).catch(err => {
+        logger.error(`Failed creating message system notification: ${err.message}`);
       });
     } catch (err) {
-      logger.error(`Failed creating message system notification: ${err.message}`);
+      logger.error(`Failed locating notificationService: ${err.message}`);
     }
 
     return populated;
@@ -264,16 +275,10 @@ class MessageService {
     const otherParticipantId = conv.participants.find(p => p.toString() !== userIdStr);
 
     const now = new Date();
-    // Update message status to read for all incoming messages
+    // Update message status to seen for all incoming unread messages in a single query (Requirement 4 & index-backed)
     await Message.updateMany(
-      { conversationId, senderId: otherParticipantId, status: { $ne: 'read' } },
-      { $set: { status: 'read', readAt: now } }
-    );
-
-    // Also update backward compatible seen status
-    await Message.updateMany(
-      { conversationId, senderId: otherParticipantId, status: { $ne: 'seen' } },
-      { $set: { status: 'seen' } }
+      { conversationId, senderId: otherParticipantId, status: { $nin: ['seen', 'read'] } },
+      { $set: { status: 'seen', readAt: now } }
     );
 
     // Reset unread count for the reader in Conversation document
@@ -718,13 +723,16 @@ class MessageService {
 
     const objectIds = allIds.map(id => new mongoose.Types.ObjectId(id));
 
-    // 2. Bulk fetch users + profiles
-    const [users, profiles] = await Promise.all([
+    // 2. Bulk fetch users + profiles + presences (resolve N+1 online check)
+    const [users, profiles, presences] = await Promise.all([
       User.find({ _id: { $in: objectIds }, isDeleted: { $ne: true } })
         .select('_id firstName lastName username profileImage profileSlug slug')
         .lean(),
       Profile.find({ userId: { $in: objectIds } })
         .select('userId bio designation institution')
+        .lean(),
+      Presence.find({ userId: { $in: objectIds } })
+        .select('userId status')
         .lean()
     ]);
 
@@ -732,6 +740,8 @@ class MessageService {
     users.forEach(u => userMap.set(u._id.toString(), u));
     const profileMap = new Map();
     profiles.forEach(p => profileMap.set(p.userId.toString(), p));
+    const presenceMap = new Map();
+    presences.forEach(pr => presenceMap.set(pr.userId.toString(), pr.status === 'online'));
 
     // Enrichment helper
     const enrich = (idStr) => {
@@ -748,7 +758,7 @@ class MessageService {
         bio: p.bio || '',
         designation: p.designation || '',
         institution: p.institution || '',
-        isOnline: isUserOnline(idStr),
+        isOnline: presenceMap.get(idStr) || false,
         existingConversationId: convMap.get(idStr) || null
       };
     };

@@ -345,11 +345,24 @@ const MessagesView = () => {
           }
 
           const { msg, isDifferentSender } = item;
-          const senderIdVal = msg.senderId || msg.sender;
-          const senderIdStr = typeof senderIdVal === 'object' && senderIdVal ? (senderIdVal._id || senderIdVal.id) : senderIdVal;
-          const isMe = senderIdStr?.toString() === (user?.id || user?._id)?.toString();
 
-          const otherParticipant = activeConversation?.participants?.find(p => (p._id || p)?.toString() !== user?._id?.toString());
+          // Helper to extract string ID
+          const getUserIdStr = (u) => {
+            if (!u) return '';
+            if (typeof u === 'object') {
+              const idVal = u.userId || u._id || u.id;
+              return idVal ? idVal.toString() : '';
+            }
+            return u.toString();
+          };
+
+          const currentUserId = getUserIdStr(user);
+          const senderIdStr = getUserIdStr(msg.senderId || msg.sender);
+          const isMe = currentUserId && senderIdStr && senderIdStr === currentUserId;
+
+
+
+          const otherParticipant = activeConversation?.participants?.find(p => getUserIdStr(p) !== currentUserId);
           const avatarUrl = otherParticipant?.profileImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150";
           const senderName = otherParticipant?.fullName || 'Researcher';
           const timeString = msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now';
@@ -389,6 +402,7 @@ const MessagesView = () => {
                   style={{ minWidth: '70px' }}
                 >
                   <div className="whitespace-pre-wrap break-words">{msg.content || msg.text || msg.message}</div>
+
                   
                   {msg.attachments?.length ? (
                     <div className="mt-2 p-2.5 rounded-xl bg-black/10 dark:bg-white/10 border border-white/10 flex items-start gap-2.5">

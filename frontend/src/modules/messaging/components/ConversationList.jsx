@@ -1,8 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, memo } from 'react';
 import { Search, Pin, PinOff, Archive, ArchiveRestore, MessageCircle, Plus, X, BadgeCheck, Users2, Inbox } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import messagesService from '../services/messages.service';
+
+const ConversationItem = memo(({ conv, activeId, onSelect, onContextMenu, formatTime }) => {
+  const { otherParticipant, lastMessage, unreadCount, isPinned, isGroup, name } = conv;
+  const fullName = isGroup ? name : (otherParticipant ? `${otherParticipant.firstName} ${otherParticipant.lastName}` : 'Researcher');
+  const isOnline = otherParticipant?.isOnline;
+  const avatarUrl = isGroup ? '' : otherParticipant?.profileImage;
+  const isActive = activeId === conv._id;
+  const isUnread = unreadCount > 0;
+
+  return (
+    <div onClick={() => onSelect(conv._id)} onContextMenu={(e) => onContextMenu(e, conv)}
+      className={`group flex items-center gap-3 p-2.5 rounded-2xl cursor-pointer transition-all border ${isActive ? 'bg-blue-50 border-blue-200' : 'bg-white border-transparent hover:border-slate-200 hover:shadow-sm'}`}>
+      <div className="relative shrink-0">
+        {isGroup ? (
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center text-white font-extrabold text-sm">
+            {name ? name.substring(0, 2).toUpperCase() : 'GP'}
+          </div>
+        ) : (
+          <div className={`rounded-2xl p-[2px] ${isUnread ? 'bg-gradient-to-br from-blue-500 to-indigo-500' : 'bg-transparent'}`}>
+            <img src={avatarUrl || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"} alt={fullName} className="w-11 h-11 rounded-[10px] object-cover bg-white" />
+          </div>
+        )}
+        {!isGroup && <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white ${isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`} />}
+        {isPinned && <span className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-amber-400 border-2 border-white flex items-center justify-center"><Pin className="w-2.5 h-2.5 text-white fill-white" /></span>}
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1 min-w-0">
+            <span className={`text-[13.5px] truncate ${isUnread ? 'font-extrabold text-slate-900' : 'font-bold text-slate-700'}`}>{fullName}</span>
+            {!isGroup && <BadgeCheck className="w-3.5 h-3.5 text-blue-500 fill-blue-500 shrink-0" />}
+          </div>
+          <span className={`text-[10.5px] shrink-0 ${isUnread ? 'text-blue-600 font-bold' : 'text-slate-400 font-medium'}`}>{formatTime(conv.lastMessageAt || lastMessage?.createdAt)}</span>
+        </div>
+        <div className="flex items-center justify-between gap-2 mt-0.5">
+          <p className={`text-[12px] truncate flex-1 ${isUnread ? 'text-slate-800 font-semibold' : 'text-slate-450 font-medium'}`}>
+            {lastMessage?.deleted ? 'Deleted message' : lastMessage?.type === 'publication' ? '📄 Shared a publication' : lastMessage?.text || lastMessage?.message || 'No messages yet'}
+          </p>
+          {isUnread ? (
+            <span className="shrink-0 min-w-[18px] h-[18px] px-1 bg-blue-600 text-white rounded-full flex items-center justify-center text-[10px] font-extrabold">{unreadCount > 9 ? '9+' : unreadCount}</span>
+          ) : (
+            <button onClick={(e) => { e.stopPropagation(); onContextMenu(e, conv); }} className="shrink-0 opacity-0 group-hover:opacity-100 text-slate-400 hover:text-slate-700 transition-opacity cursor-pointer text-[10px] font-bold hidden md:block">•••</button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+});
 
 const ConversationList = ({
   conversations = [],
@@ -41,6 +89,11 @@ const ConversationList = ({
 
   const handlePinToggle = (conv) => { pinMutation.mutate({ id: conv._id, pin: !conv.isPinned }); setSheetConv(null); };
   const handleArchiveToggle = (conv) => { archiveMutation.mutate({ id: conv._id, archive: !conv.isArchived }); setSheetConv(null); };
+
+  const handleContextMenu = useCallback((e, conv) => {
+    e.preventDefault();
+    setSheetConv(conv);
+  }, []);
 
   const filtered = conversations.filter(conv => {
     const name = conv.isGroup ? conv.name.toLowerCase() : `${conv.otherParticipant?.firstName} ${conv.otherParticipant?.lastName}`.toLowerCase();
@@ -112,53 +165,16 @@ const ConversationList = ({
       </div>
 
       <div className="flex-1 overflow-y-auto px-2.5 py-2.5 space-y-1.5 pb-20 md:pb-2.5">
-        {filtered.length > 0 ? filtered.map((conv) => {
-          const { otherParticipant, lastMessage, unreadCount, isPinned, isGroup, name } = conv;
-          const fullName = isGroup ? name : (otherParticipant ? `${otherParticipant.firstName} ${otherParticipant.lastName}` : 'Researcher');
-          const isOnline = otherParticipant?.isOnline;
-          const avatarUrl = isGroup ? '' : otherParticipant?.profileImage;
-          const isActive = activeId === conv._id;
-          const isUnread = unreadCount > 0;
-
-          return (
-            <div key={conv._id} onClick={() => onSelect(conv._id)} onContextMenu={(e) => { e.preventDefault(); setSheetConv(conv); }}
-              className={`group flex items-center gap-3 p-2.5 rounded-2xl cursor-pointer transition-all border ${isActive ? 'bg-blue-50 border-blue-200' : 'bg-white border-transparent hover:border-slate-200 hover:shadow-sm'}`}>
-              <div className="relative shrink-0">
-                {isGroup ? (
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center text-white font-extrabold text-sm">
-                    {name ? name.substring(0, 2).toUpperCase() : 'GP'}
-                  </div>
-                ) : (
-                  <div className={`rounded-2xl p-[2px] ${isUnread ? 'bg-gradient-to-br from-blue-500 to-indigo-500' : 'bg-transparent'}`}>
-                    <img src={avatarUrl || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"} alt={fullName} className="w-11 h-11 rounded-[10px] object-cover bg-white" />
-                  </div>
-                )}
-                {!isGroup && <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white ${isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`} />}
-                {isPinned && <span className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-amber-400 border-2 border-white flex items-center justify-center"><Pin className="w-2.5 h-2.5 text-white fill-white" /></span>}
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1 min-w-0">
-                    <span className={`text-[13.5px] truncate ${isUnread ? 'font-extrabold text-slate-900' : 'font-bold text-slate-700'}`}>{fullName}</span>
-                    {!isGroup && <BadgeCheck className="w-3.5 h-3.5 text-blue-500 fill-blue-500 shrink-0" />}
-                  </div>
-                  <span className={`text-[10.5px] shrink-0 ${isUnread ? 'text-blue-600 font-bold' : 'text-slate-400 font-medium'}`}>{formatTime(conv.lastMessageAt || lastMessage?.createdAt)}</span>
-                </div>
-                <div className="flex items-center justify-between gap-2 mt-0.5">
-                  <p className={`text-[12px] truncate flex-1 ${isUnread ? 'text-slate-800 font-semibold' : 'text-slate-450 font-medium'}`}>
-                    {lastMessage?.deleted ? 'Deleted message' : lastMessage?.type === 'publication' ? '📄 Shared a publication' : lastMessage?.text || 'No messages yet'}
-                  </p>
-                  {isUnread ? (
-                    <span className="shrink-0 min-w-[18px] h-[18px] px-1 bg-blue-600 text-white rounded-full flex items-center justify-center text-[10px] font-extrabold">{unreadCount > 9 ? '9+' : unreadCount}</span>
-                  ) : (
-                    <button onClick={(e) => { e.stopPropagation(); setSheetConv(conv); }} className="shrink-0 opacity-0 group-hover:opacity-100 text-slate-400 hover:text-slate-700 transition-opacity cursor-pointer text-[10px] font-bold hidden md:block">•••</button>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        }) : (
+        {filtered.length > 0 ? filtered.map((conv) => (
+          <ConversationItem
+            key={conv._id}
+            conv={conv}
+            activeId={activeId}
+            onSelect={onSelect}
+            onContextMenu={handleContextMenu}
+            formatTime={formatTime}
+          />
+        )) : (
           <div className="py-16 text-center text-slate-400 space-y-2">
             <MessageCircle className="w-10 h-10 mx-auto opacity-25" />
             <p className="text-sm font-bold">No conversations here</p>

@@ -15,10 +15,22 @@ const MessageBubble = memo(({ message, onReply, onEditInit, otherParticipant, sh
 
   const { _id, senderId, text, message: textMessage, type, attachment, replyTo, status, edited, deleted, createdAt, reactions = [] } = message;
 
-  // Robust Sender Detection (Requirement 1)
-  const authenticatedUserId = user?.id || user?._id;
-  const msgSenderId = typeof senderId === 'object' && senderId ? (senderId._id || senderId.id) : senderId;
-  const isSender = msgSenderId?.toString() === authenticatedUserId?.toString();
+  // Helper to extract string ID
+  const getUserIdStr = (u) => {
+    if (!u) return '';
+    if (typeof u === 'object') {
+      const idVal = u.userId || u._id || u.id;
+      return idVal ? idVal.toString() : '';
+    }
+    return u.toString();
+  };
+
+  // Robust Sender Detection (Requirement 1 & Step 6)
+  const authenticatedUserId = getUserIdStr(user);
+  const msgSenderId = getUserIdStr(senderId || message.sender);
+  const isSender = authenticatedUserId && msgSenderId && msgSenderId === authenticatedUserId;
+
+
 
   const reactMutation = useMutation({
     mutationFn: async (emoji) => await messagesService.reactToMessage(_id, emoji),
