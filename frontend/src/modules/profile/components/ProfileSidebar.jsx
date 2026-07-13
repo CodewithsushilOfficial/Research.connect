@@ -5,7 +5,7 @@ import {
   Home, User, Compass, FileText, Briefcase,
   Users, MessageSquare, Bookmark, UserCheck,
   UserPlus, Settings, Upload, ChevronLeft,
-  ChevronRight, BarChart2, Globe, Database, X
+  ChevronRight, BarChart2, Globe, Database, X, HelpCircle
 } from 'lucide-react';
 
 const NAV_SECTIONS = [
@@ -32,7 +32,8 @@ const NAV_SECTIONS = [
       { name: 'Followers', path: '/profile/:slug/followers', icon: UserCheck },
       { name: 'Following', path: '/profile/:slug/following', icon: UserPlus },
       { name: 'Analytics', path: '/profile/:slug/analytics', icon: BarChart2 },
-      { name: 'Settings', path: '/profile/:slug/settings', icon: Settings }
+      { name: 'Settings', path: '/profile/:slug/settings', icon: Settings },
+      { name: 'Help Center', path: '/help', icon: HelpCircle }
     ]
   }
 ];

@@ -35,6 +35,9 @@ const recommendationsModule = require("./modules/recommendations");
 
 const gatewayRouter = require("./gateway");
 
+// Help Center Module import
+const helpModule = require("./modules/help");
+
 const app = express();
 
 // Disable X-Powered-By
@@ -123,6 +126,9 @@ app.use("/api/v1/identity", identityRoutes);
 app.use("/api/v1/recommendations", recommendationsModule.routes);
 app.use("/api/v1/network", networkModule.routes);
 app.use("/api/v1/presence", presenceModule.routes);
+
+// Help Center Module routes
+app.use("/api/v1/help", helpModule.routes);
 
 // Default root redirect to /api
 app.get("/", (req, res) => {

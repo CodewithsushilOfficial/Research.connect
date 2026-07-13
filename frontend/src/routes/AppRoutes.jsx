@@ -60,6 +60,9 @@ import profileRoutes from '../modules/profile/routes/profile.routes';
 const TermsOfServicePage = React.lazy(() => import('../modules/legal/pages/TermsOfServicePage'));
 const PrivacyPolicyPage = React.lazy(() => import('../modules/legal/pages/PrivacyPolicyPage'));
 
+// Help Center Module
+const HelpCenterPage = React.lazy(() => import('../pages/HelpCenter/HelpCenterPage'));
+
 const AppRoutes = () => {
   return (
     <React.Suspense fallback={
@@ -142,7 +145,7 @@ const AppRoutes = () => {
           <Route path="messages/:conversationId" element={<MessagesPage />} />
           <Route path="messages/new" element={<MessagesPage />} />
           <Route path="search" element={<SearchPage />} />
-
+          <Route path="help" element={<HelpCenterPage />} />
           {/* Social Collaboration Module Routes */}
           <Route path="network" element={<NetworkPage />} />
           <Route path="network/connections" element={<ConnectionsPage />} />
