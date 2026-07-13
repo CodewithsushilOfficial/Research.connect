@@ -4,6 +4,31 @@ const logger = require('../common/logger/winston');
 // Use REDIS_URL to fetch from .env, fallback to localhost if missing
 const REDIS_URI = process.env.REDIS_URL || 'redis://localhost:6379';
 
+const isRedisConnError = (err) => {
+  if (!err) return false;
+  const msg = err.message || '';
+  const name = err.name || '';
+  const stack = err.stack || '';
+  
+  return (
+    msg.includes('max requests limit exceeded') ||
+    msg.includes('TimeoutError') ||
+    name === 'TimeoutError' ||
+    msg.includes('ETIMEDOUT') ||
+    msg.includes('ECONNREFUSED') ||
+    msg.includes('ECONNRESET') ||
+    msg.includes('socket') ||
+    msg.includes('closed') ||
+    msg.includes('Connection lost') ||
+    name === 'AggregateError' ||
+    stack.includes('ECONNREFUSED') ||
+    (err.errors && err.errors.some(e => {
+      const emsg = e.message || '';
+      return emsg.includes('ECONNREFUSED') || emsg.includes('ETIMEDOUT');
+    }))
+  );
+};
+
 const redisClient = createClient({
   url: REDIS_URI,
   socket: {
@@ -20,19 +45,15 @@ const redisClient = createClient({
 let isLimitExceeded = false;
 
 redisClient.on('error', (err) => {
-  if (err.message && (
-    err.message.includes('max requests limit exceeded') ||
-    err.message.includes('TimeoutError') ||
-    err.name === 'TimeoutError' ||
-    err.message.includes('ETIMEDOUT') ||
-    err.message.includes('ECONNREFUSED')
-  )) {
+  if (isRedisConnError(err)) {
     if (!isLimitExceeded) {
       isLimitExceeded = true;
       logger.warn('[REDIS ERROR] Redis connection failed or limit exceeded. Disabling Redis and falling back to in-memory mode.');
     }
   } else {
-    logger.error('[REDIS CLIENT ERROR]', err);
+    if (!isLimitExceeded) {
+      logger.error('[REDIS CLIENT ERROR]', err);
+    }
   }
 });
 
@@ -79,26 +100,14 @@ const clientProxy = new Proxy(redisClient, {
                   new Promise((_, reject) => setTimeout(() => reject(new Error('TimeoutError')), 2000))
                 ]);
               } catch (pingErr) {
-                if (pingErr.message && (
-                  pingErr.message.includes('max requests limit exceeded') ||
-                  pingErr.message.includes('TimeoutError') ||
-                  pingErr.name === 'TimeoutError' ||
-                  pingErr.message.includes('ETIMEDOUT') ||
-                  pingErr.message.includes('ECONNREFUSED')
-                )) {
+                if (isRedisConnError(pingErr)) {
                   isLimitExceeded = true;
                   logger.warn('[REDIS] Redis rate limit or timeout during connection test. Falling back to in-memory mode.');
                 }
               }
               return res;
             } catch (err) {
-              if (err.message && (
-                err.message.includes('max requests limit exceeded') ||
-                err.message.includes('TimeoutError') ||
-                err.name === 'TimeoutError' ||
-                err.message.includes('ETIMEDOUT') ||
-                err.message.includes('ECONNREFUSED')
-              )) {
+              if (isRedisConnError(err)) {
                 isLimitExceeded = true;
                 logger.warn('[REDIS] Redis rate limit or timeout during connect. Falling back to in-memory mode.');
               }
@@ -111,13 +120,7 @@ const clientProxy = new Proxy(redisClient, {
           const result = value.apply(target, args);
           if (result instanceof Promise) {
             return result.catch((err) => {
-              if (err.message && (
-                err.message.includes('max requests limit exceeded') ||
-                err.message.includes('TimeoutError') ||
-                err.name === 'TimeoutError' ||
-                err.message.includes('ETIMEDOUT') ||
-                err.message.includes('ECONNREFUSED')
-              )) {
+              if (isRedisConnError(err)) {
                 if (!isLimitExceeded) {
                   isLimitExceeded = true;
                   logger.warn('[REDIS] Redis rate limit or timeout detected. Falling back to in-memory mode.');
@@ -129,13 +132,7 @@ const clientProxy = new Proxy(redisClient, {
           }
           return result;
         } catch (err) {
-          if (err.message && (
-            err.message.includes('max requests limit exceeded') ||
-            err.message.includes('TimeoutError') ||
-            err.name === 'TimeoutError' ||
-            err.message.includes('ETIMEDOUT') ||
-            err.message.includes('ECONNREFUSED')
-          )) {
+          if (isRedisConnError(err)) {
             if (!isLimitExceeded) {
               isLimitExceeded = true;
               logger.warn('[REDIS] Redis rate limit or timeout detected. Falling back to in-memory mode.');
