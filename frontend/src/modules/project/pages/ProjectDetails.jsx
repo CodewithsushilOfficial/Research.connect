@@ -120,14 +120,24 @@ export default function ProjectDetails() {
             <ArrowLeft size={15} /> All Projects
           </button>
           
-          {isMember && (
-            <button
-              onClick={() => navigate(`/projects/${project._id}/dashboard`)}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-blue-650 px-4 py-2 text-xs font-black text-white shadow-lg shadow-blue-650/15 hover:bg-blue-700 transition"
-            >
-              Go to Workspace <ChevronRight size={14} />
-            </button>
-          )}
+          <div className="flex gap-2">
+            {user && project.owner?._id === user._id && (
+              <button
+                onClick={() => navigate(`/projects/${project._id}/edit`)}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 shadow-sm hover:bg-slate-50 transition"
+              >
+                Edit Details
+              </button>
+            )}
+            {isMember && (
+              <button
+                onClick={() => navigate(`/projects/${project._id}/dashboard`)}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-blue-650 px-4 py-2 text-xs font-black text-white shadow-lg shadow-blue-650/15 hover:bg-blue-700 transition"
+              >
+                Go to Workspace <ChevronRight size={14} />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Master Banner Header */}

@@ -345,6 +345,17 @@ export default function ProjectsPage() {
                         <span>{project.memberCount || 1} members</span>
                       </div>
                       <div className="flex items-center gap-2">
+                        {isOwner && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/projects/${project._id}/edit`);
+                            }}
+                            className="hover:text-blue-650 text-blue-600 font-black text-[10px] uppercase border border-slate-150 px-2 py-0.5 rounded hover:bg-slate-50 transition"
+                          >
+                            Edit
+                          </button>
+                        )}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
