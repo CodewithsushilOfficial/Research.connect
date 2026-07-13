@@ -6,6 +6,7 @@ import { ResearcherSkeleton } from './Skeletons';
 import { useCountUp } from '../../hooks/useCountUp';
 import { Beaker, Cloud, Globe } from 'lucide-react';
 import { toast } from '../ui/Toaster';
+import Avatar from '../ui/Avatar';
 
 function IconByName({ name, className, style }) {
   if (name === 'beaker') return <Beaker size={16} className={className} style={style} />;
@@ -69,11 +70,15 @@ export default function ResearcherInfoPanel() {
         <>
           {/* Profile Top */}
           <div className="p-6 flex flex-col items-center text-center border-b border-[#E2E8F0] group">
-            <div
-              className="profile-avatar w-24 h-24 rounded-2xl overflow-hidden border-2 shadow-lg mb-4 cursor-pointer anim-breathe group-hover:border-[#2563EB] transition-colors duration-300"
-              style={{ borderColor: '#BFDBFE' }}
-            >
-              <img src={profile.avatarUrlLg || profile.avatarUrl} alt={profile.fullName} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+            <div className="profile-avatar mb-4 cursor-pointer anim-breathe">
+              <Avatar
+                src={profile.avatarUrlLg || profile.avatarUrl}
+                name={profile.fullName}
+                size="3xl"
+                shape="rounded-2xl"
+                className="group-hover:border-[#2563EB] transition-colors duration-300"
+                showBorder
+              />
             </div>
             <h2 className="font-bold text-lg text-[#0F172A] group-hover:text-[#2563EB] transition-colors">{profile.fullName}</h2>
             <p className="text-sm text-[#475569] mt-0.5">{profile.positionTitle} • {profile.department}</p>

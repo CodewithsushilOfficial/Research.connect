@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import feedService from '../../../services/feed.service';
+import Avatar from '../../../components/ui/Avatar';
 
 const PublicationFeedCard = ({ event, onInteraction }) => {
   const navigate = useNavigate();
@@ -66,11 +67,12 @@ const PublicationFeedCard = ({ event, onInteraction }) => {
     >
       {/* Header */}
       <div className="flex items-start gap-3 mb-4">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center shrink-0 overflow-hidden">
-          {actor.profileImage
-            ? <img src={actor.profileImage} alt={actor.firstName} className="w-full h-full object-cover" />
-            : <User size={18} className="text-primary" />}
-        </div>
+        <Avatar
+          src={actor.profileImage}
+          name={`${actor.firstName} ${actor.lastName}`}
+          size="md"
+          showBorder
+        />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-text-primary truncate">
             {actor.firstName} {actor.lastName}

@@ -1,6 +1,7 @@
 import { useMessaging } from '../../context/MessagingContext';
 import { CURRENT_USER, formatMsgTime } from '../../data/mockData';
 import FileAttachmentCard from './FileAttachmentCard';
+import Avatar from '../ui/Avatar';
 
 export default function MessageBubble({ message, animDelay = 0 }) {
   const { activeConversationId } = useMessaging();
@@ -14,9 +15,12 @@ export default function MessageBubble({ message, animDelay = 0 }) {
     >
       {/* Dusre user ki DP (Avatar) */}
       {!isMine && (
-        <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-[#E2E8F0] shadow-sm">
-          <img src={message.senderAvatarUrl} alt={message.senderName} className="w-full h-full object-cover" />
-        </div>
+        <Avatar
+          src={message.senderAvatarUrl}
+          name={message.senderName}
+          size="sm"
+          showBorder
+        />
       )}
 
       <div className={isMine ? 'flex flex-col items-end gap-1' : ''}>

@@ -3,6 +3,9 @@ const Schema = mongoose.Schema;
 
 const ImageMetadataSchema = new Schema({
   url: { type: String, default: '' },
+  thumbnail: { type: String, default: '' },
+  etag: { type: String, default: '' },
+  version: { type: String, default: '1' },
   objectKey: { type: String, default: '' },
   mimeType: { type: String, default: '' },
   fileSize: { type: Number, default: 0 },
@@ -181,6 +184,11 @@ const UserSchema = new Schema(
   }
 );
 
+// Virtual for displayName
+UserSchema.virtual('displayName').get(function() {
+  return this.fullName || `${this.firstName} ${this.lastName}`.trim();
+});
+
 // Pre-save hook to populate fullName, sync verified fields, and auto-generate username/profile URL
 UserSchema.pre('save', async function (next) {
   if (this.isModified('firstName') || this.isModified('lastName')) {
@@ -281,7 +289,14 @@ UserSchema.set('toJSON', {
   virtuals: true,
   transform: (doc, ret) => {
     if (ret.profileImage && typeof ret.profileImage === 'object') {
+      ret.thumbnail = ret.profileImage.thumbnail || ret.profileImage.url || '';
+      ret.etag = ret.profileImage.etag || '';
+      ret.version = ret.profileImage.version || '1';
       ret.profileImage = ret.profileImage.url || '';
+    } else {
+      ret.thumbnail = ret.profileImage || '';
+      ret.etag = '';
+      ret.version = '1';
     }
     return ret;
   }
@@ -291,7 +306,14 @@ UserSchema.set('toObject', {
   virtuals: true,
   transform: (doc, ret) => {
     if (ret.profileImage && typeof ret.profileImage === 'object') {
+      ret.thumbnail = ret.profileImage.thumbnail || ret.profileImage.url || '';
+      ret.etag = ret.profileImage.etag || '';
+      ret.version = ret.profileImage.version || '1';
       ret.profileImage = ret.profileImage.url || '';
+    } else {
+      ret.thumbnail = ret.profileImage || '';
+      ret.etag = '';
+      ret.version = '1';
     }
     return ret;
   }

@@ -1,4 +1,5 @@
 import React from 'react';
+import Avatar from '../../../components/ui/Avatar';
 
 const ROLE_COLORS = {
   Owner: 'bg-yellow-500/20 text-yellow-300',
@@ -15,11 +16,12 @@ export default function MemberCard({ member, role }) {
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center gap-4 hover:border-gray-700 transition-colors">
       {/* Avatar */}
-      <div className="w-11 h-11 rounded-full bg-gradient-to-br from-violet-600 to-cyan-600 flex items-center justify-center text-white font-bold text-base flex-shrink-0 overflow-hidden">
-        {member.avatar
-          ? <img src={member.avatar} alt="" className="w-full h-full object-cover" />
-          : (member.firstName?.charAt(0) || '?')}
-      </div>
+      <Avatar
+        src={member.avatar}
+        name={`${member.firstName} ${member.lastName}`}
+        size="md"
+        showBorder
+      />
       {/* Info */}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-white truncate">

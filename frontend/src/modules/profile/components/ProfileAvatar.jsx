@@ -1,5 +1,6 @@
 import React from 'react';
 import { Camera } from 'lucide-react';
+import Avatar from '../../../components/ui/Avatar';
 
 /**
  * ProfileAvatar
@@ -7,17 +8,15 @@ import { Camera } from 'lucide-react';
  * Clicking the button calls onAvatarChange() — which opens the ImageUploadModal upstream.
  * No file picking logic here; all that lives in ProfileOverview.
  */
-const ProfileAvatar = ({ imageUrl, onAvatarChange, editable = true, uploading = false }) => {
-  const fallbackUrl = 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=250&h=250';
-
+const ProfileAvatar = ({ imageUrl, name, onAvatarChange, editable = true, uploading = false }) => {
   return (
     <div className="relative group rounded-full overflow-hidden w-28 h-28 sm:w-36 sm:h-36 border-4 border-white shadow-lg bg-white flex-shrink-0">
       {/* Profile image */}
-      <img
-        src={imageUrl || fallbackUrl}
-        alt="Profile Avatar"
-        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-        onError={(e) => { e.currentTarget.src = fallbackUrl; }}
+      <Avatar
+        src={imageUrl}
+        name={name}
+        size="full"
+        className="transition-transform duration-500 group-hover:scale-105"
       />
 
       {/* Upload loading spinner */}

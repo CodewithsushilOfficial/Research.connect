@@ -16,6 +16,7 @@ import {
   Mail, MessageSquare, Search, Heart
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import Avatar from '../../../components/ui/Avatar';
 
 const HomeFeed = () => {
   const dispatch = useDispatch();
@@ -547,13 +548,14 @@ const HomeFeed = () => {
                   <div className="flex gap-3 min-w-0">
                     <div 
                       onClick={() => navigate(`/profile/${res.profileSlug || res.userId}`)}
-                      className="w-10 h-10 rounded-full bg-[#F8FAFC] flex items-center justify-center font-bold text-xs overflow-hidden shrink-0 border border-[#E2E8F0] cursor-pointer hover:border-blue-500 transition-all"
+                      className="cursor-pointer"
                     >
-                      {res.avatar ? (
-                        <img src={res.avatar} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <span>{res.name ? res.name[0] : 'S'}</span>
-                      )}
+                      <Avatar
+                        src={res.avatar}
+                        name={res.name}
+                        size="md"
+                        showBorder
+                      />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex justify-between items-start gap-1">
@@ -624,13 +626,12 @@ const HomeFeed = () => {
           ) : (
             coAuthors.slice(0, 5).map((author, idx) => (
               <div key={idx} className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-[#F8FAFC] transition-colors">
-                <div className="w-9 h-9 rounded-full bg-[#EDE9FE] flex items-center justify-center font-bold text-xs overflow-hidden shrink-0 border border-[#E2E8F0]">
-                  {author.photo && author.photo !== '#' ? (
-                    <img src={author.photo} alt={author.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-[#4F46E5]">{author.name?.[0] || '?'}</span>
-                  )}
-                </div>
+                <Avatar
+                  src={author.photo}
+                  name={author.name}
+                  size="sm"
+                  showBorder
+                />
                 <div className="min-w-0 flex-1 text-left">
                   <div className="flex justify-between items-start">
                     <h4 className="font-bold text-xs text-[#0F172A] truncate leading-tight">{author.name}</h4>
@@ -1025,13 +1026,12 @@ const HomeFeed = () => {
                 {coAuthors.map((author, idx) => (
                   <div key={idx} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-50 dark:border-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-indigo-50 dark:bg-slate-850 flex items-center justify-center font-extrabold text-sm overflow-hidden shrink-0 border border-slate-200 dark:border-slate-700">
-                        {author.photo && author.photo !== '#' ? (
-                          <img src={author.photo} alt={author.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-indigo-600 dark:text-indigo-400">{author.name?.[0] || '?'}</span>
-                        )}
-                      </div>
+                      <Avatar
+                        src={author.photo}
+                        name={author.name}
+                        size="md"
+                        showBorder
+                      />
                       <div>
                         <h4 className="font-bold text-sm text-slate-900 dark:text-white leading-tight">{author.name}</h4>
                         <p className="text-xs text-slate-500 dark:text-slate-405 mt-0.5">{author.affiliation || 'Independent Researcher'}</p>

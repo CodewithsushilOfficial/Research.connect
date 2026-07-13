@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, X, Clock, TrendingUp, FileText, User, BookOpen, Mic } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import searchService from '../../../services/search.service';
+import Avatar from '../../../components/ui/Avatar';
 
 const useDebounce = (fn, delay) => {
   const timer = useRef(null);
@@ -151,13 +152,11 @@ const SearchBar = ({ placeholder = 'Search publications, authors, journals…', 
                         onClick={() => navigate(res.profileSlug ? `/profile/${res.profileSlug}` : `/profile/${res.id}`)}
                         className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-blue-50 rounded-xl transition-colors text-left"
                       >
-                        {res.avatar ? (
-                          <img src={res.avatar} alt={res.fullName} className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
-                        ) : (
-                          <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs flex-shrink-0">
-                            {res.fullName?.charAt(0).toUpperCase() || 'R'}
-                          </div>
-                        )}
+                        <Avatar
+                          src={res.avatar}
+                          name={res.fullName}
+                          size="xs"
+                        />
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-gray-900">{res.fullName}</p>
                         </div>

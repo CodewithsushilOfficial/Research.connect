@@ -76,6 +76,7 @@ import SkillsList from '../components/SkillsList';
 import ProfileCompletion from '../components/ProfileCompletion';
 import EditProfileModal from '../components/EditProfileModal';
 import ShareProfileModal from '../components/ShareProfileModal';
+import Avatar from '../../../components/ui/Avatar';
 
 const ProfileOverview = () => {
   const { profile, refetch, isOwnProfile, username } = useOutletContext();
@@ -908,13 +909,12 @@ const ProfileOverview = () => {
                     const selectedBorder = borderColors[idx % borderColors.length];
                     return (
                       <div key={co._id || co.name} className={`p-3 border rounded-xl hover:shadow-sm transition-all duration-200 hover:-translate-y-0.5 flex items-start gap-2.5 ${selectedBorder}`}>
-                        {co.photo ? (
-                          <img src={co.photo} alt={co.name} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-[#EDE9FE] text-[#4F46E5] flex items-center justify-center font-bold text-xs uppercase flex-shrink-0 border border-purple-100">
-                            {co.name?.charAt(0) || '?'}
-                          </div>
-                        )}
+                        <Avatar
+                          src={co.photo}
+                          name={co.name}
+                          size="sm"
+                          showBorder
+                        />
                         <div className="min-w-0 flex-grow">
                           <h5 className="text-xs font-black text-[#0F172A] truncate">{co.name}</h5>
                           <p className="text-[9px] text-[#475569] truncate font-bold uppercase tracking-wide">{co.affiliation || 'Academic Researcher'}</p>

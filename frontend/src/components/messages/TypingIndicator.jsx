@@ -1,10 +1,15 @@
+import Avatar from '../ui/Avatar';
+
 export default function TypingIndicator({ avatarUrl, name }) {
   return (
     <div className="flex items-end gap-3 max-w-[80%] anim-msg-stagger-in">
       {/* Avatar */}
-      <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-[#E2E8F0] shadow-sm">
-        <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
-      </div>
+      <Avatar
+        src={avatarUrl}
+        name={name}
+        size="sm"
+        showBorder
+      />
 
       {/* Bubble with gradient dots */}
       <div className="bubble-inbound bg-white border border-[#E8EDF5] px-5 py-3.5 shadow-sm">

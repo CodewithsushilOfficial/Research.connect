@@ -105,6 +105,7 @@ const ProfileHeader = ({
         <div className="-mt-20 sm:-mt-24 relative z-10">
           <ProfileAvatar 
             imageUrl={profile?.profileImage || user?.profileImage} 
+            name={user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`}
             onAvatarChange={onAvatarChange} 
             editable={isOwnProfile}
           />

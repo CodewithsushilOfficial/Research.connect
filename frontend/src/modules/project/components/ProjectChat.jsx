@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Pin, Trash, Edit2, Smile, AlertCircle, MessageSquare } from 'lucide-react';
 import { useProjectChat } from '../hooks/useProjectChat';
 import { useAuth } from '../../../context/AuthContext';
+import Avatar from '../../../components/ui/Avatar';
 
 export default function ProjectChat({ projectId, typingUsers, emitTyping, emitStopTyping }) {
   const { user } = useAuth();
@@ -109,9 +110,12 @@ export default function ProjectChat({ projectId, typingUsers, emitTyping, emitSt
                 return (
                   <div key={msg._id} className={`flex items-start gap-3 ${isMe ? 'flex-row-reverse' : ''}`}>
                     {/* Avatar */}
-                    <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-650 flex items-center justify-center font-bold text-xs uppercase shrink-0">
-                      {msg.senderId?.firstName?.charAt(0) || 'U'}
-                    </div>
+                    <Avatar
+                      src={msg.senderId?.profileImage}
+                      name={msg.senderId?.fullName}
+                      size="sm"
+                      showBorder
+                    />
 
                     {/* Message Bubble Container */}
                     <div className={`max-w-[70%] space-y-1 ${isMe ? 'text-right' : ''}`}>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Bell, Settings } from 'lucide-react';
 import { CURRENT_USER } from '../../data/mockData';
+import Avatar from '../ui/Avatar';
 
 export default function TopNavBar() {
   const [bellRing, setBellRing] = useState(false);
@@ -42,9 +43,13 @@ export default function TopNavBar() {
         <button className="icon-btn p-2 rounded-lg hover:bg-[#F8FAFC] transition-colors">
           <Settings size={20} className="text-[#475569]" />
         </button>
-        <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-[#E2E8F0] cursor-pointer">
-          <img src={CURRENT_USER.avatarUrl} alt="My avatar" className="w-full h-full object-cover" />
-        </div>
+        <Avatar
+          src={CURRENT_USER.avatarUrl}
+          name={CURRENT_USER.fullName}
+          size="sm"
+          className="cursor-pointer"
+          showBorder
+        />
       </div>
     </header>
   );

@@ -41,6 +41,7 @@ const SIZE_MAP = {
   xl:   { container: 'w-16 h-16', text: '42', dot: 'w-3.5 h-3.5 border-2 border-white' },
   '2xl':{ container: 'w-20 h-20', text: '52', dot: 'w-4 h-4 border-2 border-white' },
   '3xl':{ container: 'w-24 h-24', text: '60', dot: 'w-4 h-4 border-2 border-white' },
+  full: { container: 'w-full h-full', text: '60', dot: 'w-4 h-4 border-2 border-white' },
 };
 
 /**
@@ -75,7 +76,11 @@ const UserAvatar = memo(({
   className = '',
 }) => {
   // ── Resolve values from user object or individual props ──────────────────
-  const resolvedSrc = src ?? user?.profileImage ?? user?.avatar ?? null;
+  let resolvedSrc = src ?? user?.profileImage ?? user?.avatar ?? null;
+  if (resolvedSrc && typeof resolvedSrc === 'object') {
+    resolvedSrc = resolvedSrc.url || resolvedSrc.thumbnail || null;
+  }
+
   const resolvedName =
     name ??
     user?.fullName ??
@@ -86,13 +91,27 @@ const UserAvatar = memo(({
     'User';
   const resolvedOnline = (isOnline ?? showStatus ?? user?.isOnline ?? user?.online ?? false);
 
-  // ── Image error state ────────────────────────────────────────────────────
+  // ── Image error state with retry-on-failure ──────────────────────────────
   const [imgError, setImgError] = useState(false);
+  const [currentSrc, setCurrentSrc] = useState(resolvedSrc);
+  const [retried, setRetried] = useState(false);
 
   // Reset error when src changes (user uploads new photo)
   useEffect(() => {
     setImgError(false);
+    setCurrentSrc(resolvedSrc);
+    setRetried(false);
   }, [resolvedSrc]);
+
+  const handleImageError = () => {
+    if (!retried && resolvedSrc) {
+      const separator = resolvedSrc.includes('?') ? '&' : '?';
+      setCurrentSrc(`${resolvedSrc}${separator}retry=1`);
+      setRetried(true);
+    } else {
+      setImgError(true);
+    }
+  };
 
   // ── Derived values ───────────────────────────────────────────────────────
   const initials = getInitials(resolvedName);
@@ -100,7 +119,7 @@ const UserAvatar = memo(({
   const sizeConfig = SIZE_MAP[size] || SIZE_MAP.md;
   const gradId = `ua-grad-${initials}-${gradStart.replace('#', '')}`;
 
-  const showImage = resolvedSrc && !imgError;
+  const showImage = currentSrc && !imgError;
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
@@ -114,9 +133,9 @@ const UserAvatar = memo(({
       >
         {showImage ? (
           <img
-            src={resolvedSrc}
+            src={currentSrc}
             alt={resolvedName}
-            onError={() => setImgError(true)}
+            onError={handleImageError}
             className="w-full h-full object-cover"
             loading="lazy"
             decoding="async"

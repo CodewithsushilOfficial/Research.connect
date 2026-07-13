@@ -1,4 +1,5 @@
 import React from 'react';
+import Avatar from '../../../components/ui/Avatar';
 import { useOutletContext } from 'react-router-dom';
 import { 
   FileText, TrendingUp, Award, BarChart2, Calendar, 
@@ -89,13 +90,12 @@ const Analytics = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {profile.coAuthors.map((co) => (
               <div key={co._id || co.name} className="p-4 border border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50/30 dark:bg-slate-950/10 flex items-start gap-3">
-                {co.photo ? (
-                  <img src={co.photo} alt={co.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-indigo-600/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs uppercase flex-shrink-0">
-                    {co.name?.charAt(0) || '?'}
-                  </div>
-                )}
+                <Avatar
+                  src={co.photo}
+                  name={co.name}
+                  size="md"
+                  showBorder
+                />
                 <div className="min-w-0">
                   <h4 className="text-xs font-black text-slate-900 dark:text-slate-100 truncate">{co.name}</h4>
                   <p className="text-[10px] text-slate-500 truncate mt-0.5">{co.affiliation || 'Researcher'}</p>

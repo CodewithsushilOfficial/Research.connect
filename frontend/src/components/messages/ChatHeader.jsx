@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMessaging } from '../../context/MessagingContext';
 import { formatLastSeen } from '../../data/mockData';
 import { toast } from '../ui/Toaster';
+import Avatar from '../ui/Avatar';
 
 export default function ChatHeader() {
   const { activeConversation, getOtherParticipant, typingUsers, onlineUsers, selectConversation, searchQuery, setSearchQuery, deleteConversation, blockedUsers, toggleBlockUser } = useMessaging();
@@ -92,15 +93,16 @@ export default function ChatHeader() {
 
         {/* Avatar */}
         <div
-          className="relative flex-shrink-0 group cursor-pointer"
+          className="cursor-pointer group flex-shrink-0"
           onClick={() => !activeConversation.isGroup && otherParticipant?.id && navigate(`/profile/${otherParticipant.slug || otherParticipant.profileSlug || otherParticipant.username || otherParticipant.id}`)}
         >
-          <div className="w-11 h-11 rounded-full overflow-hidden ring-2 ring-[#DBEAFE] shadow-sm group-hover:ring-[#2563EB] transition-colors duration-300">
-            {avatarUrl && <img src={avatarUrl} alt={title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />}
-          </div>
-          {showOnlineDot && (
-            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-[#22C55E] border-2 border-white rounded-full pulse-online" />
-          )}
+          <Avatar
+            src={avatarUrl}
+            name={title}
+            size="md"
+            className="ring-2 ring-[#DBEAFE] group-hover:ring-[#2563EB] shadow-sm transition-colors duration-300"
+            isOnline={showOnlineDot}
+          />
         </div>
 
         {/* Edit pencil button — always visible on desktop */}

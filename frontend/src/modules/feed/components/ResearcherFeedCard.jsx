@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { User, Building2, Users, BookOpen, UserPlus, Check } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import Avatar from '../../../components/ui/Avatar';
 import feedService from '../../../services/feed.service';
 
 const ResearcherFeedCard = ({ event, onInteraction }) => {
@@ -38,11 +39,12 @@ const ResearcherFeedCard = ({ event, onInteraction }) => {
     >
       <div className="flex items-start gap-4">
         {/* Avatar */}
-        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center shrink-0 overflow-hidden border-2 border-border-default">
-          {meta.avatar || actor.profileImage
-            ? <img src={meta.avatar || actor.profileImage} alt={displayName} className="w-full h-full object-cover" />
-            : <User size={24} className="text-primary" />}
-        </div>
+        <Avatar
+          src={meta.avatar || actor.profileImage}
+          name={displayName}
+          size="lg"
+          showBorder
+        />
 
         {/* Info */}
         <div className="flex-1 min-w-0">
