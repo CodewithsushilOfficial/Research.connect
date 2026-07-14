@@ -1,0 +1,116 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: rc-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+  redis:
+    image: redis:7.0-alpine
+    container_name: rc-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.3
+    container_name: rc-meilisearch
+    ports:
+      - "7700:7700"
+    environment:
+      - MEILI_ENV=development
+      - MEILI_MASTER_KEY=masterKey123456
+    volumes:
+      - meili_data:/meili_data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rc-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - NODE_ENV=development
+      - MONGO_URI=mongodb://mongodb:27017/research_connect
+      - REDIS_URL=redis://redis:6379
+      - MEILI_HOST=http://meilisearch:7700
+      - MEILI_KEY=masterKey123456
+      - AI_SERVICE_URL=http://ai-service:8000
+      - DECOUPLED_SOCKET=true
+      - DECOUPLED_WORKER=true
+    depends_on:
+      - mongodb
+      - redis
+      - meilisearch
+
+  socket-server:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rc-socket-server
+    command: ["node", "src/socket-server.js"]
+    ports:
+      - "5001:5001"
+    environment:
+      - SOCKET_PORT=5001
+      - NODE_ENV=development
+      - MONGO_URI=mongodb://mongodb:27017/research_connect
+      - REDIS_URL=redis://redis:6379
+      - DECOUPLED_SOCKET=true
+    depends_on:
+      - mongodb
+      - redis
+
+  worker-server:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rc-worker-server
+    command: ["node", "src/worker-server.js"]
+    environment:
+      - NODE_ENV=development
+      - MONGO_URI=mongodb://mongodb:27017/research_connect
+      - REDIS_URL=redis://redis:6379
+      - DECOUPLED_WORKER=true
+    depends_on:
+      - mongodb
+      - redis
+
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: rc-ai-service
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - MONGO_URI=mongodb://mongodb:27017/research_connect
+    depends_on:
+      - mongodb
+
+  scraper-service:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rc-scraper-service
+    command: ["node", "src/scraper-server.js"]
+    environment:
+      - NODE_ENV=development
+      - MONGO_URI=mongodb://mongodb:27017/research_connect
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - mongodb
+      - redis
+
+volumes:
+  mongodb_data:
+  redis_data:
+  meili_data:

@@ -47,37 +47,44 @@ const startServer = async () => {
           logger.error('Failed database legacy migration in background:', err);
         }
 
-        try {
-          // Scholar Queue Worker
-          const importQueueService = require('./modules/scholar/service/import-queue.service');
-          importQueueService.runQueueWorker();
-        } catch (err) {
-          logger.error('Failed to run Scholar queue worker in background:', err);
-        }
+        if (process.env.DECOUPLED_WORKER !== 'true') {
+          try {
+            // Scholar Queue Worker
+            const importQueueService = require('./modules/scholar/service/import-queue.service');
+            importQueueService.runQueueWorker();
+          } catch (err) {
+            logger.error('Failed to run Scholar queue worker in background:', err);
+          }
 
-        try {
-          // Identity Sync Queue Worker
-          const identitySyncQueueService = require('./modules/identity/service/identitySyncQueue.service');
-          identitySyncQueueService.runQueueWorker();
-        } catch (err) {
-          logger.error('Failed to run Identity Sync queue worker in background:', err);
-        }
+          try {
+            // Identity Sync Queue Worker
+            const identitySyncQueueService = require('./modules/identity/service/identitySyncQueue.service');
+            identitySyncQueueService.runQueueWorker();
+          } catch (err) {
+            logger.error('Failed to run Identity Sync queue worker in background:', err);
+          }
 
-        try {
-          // Initialize Redis background workers
-          const { initWorkers } = require('./jobs/workers');
-          initWorkers();
-        } catch (err) {
-          logger.error('Failed to initialize Redis background workers:', err);
+          try {
+            // Initialize Redis background workers
+            const { initWorkers } = require('./jobs/workers');
+            initWorkers();
+          } catch (err) {
+            logger.error('Failed to initialize Redis background workers:', err);
+          }
+          logger.info('Background workers initialized.');
+        } else {
+          logger.info('Decoupled Worker server mode enabled. Monolith background workers bypassed.');
         }
-        
-        logger.info('Background workers initialized.');
       });
     });
 
-    // 4. Initialize Socket.IO
-    const { initSocket } = require('./config/socket');
-    const io = initSocket(server);
+    // 4. Initialize Socket.IO (with monolithic fallback)
+    if (process.env.DECOUPLED_SOCKET !== 'true') {
+      const { initSocket } = require('./config/socket');
+      initSocket(server);
+    } else {
+      logger.info('Decoupled Socket server mode enabled. Monolith socket initialization bypassed.');
+    }
 
     // Handle Graceful Shutdowns
     const shutdownGracefully = async (signal) => {

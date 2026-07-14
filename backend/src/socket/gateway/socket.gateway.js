@@ -11,7 +11,16 @@ const { parseBrowser, parsePlatform, getDeviceType } = require('../../common/uti
 class SocketGateway {
   constructor() {
     this.io = null;
+    this.emitter = null;
     this.heartbeatIntervalId = null;
+  }
+
+  getEmitter() {
+    if (!this.emitter && redisClient && redisClient.isOpen) {
+      const { Emitter } = require('@socket.io/redis-emitter');
+      this.emitter = new Emitter(redisClient);
+    }
+    return this.emitter;
   }
 
   /**
@@ -26,6 +35,23 @@ class SocketGateway {
       pingTimeout: 20000,
       pingInterval: 25000
     });
+
+    // Configure Socket.IO Redis Adapter for horizontal scaling
+    if (redisClient) {
+      try {
+        const pubClient = redisClient.duplicate();
+        const subClient = redisClient.duplicate();
+        Promise.all([pubClient.connect(), subClient.connect()]).then(() => {
+          const { createAdapter } = require('@socket.io/redis-adapter');
+          this.io.adapter(createAdapter(pubClient, subClient));
+          logger.info('🔌 Socket.IO Redis Adapter configured successfully.');
+        }).catch((err) => {
+          logger.error('Failed to configure Socket.IO Redis Adapter:', err);
+        });
+      } catch (err) {
+        logger.error('Failed to duplicate Redis client for Socket.IO Adapter:', err);
+      }
+    }
 
     // Clean up all socket sessions on startup to avoid stale DB entries
     SocketSession.deleteMany({}).catch((err) => {
@@ -125,21 +151,28 @@ class SocketGateway {
   }
 
   getIO() {
-    if (!this.io) {
-      throw new Error('Socket.IO is not initialized yet!');
-    }
-    return this.io;
+    return this.io; // Return null instead of throwing error in decoupled REST server mode
   }
 
   emitToUser(userId, event, data) {
     if (this.io) {
       this.io.to(`user:${userId}`).emit(event, data);
+    } else {
+      const emitter = this.getEmitter();
+      if (emitter) {
+        emitter.to(`user:${userId}`).emit(event, data);
+      }
     }
   }
 
   emitToRoom(roomId, event, data) {
     if (this.io) {
       this.io.to(roomId).emit(event, data);
+    } else {
+      const emitter = this.getEmitter();
+      if (emitter) {
+        emitter.to(roomId).emit(event, data);
+      }
     }
   }
 }

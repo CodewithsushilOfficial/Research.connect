@@ -379,6 +379,42 @@ PublicationSchema.index({ isDeleted: 1, status: 1, visibility: 1, citations: -1 
 PublicationSchema.index({ isDeleted: 1, status: 1, visibility: 1, views: -1 });
 
 
+// Sync hooks for Meilisearch
+PublicationSchema.post('save', function (doc) {
+  try {
+    const { syncToMeili } = require('../config/meilisearch');
+    syncToMeili('publications', {
+      _id: doc._id,
+      userId: doc.userId,
+      title: doc.title,
+      abstract: doc.abstract,
+      authors: doc.authors,
+      journal: doc.journal,
+      conference: doc.conference,
+      year: doc.year,
+      citations: doc.citations,
+      views: doc.views,
+      downloads: doc.downloads,
+      keywords: doc.keywords,
+      publicationType: doc.publicationType,
+      status: doc.status,
+      visibility: doc.visibility,
+      isDeleted: doc.isDeleted
+    });
+  } catch (err) {
+    console.error('Failed to trigger publication meilisearch sync:', err);
+  }
+});
+
+PublicationSchema.post('remove', function (doc) {
+  try {
+    const { removeFromMeili } = require('../config/meilisearch');
+    removeFromMeili('publications', doc._id);
+  } catch (err) {
+    console.error('Failed to trigger publication meilisearch delete:', err);
+  }
+});
+
 const Publication = mongoose.model('Publication', PublicationSchema);
 
 module.exports = Publication;

@@ -327,6 +327,33 @@ UserSchema.index({ firstName: 1 });
 UserSchema.index({ lastName: 1 });
 UserSchema.index({ fullName: 1 });
 
+// Sync hooks for Meilisearch
+UserSchema.post('save', function (doc) {
+  try {
+    const { syncToMeili } = require('../config/meilisearch');
+    syncToMeili('users', {
+      _id: doc._id,
+      firstName: doc.firstName,
+      lastName: doc.lastName,
+      fullName: doc.fullName || `${doc.firstName} ${doc.lastName}`,
+      email: doc.email,
+      role: doc.role,
+      status: doc.status
+    });
+  } catch (err) {
+    console.error('Failed to trigger user meilisearch sync:', err);
+  }
+});
+
+UserSchema.post('remove', function (doc) {
+  try {
+    const { removeFromMeili } = require('../config/meilisearch');
+    removeFromMeili('users', doc._id);
+  } catch (err) {
+    console.error('Failed to trigger user meilisearch delete:', err);
+  }
+});
+
 const User = mongoose.model('User', UserSchema);
 
 module.exports = User;
