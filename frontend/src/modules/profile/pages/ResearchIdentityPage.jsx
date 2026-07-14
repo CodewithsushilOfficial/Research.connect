@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { 
   Compass, Link2, BookOpen, GraduationCap, CheckCircle, 
-  Loader2, Linkedin, Award, Play, AlertCircle, ArrowRight 
+  Loader2, Linkedin, Award, Play, AlertCircle, ArrowRight, Info 
 } from 'lucide-react';
 import scholarService from '../../../services/scholar.service';
 import { updateProfileState } from '../../../redux/slices/authSlice';
@@ -207,6 +207,13 @@ const ResearchIdentityPage = () => {
               <h2 className="text-2xl font-black text-text-primary tracking-tight">Connect Academic Identities</h2>
               <p className="text-xs text-text-secondary mt-2 max-w-lg mx-auto">
                 Link your Google Scholar profile to synchronize your academic publications, co-authors, citations timeline, and unlock derived metrics.
+              </p>
+            </div>
+
+            <div className="flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3.5 mb-6">
+              <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-blue-800 font-medium leading-relaxed">
+                Already connected an account? You can review, update, or disconnect any linked profile anytime from Settings → Connected Accounts.
               </p>
             </div>
 

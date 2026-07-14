@@ -6,32 +6,12 @@ import profileService from '../../../services/profile.service';
 import { useDispatch } from 'react-redux';
 import { updateProfileState, updateUserState } from '../../../redux/slices/authSlice';
 
-const countries = [
-  { value: 'IN', label: '🇮🇳 India' },
-  { value: 'US', label: '🇺🇸 United States' },
-  { value: 'GB', label: '🇬🇧 United Kingdom' },
-  { value: 'CA', label: '🇨🇦 Canada' },
-  { value: 'DE', label: '🇩🇪 Germany' },
-  { value: 'FR', label: '🇫🇷 France' },
-  { value: 'AU', label: '🇦🇺 Australia' },
-  { value: 'JP', label: '🇯🇵 Japan' },
-  { value: 'CN', label: '🇨🇳 China' }
-];
-
 const GeneralSettings = ({ profile, refetch, setSaveTrigger, setIsSubmittingParent }) => {
   const dispatch = useDispatch();
 
   const [formData, setFormData] = useState({
-    fullName: '',
     username: '',
     email: '',
-    institution: '',
-    department: '',
-    country: '',
-    city: '',
-    orcid: '',
-    googleScholar: '',
-    website: '',
   });
 
   const [interests, setInterests] = useState([]);
@@ -43,16 +23,8 @@ const GeneralSettings = ({ profile, refetch, setSaveTrigger, setIsSubmittingPare
   useEffect(() => {
     if (profile) {
       setFormData({
-        fullName: profile.displayName || profile.fullName || '',
         username: profile.username || '',
         email: profile.email || '',
-        institution: profile.institution || '',
-        department: profile.department || '',
-        country: profile.country || '',
-        city: profile.city || '',
-        orcid: profile.socialLinks?.orcid || '',
-        googleScholar: profile.socialLinks?.googleScholar || '',
-        website: profile.socialLinks?.website || '',
       });
 
       if (profile.researchAreas) {
@@ -98,21 +70,10 @@ const GeneralSettings = ({ profile, refetch, setSaveTrigger, setIsSubmittingPare
   // Basic Validation
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = 'Full Name is required';
-    }
     if (!formData.username.trim()) {
       newErrors.username = 'Username is required';
     } else if (!/^[a-zA-Z0-9_-]+$/.test(formData.username)) {
       newErrors.username = 'Username can only contain alphanumeric characters, hyphens, and underscores';
-    }
-
-    // URL validation if filled
-    if (formData.website && !/^https?:\/\/[^\s$.?#].[^\s]*$/i.test(formData.website)) {
-      newErrors.website = 'Please enter a valid URL (e.g. https://example.com)';
-    }
-    if (formData.googleScholar && !/^https?:\/\/[^\s$.?#].[^\s]*$/i.test(formData.googleScholar)) {
-      newErrors.googleScholar = 'Please enter a valid Google Scholar URL';
     }
 
     setErrors(newErrors);
@@ -130,17 +91,7 @@ const GeneralSettings = ({ profile, refetch, setSaveTrigger, setIsSubmittingPare
 
     try {
       const payload = {
-        displayName: formData.fullName,
         username: formData.username,
-        institution: formData.institution,
-        department: formData.department,
-        country: formData.country,
-        city: formData.city,
-        socialLinks: {
-          orcid: formData.orcid,
-          googleScholar: formData.googleScholar,
-          website: formData.website,
-        },
         researchAreas: interests,
       };
 
@@ -189,9 +140,9 @@ const GeneralSettings = ({ profile, refetch, setSaveTrigger, setIsSubmittingPare
     <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-sm space-y-6">
       {/* Card Header */}
       <div>
-        <h3 className="text-base font-black text-text-primary font-display">Profile Information</h3>
+        <h3 className="text-base font-black text-text-primary font-display">Account Information</h3>
         <p className="text-[11px] font-semibold text-text-secondary mt-1">
-          Manage your primary identity details, geographical presence, and academic affiliations.
+          Manage your username and research interests.
         </p>
       </div>
 
@@ -200,18 +151,7 @@ const GeneralSettings = ({ profile, refetch, setSaveTrigger, setIsSubmittingPare
 
       {/* Form Fields */}
       <form onSubmit={(e) => e.preventDefault()} className="space-y-5">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-          <Input
-            label="Full Name"
-            name="fullName"
-            required
-            value={formData.fullName}
-            onChange={handleChange}
-            error={errors.fullName}
-            disabled={isSubmitting}
-            placeholder="Pawan Agrahari"
-            className="!space-y-1.5"
-          />
+        <div className="space-y-1.5">
           <Input
             label="Username"
             name="username"
@@ -223,6 +163,9 @@ const GeneralSettings = ({ profile, refetch, setSaveTrigger, setIsSubmittingPare
             placeholder="pawan-agrahari"
             className="!space-y-1.5"
           />
+          <p className="text-[10.5px] text-text-secondary font-medium leading-relaxed">
+            Used in your public profile link. Changing it will break any previously shared links.
+          </p>
         </div>
 
         <Input
@@ -233,100 +176,6 @@ const GeneralSettings = ({ profile, refetch, setSaveTrigger, setIsSubmittingPare
           disabled
           placeholder="agrahari511@gmail.com"
           className="opacity-75 cursor-not-allowed !space-y-1.5"
-        />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-          <Input
-            label="Institution"
-            name="institution"
-            value={formData.institution}
-            onChange={handleChange}
-            disabled={isSubmitting}
-            placeholder="e.g. Institute of Engineering and Management"
-            className="!space-y-1.5"
-          />
-          <Input
-            label="Department"
-            name="department"
-            value={formData.department}
-            onChange={handleChange}
-            disabled={isSubmitting}
-            placeholder="e.g. CSE(AI & ML)"
-            className="!space-y-1.5"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-          {/* Country Selection Field */}
-          <div className="flex flex-col space-y-1.5 w-full">
-            <label className="text-xs font-semibold text-text-secondary tracking-wide flex items-center gap-1">
-              Country
-            </label>
-            <div className="relative">
-              <select
-                name="country"
-                value={formData.country}
-                onChange={handleChange}
-                disabled={isSubmitting}
-                className="w-full px-4 py-2.5 text-sm bg-white border border-slate-200 text-text-primary rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors appearance-none cursor-pointer"
-              >
-                <option value="">Select country...</option>
-                {countries.map((c) => (
-                  <option key={c.value} value={c.label.split(' ')[1] || c.value}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
-                <svg className="fill-current h-4 w-4" viewBox="0 0 20 20">
-                  <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <Input
-            label="City"
-            name="city"
-            value={formData.city}
-            onChange={handleChange}
-            disabled={isSubmitting}
-            placeholder="e.g. Kolkata"
-            className="!space-y-1.5"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-          <Input
-            label="ORCID ID"
-            name="orcid"
-            value={formData.orcid}
-            onChange={handleChange}
-            disabled={isSubmitting}
-            placeholder="e.g. 0000-0002-1825-0097"
-            className="!space-y-1.5"
-          />
-          <Input
-            label="Google Scholar URL"
-            name="googleScholar"
-            value={formData.googleScholar}
-            onChange={handleChange}
-            error={errors.googleScholar}
-            disabled={isSubmitting}
-            placeholder="e.g. https://scholar.google.com/citations?user"
-            className="!space-y-1.5"
-          />
-        </div>
-
-        <Input
-          label="Personal Website"
-          name="website"
-          value={formData.website}
-          onChange={handleChange}
-          error={errors.website}
-          disabled={isSubmitting}
-          placeholder="e.g. https://johndoe.com"
-          className="!space-y-1.5"
         />
 
         {/* Research Interests tag manager */}

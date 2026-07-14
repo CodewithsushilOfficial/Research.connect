@@ -87,7 +87,7 @@ class ProfileService {
     ]);
 
     const socialLinks = socialLinksObj || profile.socialLinks || {
-      orcid: '', googleScholar: '', researchGate: '', linkedin: '', website: '', scopus: '', github: ''
+      orcid: '', googleScholar: '', researchGate: '', linkedin: '', website: '', scopus: ''
     };
 
     let profileCompletion = completionObj ? completionObj.percentage : 0;

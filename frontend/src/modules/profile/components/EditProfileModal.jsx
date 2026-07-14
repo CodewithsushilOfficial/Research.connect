@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Save, Plus, Trash2, Globe, Linkedin, Award, LinkIcon, ShieldCheck, FileText, BookOpen, BarChart2 } from 'lucide-react';
+import { X, Save, Plus, Trash2, Award, ShieldCheck, FileText, BookOpen, BarChart2 } from 'lucide-react';
 import Input from '../../../components/common/inputs/Input';
 import Button from '../../../components/common/buttons/Button';
 
@@ -15,7 +15,6 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
-    username: user?.username || '',
     displayName: profile?.displayName || '',
     headline: profile?.headline || '',
     bio: profile?.bio || '',
@@ -44,16 +43,6 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
     books: profile?.books || [],
     awards: profile?.awards || profile?.achievements || [],
     certificates: profile?.certificates || profile?.certifications || [],
-    socialLinks: {
-      orcid: profile?.socialLinks?.orcid || '',
-      googleScholar: profile?.socialLinks?.googleScholar || '',
-      researchGate: profile?.socialLinks?.researchGate || '',
-      linkedin: profile?.socialLinks?.linkedin || '',
-      website: profile?.socialLinks?.website || '',
-      scopus: profile?.socialLinks?.scopus || '',
-      twitter: profile?.socialLinks?.twitter || '',
-      youtube: profile?.socialLinks?.youtube || ''
-    },
     metrics: {
       publicationsCount: profile?.metrics?.publicationsCount || 0,
       citationsCount: profile?.metrics?.citationsCount || profile?.metrics?.totalCitations || 0,
@@ -78,13 +67,6 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
 
   const handleCheckboxChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: getValue(value) }));
-  };
-
-  const handleSocialChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      socialLinks: { ...prev.socialLinks, [field]: getValue(value) }
-    }));
   };
 
   const handleMetricChange = (field, value) => {
@@ -152,7 +134,6 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
               { id: 'general', label: 'General & Bio' },
               { id: 'education', label: 'Academic & Jobs' },
               { id: 'projects', label: 'Projects & Skills' },
-              { id: 'socials', label: 'Research Portfolios' },
               { id: 'output', label: 'Academic Output' },
               { id: 'metrics', label: 'Research Metrics' }
             ].map(tab => (
@@ -175,7 +156,6 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
                 
                 <Input label="First Name" value={formData.firstName} onChange={val => handleTextChange('firstName', val)} required />
                 <Input label="Last Name" value={formData.lastName} onChange={val => handleTextChange('lastName', val)} required />
-                <Input label="SEO Username" value={formData.username} onChange={val => handleTextChange('username', val)} placeholder="e.g. sushilkumar" />
                 <Input label="Display Name" value={formData.displayName} onChange={val => handleTextChange('displayName', val)} placeholder="How your name appears on your profile" />
                 <Input label="Headline" value={formData.headline} onChange={val => handleTextChange('headline', val)} placeholder="e.g. AI Researcher | NLP & LLM Enthusiast" />
                 <Input label="Designation / Position" value={formData.designation} onChange={val => handleTextChange('designation', val)} />
@@ -375,19 +355,6 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
                     ))}
                   </div>
                 </div>
-              </div>
-            )}
-
-            {activeTab === 'socials' && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input label="Google Scholar Profile URL" icon={<Globe className="w-4 h-4 text-text-secondary" />} value={formData.socialLinks.googleScholar} onChange={val => handleSocialChange('googleScholar', val)} />
-                <Input label="ORCID Identifier (e.g. 0000-0002-1825-0097)" icon={<Award className="w-4 h-4 text-text-secondary" />} value={formData.socialLinks.orcid} onChange={val => handleSocialChange('orcid', val)} />
-                <Input label="LinkedIn Profile URL" icon={<Linkedin className="w-4 h-4 text-text-secondary" />} value={formData.socialLinks.linkedin} onChange={val => handleSocialChange('linkedin', val)} />
-                <Input label="ResearchGate Profile URL" icon={<LinkIcon className="w-4 h-4 text-text-secondary" />} value={formData.socialLinks.researchGate} onChange={val => handleSocialChange('researchGate', val)} />
-                <Input label="Scopus Author ID" icon={<LinkIcon className="w-4 h-4 text-text-secondary" />} value={formData.socialLinks.scopus} onChange={val => handleSocialChange('scopus', val)} />
-                <Input label="Personal Website" icon={<Globe className="w-4 h-4 text-text-secondary" />} value={formData.socialLinks.website} onChange={val => handleSocialChange('website', val)} />
-                <Input label="X / Twitter URL" icon={<Globe className="w-4 h-4 text-text-secondary" />} value={formData.socialLinks.twitter} onChange={val => handleSocialChange('twitter', val)} />
-                <Input label="YouTube Channel URL" icon={<Globe className="w-4 h-4 text-text-secondary" />} value={formData.socialLinks.youtube} onChange={val => handleSocialChange('youtube', val)} />
               </div>
             )}
 
