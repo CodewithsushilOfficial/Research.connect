@@ -15,7 +15,7 @@ import feedService from '@/services/feed.service';
 import AiAnalysisModal from '../modals/AiAnalysisModal';
 import BookmarkFoldersModal from '../modals/BookmarkFoldersModal';
 
-const PublicationCard = ({ pub }) => {
+const PublicationCard = React.forwardRef(({ pub }, ref) => {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
   
@@ -231,6 +231,7 @@ const PublicationCard = ({ pub }) => {
 
   return (
     <motion.div 
+      ref={ref}
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -15 }}
@@ -487,6 +488,8 @@ const PublicationCard = ({ pub }) => {
 
     </motion.div>
   );
-};
+});
+
+PublicationCard.displayName = 'PublicationCard';
 
 export default React.memo(PublicationCard);
