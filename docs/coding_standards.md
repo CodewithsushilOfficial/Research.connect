@@ -114,3 +114,38 @@ Always make API requests through the global `axiosInstance` helper (`frontend/sr
 - **Authorization**: Attaches Bearer JWT token from Redux store automatically.
 - **Refresh Token Rotation**: Detects expired access tokens (401), initiates a refresh request behind the scenes, and transparently retries the failed request.
 - **Global Error Toasts**: Intercepts non-success states and alerts the user using the Redux notification system.
+
+### 5. Handling React 18 Strict Mode & Request Cancellation
+Due to React 18 Strict Mode double-mounting in development, components may run `useEffect` fetches twice in quick succession. The `axiosInstance`'s request deduplication automatically cancels/aborts the first request to prevent duplicates.
+To prevent aborted requests from triggering false-positive error screens:
+- **Use an `isCurrent` boolean flag** inside your `useEffect` blocks to track if the component is currently mounted.
+- **Ignore cancellation/aborted errors** in the `catch` blocks of your api fetches.
+- **Do not update state** (like `setError` or `setLoading`) if the request was aborted or the component has unmounted.
+
+**Example Pattern**:
+```javascript
+useEffect(() => {
+  let isCurrent = true;
+  const fetchData = async () => {
+    try {
+      const response = await myService.getData();
+      if (isCurrent) {
+        setData(response);
+        setLoading(false);
+      }
+    } catch (err) {
+      // Only set error if this is the active request and was not aborted
+      if (isCurrent && !err.isCanceled) {
+        setError('Failed to fetch data');
+        setLoading(false);
+      }
+    }
+  };
+  fetchData();
+  return () => {
+    isCurrent = false;
+  };
+}, []);
+```
+This pattern ensures frontend components remain robust against Strict Mode re-mounts and Axios abort exceptions.
+
