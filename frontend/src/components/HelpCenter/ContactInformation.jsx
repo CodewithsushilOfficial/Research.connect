@@ -13,8 +13,15 @@ const ContactInformation = () => {
     const fetchContactInfo = async () => {
       try {
         const response = await helpService.getContactInfo();
-        if (response.success) {
-          setContactInfo(response.data);
+        if (response) {
+          if (response.success && response.data) {
+            setContactInfo(response.data);
+          } else {
+            // Support both standard envelope and direct raw data response formats
+            setContactInfo(response);
+          }
+        } else {
+          setError('Failed to load contact information. Please try again.');
         }
       } catch (err) {
         setError('Failed to load contact information. Please try again.');
@@ -38,12 +45,12 @@ const ContactInformation = () => {
     );
   }
 
-  if (error) {
+  if (error || (!contactInfo && !loading)) {
     return (
       <Card className="flex flex-col items-center justify-center p-8 text-center border-accent-red bg-red-50 bg-opacity-10">
         <AlertTriangle className="w-8 h-8 text-accent-red mb-3 animate-pulse" />
         <span className="text-sm font-semibold text-text-primary mb-1">Error Loading Support Details</span>
-        <span className="text-xs text-text-secondary">{error}</span>
+        <span className="text-xs text-text-secondary">{error || 'Failed to load contact information. Please try again.'}</span>
       </Card>
     );
   }
@@ -51,14 +58,14 @@ const ContactInformation = () => {
   return (
     <div className="space-y-6">
       {/* Important Notice Banner */}
-      {contactInfo.importantNotice && (
+      {contactInfo?.importantNotice && (
         <Card className="border-amber-500 bg-amber-50 bg-opacity-5 p-5">
           <div className="flex gap-4">
             <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
             <div>
               <h4 className="text-sm font-bold text-amber-600 tracking-tight">Important Notice</h4>
               <p className="text-xs text-text-secondary mt-1 font-medium leading-relaxed">
-                {contactInfo.importantNotice}
+                {contactInfo?.importantNotice}
               </p>
             </div>
           </div>
@@ -75,10 +82,10 @@ const ContactInformation = () => {
             <div>
               <span className="block text-xs font-semibold text-text-secondary uppercase tracking-wider">General Support</span>
               <a
-                href={`mailto:${contactInfo.generalSupportEmail}`}
+                href={`mailto:${contactInfo?.generalSupportEmail}`}
                 className="text-sm font-bold text-primary hover:underline mt-0.5 break-all"
               >
-                {contactInfo.generalSupportEmail}
+                {contactInfo?.generalSupportEmail}
               </a>
             </div>
           </div>
@@ -93,10 +100,10 @@ const ContactInformation = () => {
             <div>
               <span className="block text-xs font-semibold text-text-secondary uppercase tracking-wider">Technical Support</span>
               <a
-                href={`mailto:${contactInfo.technicalSupportEmail}`}
+                href={`mailto:${contactInfo?.technicalSupportEmail}`}
                 className="text-sm font-bold text-primary hover:underline mt-0.5 break-all"
               >
-                {contactInfo.technicalSupportEmail}
+                {contactInfo?.technicalSupportEmail}
               </a>
             </div>
           </div>
@@ -111,10 +118,10 @@ const ContactInformation = () => {
             <div>
               <span className="block text-xs font-semibold text-text-secondary uppercase tracking-wider">Copyright & DMCA</span>
               <a
-                href={`mailto:${contactInfo.copyrightEmail}`}
+                href={`mailto:${contactInfo?.copyrightEmail}`}
                 className="text-sm font-bold text-accent-red hover:underline mt-0.5 break-all"
               >
-                {contactInfo.copyrightEmail}
+                {contactInfo?.copyrightEmail}
               </a>
             </div>
           </div>
@@ -131,7 +138,7 @@ const ContactInformation = () => {
           <div>
             <h4 className="text-sm font-bold text-text-primary tracking-tight">Support Hours</h4>
             <p className="text-xs text-text-secondary mt-1 font-semibold">
-              {contactInfo.workingHours}
+              {contactInfo?.workingHours}
             </p>
             <p className="text-xs text-text-secondary mt-1">
               Emails received outside support hours will be queued and reviewed on the next business day.
@@ -146,7 +153,7 @@ const ContactInformation = () => {
           <div>
             <h4 className="text-sm font-bold text-text-primary tracking-tight">Expected Response Time</h4>
             <p className="text-xs text-text-secondary mt-1 font-semibold">
-              {contactInfo.expectedResponseTime}
+              {contactInfo?.expectedResponseTime}
             </p>
             <p className="text-xs text-text-secondary mt-1">
               We review and prioritize all support tickets based on severity. Critical system bugs are addressed urgently.
