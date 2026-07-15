@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useNavigate, useParams } from 'react-router-dom';
+import { NavLink, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
   Home, User, Compass, FileText, Briefcase,
@@ -15,7 +15,15 @@ const NAV_SECTIONS = [
       { name: 'Home Feed', path: '/home', icon: Home, end: true },
       { name: 'Profile', path: '/profile/:slug', icon: User, end: true },
       { name: 'Research Identity', path: '/profile/:slug/research-identity', icon: Globe },
-      { name: 'Publications', path: '/profile/:slug/publications', icon: FileText }
+      {
+        name: 'Publications',
+        path: '/profile/:slug/publications',
+        icon: FileText,
+        // Publication flows live outside /profile/:slug/publications too
+        // (create form, single-publication detail/edit pages) — keep the
+        // tab highlighted while the user is anywhere in that flow.
+        matchPrefixes: ['/profile/:slug/publications', '/publications', '/publication/']
+      }
     ]
   },
   {
@@ -40,6 +48,7 @@ const NAV_SECTIONS = [
 
 const ProfileSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { username } = useParams();
   const { user } = useSelector((state) => state.auth);
 
@@ -53,9 +62,20 @@ const ProfileSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
     ...section,
     links: section.links.map((link) => ({
       ...link,
-      path: link.path.replace(':slug', profileSlug)
+      path: link.path.replace(':slug', profileSlug),
+      matchPrefixes: link.matchPrefixes?.map((p) => p.replace(':slug', profileSlug))
     }))
   }));
+
+  // Manual active-state check (instead of relying on NavLink's own matcher)
+  // so a link can stay highlighted across a whole flow — e.g. Publications
+  // stays active on /publications/create and /publication/:slug too.
+  const isLinkActive = (link) => {
+    const prefixes = link.matchPrefixes || [link.path];
+    return link.end
+      ? prefixes.some((p) => location.pathname === p)
+      : prefixes.some((p) => location.pathname.startsWith(p));
+  };
 
   const handleUploadPublication = () => {
     setIsMobileOpen(false);
@@ -105,32 +125,27 @@ const ProfileSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
               <ul className="space-y-0.5">
                 {section.links.map((link) => {
                   const Icon = link.icon;
+                  const active = isLinkActive(link);
                   return (
                     <li key={link.name}>
                       <NavLink
                         to={link.path}
                         end={link.end}
                         onClick={() => setIsMobileOpen(false)}
-                        className={({ isActive }) =>
-                          `group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14.5px] font-semibold transition-colors ${
-                            isActive
-                              ? 'bg-blue-50 text-blue-700'
-                              : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
-                          } ${isCollapsed ? 'md:justify-center' : ''}`
-                        }
+                        className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14.5px] font-semibold transition-colors ${
+                          active
+                            ? 'bg-blue-50 text-blue-700'
+                            : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
+                        } ${isCollapsed ? 'md:justify-center' : ''}`}
                         title={isCollapsed ? link.name : ''}
                       >
-                        {({ isActive }) => (
-                          <>
-                            <span
-                              className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 rounded-r-full bg-blue-600 transition-all ${
-                                isActive ? 'h-4.5 opacity-100' : 'h-0 opacity-0'
-                              }`}
-                            />
-                            <Icon className={`w-4.5 h-4.5 flex-shrink-0 ${isActive ? 'text-blue-600' : ''}`} />
-                            <span className={isCollapsed ? 'md:hidden' : ''}>{link.name}</span>
-                          </>
-                        )}
+                        <span
+                          className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 rounded-r-full bg-blue-600 transition-all ${
+                            active ? 'h-4.5 opacity-100' : 'h-0 opacity-0'
+                          }`}
+                        />
+                        <Icon className={`w-4.5 h-4.5 flex-shrink-0 ${active ? 'text-blue-600' : ''}`} />
+                        <span className={isCollapsed ? 'md:hidden' : ''}>{link.name}</span>
                       </NavLink>
                     </li>
                   );
