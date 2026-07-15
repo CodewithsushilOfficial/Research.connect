@@ -1,14 +1,13 @@
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const path = require('path');
+const { connectDB } = require('./connection');
 
 dotenv.config({ path: path.join(__dirname, '../../../.env') });
 
-const mongoURI = process.env.MONGODB_URI || 'mongodb://researchconnectdb:researchconnectdb@ac-qpuswwn-shard-00-00.0x5pbm5.mongodb.net:27017,ac-qpuswwn-shard-00-01.0x5pbm5.mongodb.net:27017,ac-qpuswwn-shard-00-02.0x5pbm5.mongodb.net:27017/research_connect?ssl=true&replicaSet=atlas-t9ah7c-shard-0&authSource=admin';
-
 async function run() {
-  console.log('Connecting to MongoDB...', mongoURI);
-  await mongoose.connect(mongoURI);
+  console.log('Connecting to MongoDB...');
+  await connectDB();
   console.log('MongoDB connected successfully.');
 
   const db = mongoose.connection.db;

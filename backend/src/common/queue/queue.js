@@ -1,47 +1,52 @@
-const redisClient = require('../../config/redis');
+const { Queue, Worker } = require('bullmq');
+const IORedis = require('ioredis');
 const logger = require('../logger/winston');
 
-class RedisQueue {
-  constructor() {
-    this.workers = {};
-  }
+// Redis URL fallback to localhost
+const REDIS_URI = process.env.REDIS_URL || 'redis://localhost:6379';
 
+// ioredis connection instance
+let connection = null;
+try {
+  const options = {
+    maxRetriesPerRequest: null // Required by BullMQ
+  };
+  connection = new IORedis(REDIS_URI, options);
+  logger.info('[BULLMQ] Connected to Redis for queue management.');
+} catch (err) {
+  logger.error('[BULLMQ INIT ERROR] Failed to connect to Redis:', err);
+}
+
+const queues = {};
+const workers = {};
+
+class BullMQAdapter {
   /**
-   * Enqueue a job to Redis list or local fallback queue
+   * Enqueue a job to BullMQ
    */
   async enqueue(queueName, jobData) {
-    const key = `queue:${queueName}`;
-    const payload = {
-      id: `${queueName}_${Date.now()}_${Math.round(Math.random() * 1e6)}`,
-      data: jobData,
-      createdAt: new Date(),
-      retryCount: 0
-    };
-
     try {
-      if (redisClient.isOpen && redisClient.isReady) {
-        await redisClient.lPush(key, JSON.stringify(payload));
-        logger.info(`[QUEUE] Job ${payload.id} enqueued to ${queueName}`);
-      } else {
-        // Fallback to in-memory async processing in local dev if Redis is down
-        logger.warn(`[QUEUE] Redis offline. Processing job ${payload.id} immediately in fallback mode.`);
-        setImmediate(() => this._executeJobDirectly(queueName, payload));
+      if (!queues[queueName]) {
+        queues[queueName] = new Queue(queueName, {
+          connection,
+          defaultJobOptions: {
+            attempts: 5,
+            backoff: {
+              type: 'exponential',
+              delay: 2000
+            },
+            removeOnComplete: true,
+            removeOnFail: false
+          }
+        });
       }
-      return payload.id;
+      
+      const job = await queues[queueName].add('job', jobData);
+      logger.info(`[BULLMQ] Job ${job.id} successfully enqueued to ${queueName}`);
+      return job.id;
     } catch (err) {
-      logger.error(`[QUEUE ERROR] Failed to enqueue job: ${err.message}`);
+      logger.error(`[BULLMQ ERROR] Failed to enqueue job to ${queueName}: ${err.message}`);
       throw err;
-    }
-  }
-
-  async _executeJobDirectly(queueName, payload) {
-    const handler = this.workers[queueName];
-    if (handler) {
-      try {
-        await handler(payload.data);
-      } catch (err) {
-        logger.error(`[QUEUE FALLBACK FAIL] Job ${payload.id} failed: ${err.message}`);
-      }
     }
   }
 
@@ -49,56 +54,31 @@ class RedisQueue {
    * Register and start a background worker loop for a queue
    */
   process(queueName, handler) {
-    this.workers[queueName] = handler;
-
-    if (redisClient.isOpen) {
-      logger.info(`[QUEUE] Starting Redis queue worker loop for: ${queueName}`);
-      this._runWorkerLoop(queueName, handler);
+    if (workers[queueName]) {
+      logger.warn(`[BULLMQ] Worker for queue ${queueName} already registered.`);
+      return;
     }
-  }
 
-  async _runWorkerLoop(queueName, handler) {
-    const key = `queue:${queueName}`;
+    logger.info(`[BULLMQ] Starting Worker loop for queue: ${queueName}`);
     
-    // Asynchronous loop
-    (async () => {
-      while (true) {
-        try {
-          if (!redisClient.isOpen || !redisClient.isReady) {
-            await new Promise(resolve => setTimeout(resolve, 5000));
-            continue;
-          }
+    const worker = new Worker(queueName, async (job) => {
+      // Execute the original handler passing job data
+      return handler(job.data);
+    }, {
+      connection,
+      concurrency: 10 // process up to 10 jobs concurrently
+    });
 
-          // Use RPOP for non-blocking queue polling
-          const jobStr = await redisClient.rPop(key);
-          if (!jobStr) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            continue;
-          }
+    worker.on('completed', (job) => {
+      logger.info(`[BULLMQ SUCCESS] Job ${job.id} in queue ${queueName} completed.`);
+    });
 
-          const payload = JSON.parse(jobStr);
-          logger.info(`[QUEUE WORKER] Processing job ${payload.id} from ${queueName}`);
+    worker.on('failed', (job, err) => {
+      logger.error(`[BULLMQ FAILED] Job ${job?.id} in queue ${queueName} failed with error: ${err.message}`);
+    });
 
-          try {
-            await handler(payload.data);
-            logger.info(`[QUEUE WORKER] Job ${payload.id} completed.`);
-          } catch (err) {
-            logger.error(`[QUEUE WORKER ERROR] Job ${payload.id} failed: ${err.message}`);
-            if (payload.retryCount < 3) {
-              payload.retryCount += 1;
-              logger.warn(`[QUEUE WORKER] Retrying job ${payload.id} (Attempt ${payload.retryCount})...`);
-              await redisClient.lPush(key, JSON.stringify(payload));
-            } else {
-              logger.error(`[QUEUE WORKER] Job ${payload.id} exceeded max retries. Failed.`);
-            }
-          }
-        } catch (err) {
-          logger.error(`[QUEUE WORKER LOOP ERROR] Queue ${queueName}: ${err.stack || err.message || err}`);
-          await new Promise(resolve => setTimeout(resolve, 5000));
-        }
-      }
-    })();
+    workers[queueName] = worker;
   }
 }
 
-module.exports = new RedisQueue();
+module.exports = new BullMQAdapter();

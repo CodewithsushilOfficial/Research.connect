@@ -30,27 +30,12 @@ const SocialLinkSchema = new Schema(
       trim: true,
       default: ''
     },
-    github: {
-      type: String,
-      trim: true,
-      default: ''
-    },
     website: {
       type: String,
       trim: true,
       default: ''
     },
         scopus: {
-      type: String,
-      trim: true,
-      default: ''
-    },
-    twitter: {
-      type: String,
-      trim: true,
-      default: ''
-    },
-    youtube: {
       type: String,
       trim: true,
       default: ''

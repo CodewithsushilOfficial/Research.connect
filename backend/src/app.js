@@ -108,9 +108,7 @@ app.use("/api/v1/auth", authModule.routes);
 app.use("/api/v1/profile", profileModule.routes);
 app.use("/api/v1/follows", followModule.routes);
 app.use("/api/v1/connections", connectionsModule.routes);
-app.use("/api/v1", scholarModule.routes);
 app.use("/api/v1/notifications", notificationsModule.routes);
-app.use("/api/v1", feedModule.routes);
 app.use("/api/v1/publications", publicationModule.routes);
 app.use("/api/v1/messages", messageModule.routes);
 app.use("/api/v1/conversations", messageModule.conversationRoutes);
@@ -127,6 +125,10 @@ app.use("/api/v1/presence", presenceModule.routes);
 
 // Help Center Module routes
 app.use("/api/v1/help", helpModule.routes);
+
+// Catch-all / Generic API v1 modules
+app.use("/api/v1", scholarModule.routes);
+app.use("/api/v1", feedModule.routes);
 
 // Default root redirect to /api
 app.get("/", (req, res) => {

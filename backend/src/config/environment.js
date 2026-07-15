@@ -30,6 +30,7 @@ module.exports = {
   nodeEnv: process.env.NODE_ENV || 'development',
   clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
   serverUrl: process.env.SERVER_URL || 'http://localhost:5000',
+  logLevel: process.env.LOG_LEVEL || 'info',
 
   mongo: {
     uri: process.env.MONGO_URI, // Never fall back — REQUIRED_VARS guard above ensures this exists

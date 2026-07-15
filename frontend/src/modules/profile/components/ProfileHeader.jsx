@@ -14,7 +14,8 @@ import {
   Database,
   Bookmark,
   Camera,
-  HeartHandshake
+  HeartHandshake,
+  ArrowLeft
 } from 'lucide-react';
 import ProfileAvatar from './ProfileAvatar';
 import { 
@@ -25,7 +26,7 @@ import {
   ResearchGateIcon, 
   WebsiteIcon 
 } from './BrandIcons';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import FollowButton from '../../follow/components/FollowButton';
 import ConnectButton from '../../connections/components/ConnectButton';
@@ -48,6 +49,7 @@ const ProfileHeader = ({
   onSync 
 }) => {
   const defaultCover = 'https://iili.io/C7pZ8Ss.jpg';
+  const navigate = useNavigate();
 
   // Fetch follow status for mutual followers preview
   const { data: followStatus } = useQuery({
@@ -84,7 +86,18 @@ const ProfileHeader = ({
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-        
+
+        {!isOwnProfile && (
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="absolute top-4 left-4 bg-black/60 hover:bg-black/80 text-white border border-white/20 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer backdrop-blur-sm transition-all active:scale-95 z-20"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back</span>
+          </button>
+        )}
+
         {isOwnProfile && (
           <button
             type="button"
@@ -105,6 +118,7 @@ const ProfileHeader = ({
         <div className="-mt-20 sm:-mt-24 relative z-10">
           <ProfileAvatar 
             imageUrl={profile?.profileImage || user?.profileImage} 
+            name={user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`}
             onAvatarChange={onAvatarChange} 
             editable={isOwnProfile}
           />

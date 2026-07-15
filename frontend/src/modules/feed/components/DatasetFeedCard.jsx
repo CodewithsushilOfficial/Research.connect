@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Database, User, Download, Bookmark, Share2, Tag, FileText } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import Avatar from '../../../components/ui/Avatar';
 
 const DatasetFeedCard = ({ event, onInteraction }) => {
   const meta = event.metadata || {};
@@ -42,11 +43,12 @@ const DatasetFeedCard = ({ event, onInteraction }) => {
 
       {/* Actor */}
       <div className="flex items-center gap-2 mb-3">
-        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500/20 to-primary/20 flex items-center justify-center overflow-hidden shrink-0">
-          {actor.profileImage
-            ? <img src={actor.profileImage} alt="" className="w-full h-full object-cover" />
-            : <User size={14} className="text-blue-400" />}
-        </div>
+        <Avatar
+          src={actor.profileImage}
+          name={`${actor.firstName} ${actor.lastName}`}
+          size="sm"
+          showBorder
+        />
         <span className="text-xs text-text-muted">
           <span className="font-semibold text-text-primary">{actor.firstName} {actor.lastName}</span>
           {actor.institution && ` · ${actor.institution}`}

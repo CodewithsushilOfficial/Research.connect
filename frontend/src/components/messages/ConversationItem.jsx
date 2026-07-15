@@ -1,5 +1,6 @@
 import { useMessaging } from '../../context/MessagingContext';
 import { formatConvTime } from '../../data/mockData';
+import Avatar from '../ui/Avatar';
 
 export default function ConversationItem({ conversation, isActive, currentUserId, onClick, animDelay }) {
   const { onlineUsers } = useMessaging();
@@ -30,18 +31,14 @@ export default function ConversationItem({ conversation, isActive, currentUserId
       style={{ animationDelay: `${animDelay}ms` }}
     >
       {/* Avatar */}
-      <div className="relative flex-shrink-0 conv-avatar">
-        <div
-          className={`w-12 h-12 rounded-full overflow-hidden transition-all duration-300
-            ${isActive
-              ? 'ring-2 ring-[#2563EB] ring-offset-2 shadow-md shadow-blue-200'
-              : 'ring-2 ring-transparent'}`}
-        >
-          <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
-        </div>
-        {!conversation.isGroup && isOnline && (
-          <span className="absolute bottom-0 right-0 w-3 h-3 bg-[#22C55E] border-2 border-white rounded-full pulse-online" />
-        )}
+      <div className="relative flex-shrink-0">
+        <Avatar
+          src={avatarUrl}
+          name={displayName}
+          size="lg"
+          className={isActive ? 'ring-2 ring-[#2563EB] ring-offset-2 shadow-md shadow-blue-200' : 'ring-2 ring-transparent'}
+          isOnline={!conversation.isGroup && isOnline}
+        />
       </div>
 
       {/* Text Content */}

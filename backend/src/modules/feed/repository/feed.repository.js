@@ -254,9 +254,8 @@ class FeedRepository extends BaseRepository {
       ];
     }
 
-    const query = Project.find(queryFilter)
+        const query = Project.find(queryFilter)
       .populate('userId', 'firstName lastName fullName email profileImage institution designation profileSlug slug username')
-      .populate('collaborators', 'firstName lastName fullName email profileImage profileSlug slug username')
       .sort(sort)
       .skip(skip)
       .limit(Number(limit))

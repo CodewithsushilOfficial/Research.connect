@@ -7,17 +7,19 @@ class BaseRepository {
     return await this.model.create(data);
   }
 
-  async findById(id, populate = '', select = '') {
+  async findById(id, populate = '', select = '', lean = false) {
     let query = this.model.findById(id);
     if (populate) query = query.populate(populate);
     if (select) query = query.select(select);
+    if (lean) query = query.lean();
     return await query;
   }
 
-  async findOne(filter = {}, populate = '', select = '') {
+  async findOne(filter = {}, populate = '', select = '', lean = false) {
     let query = this.model.findOne({ ...filter, isDeleted: { $ne: true } });
     if (populate) query = query.populate(populate);
     if (select) query = query.select(select);
+    if (lean) query = query.lean();
     return await query;
   }
 
@@ -44,7 +46,8 @@ class BaseRepository {
     let query = this.model.find(queryFilter)
       .sort(sort)
       .skip(skip)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .lean();
 
     if (populate) {
       query = query.populate(populate);

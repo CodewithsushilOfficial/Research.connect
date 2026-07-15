@@ -6,14 +6,14 @@
     "auditLog": "D:\\researchconnectfrontend\\backend\\logs\\.c626d1eaca88ffbaec9caaeba24f5986619e9f0c-audit.json",
     "files": [
         {
-            "date": 1783746268934,
-            "name": "D:\\researchconnectfrontend\\backend\\logs\\application-2026-07-11.log",
-            "hash": "e5942ebef7201db7e3d78eb59bac06b4951d3b6827cf4dfb344a384ffe3ad873"
+            "date": 1784139539181,
+            "name": "D:\\researchconnectfrontend\\backend\\logs\\application-2026-07-15.log",
+            "hash": "b281ffb034653e659aa0fcd70385e4c173c5152158054d54b661b173966463e4"
         },
         {
-            "date": 1783842407145,
-            "name": "D:\\researchconnectfrontend\\backend\\logs\\application-2026-07-12.log",
-            "hash": "b690bb7ff55913be9a51a97c359847dc6f0885bc8d0418f7458f88d437ab7ded"
+            "date": 1784140214914,
+            "name": "D:\\researchconnectfrontend\\backend\\logs\\application-2026-07-16.log",
+            "hash": "beb2bfaff85cfdd29d260f4c7cb7ba18c9548f590af7107b892da24e3360632f"
         }
     ],
     "hashType": "sha256"

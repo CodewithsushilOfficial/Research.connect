@@ -23,6 +23,15 @@ class LandingService {
   }
 
   async getCategories() {
+    const { cacheService } = require('../../../cache/cache.service');
+    const cacheKey = 'landing:categories';
+    try {
+      const cached = await cacheService.get(cacheKey);
+      if (cached) return cached;
+    } catch (err) {
+      console.error('Failed reading category cache: ', err.message);
+    }
+
     const Publication = require('../../../models/Publication');
 
     const categoryDefs = [
@@ -46,7 +55,14 @@ class LandingService {
       )
     );
 
-    return categoryDefs.map((cat, idx) => ({ ...cat, count: counts[idx] }));
+    const categories = categoryDefs.map((cat, idx) => ({ ...cat, count: counts[idx] }));
+    try {
+      await cacheService.set(cacheKey, categories, 3600); // Cache for 1 hour
+    } catch (err) {
+      console.error('Failed setting category cache: ', err.message);
+    }
+
+    return categories;
   }
 
   async getFeatures() {

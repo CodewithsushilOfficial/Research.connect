@@ -8,6 +8,8 @@ class SerpApiService {
   constructor() {
     this.apiKey = environment.serpApi?.key || 'demoserpapikey';
     this.baseUrl = 'https://serpapi.com/search.json';
+    this.lastRequestTime = 0;
+    this.REQUEST_DELAY_MS = 2000; // 2 second delay between SerpAPI requests
   }
 
   // Sleep utility for retries
@@ -15,25 +17,45 @@ class SerpApiService {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  // Wait for rate limit before making request
+  async _waitForRateLimit() {
+    const now = Date.now();
+    const timeSinceLastRequest = now - this.lastRequestTime;
+    if (timeSinceLastRequest < this.REQUEST_DELAY_MS) {
+      const waitTime = this.REQUEST_DELAY_MS - timeSinceLastRequest;
+      await this._sleep(waitTime);
+    }
+    this.lastRequestTime = Date.now();
+  }
+
   // Request wrapper with retry mechanism
-  async _requestWithRetry(params, retries = 3, delay = 1000) {
+  async _requestWithRetry(params, retries = 3, delay = 2000) {
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
-        logger.info(`SerpAPI request attempt ${attempt}/${retries} for engine: ${params.engine}`);
+        // Wait for rate limit before each request
+        await this._waitForRateLimit();
+
+        logger.info(`SerpAPI request attempt ${attempt}/${retries} for engine: ${params.engine} (start: ${params.start || 0})`);
         const response = await axios.get(this.baseUrl, {
           params: {
             ...params,
             api_key: this.apiKey
           },
-          timeout: 10000, // 10 seconds timeout
+          timeout: 15000, // Increased timeout to 15 seconds
           httpAgent,
           httpsAgent
         });
-        
+
         if (response.status === 200 && response.data) {
           if (response.data.error) {
             throw new Error(`SerpAPI API error: ${response.data.error}`);
           }
+
+          // Log response structure for debugging
+          const hasArticles = response.data.articles && Array.isArray(response.data.articles);
+          const hasAuthor = !!response.data.author;
+          logger.debug(`SerpAPI response: hasArticles=${hasArticles}, hasAuthor=${hasAuthor}, articleCount=${hasArticles ? response.data.articles.length : 0}`);
+
           return response.data;
         }
         throw new Error(`SerpAPI responded with status: ${response.status}`);
@@ -42,8 +64,10 @@ class SerpApiService {
         if (attempt === retries) {
           throw err;
         }
-        // Exponential backoff
-        await this._sleep(delay * Math.pow(2, attempt - 1));
+        // Exponential backoff with longer delays
+        const backoffDelay = delay * Math.pow(2, attempt - 1);
+        logger.info(`SerpAPI backing off for ${backoffDelay}ms before retry...`);
+        await this._sleep(backoffDelay);
       }
     }
   }
@@ -95,13 +119,20 @@ class SerpApiService {
         num: 100
       });
 
-      if (!data || !data.articles) {
-        throw new Error('Articles list not present in SerpAPI response.');
+      if (!data) {
+        throw new Error('Empty response from SerpAPI.');
+      }
+
+      // Handle case where articles are not present (rate limiting or API change)
+      if (!data.articles) {
+        logger.warn(`SerpAPI response missing articles field at start=${start}. Response keys: ${Object.keys(data).join(', ')}`);
+        // Return empty articles array instead of throwing - allows pipeline to continue
+        return { articles: [], author: data.author, cited_by: data.cited_by, co_authors: data.co_authors };
       }
 
       return data;
     } catch (err) {
-      logger.error(`Failed to fetch author articles from SerpAPI. Falling back to mock data: ${err.message}`);
+      logger.error(`Failed to fetch author articles from SerpAPI at start=${start}. Falling back to mock data: ${err.message}`);
       return this._generateMockAuthorArticles(authorId, start);
     }
   }

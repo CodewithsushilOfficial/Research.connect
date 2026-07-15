@@ -63,6 +63,45 @@ class SearchService {
     const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10)));
     const skip = (pageNum - 1) * limitNum;
 
+    // Meilisearch Integration
+    const { isMeiliAvailable, meiliClient } = require('../../../config/meilisearch');
+    if (isMeiliAvailable()) {
+      try {
+        const index = meiliClient.index('publications');
+        const filterArray = [
+          'isDeleted != true',
+          'status = "published"',
+          'visibility = "Public"'
+        ];
+        if (publicationType && publicationType !== 'all') {
+          filterArray.push(`publicationType = "${publicationType}"`);
+        }
+        if (yearFrom) {
+          filterArray.push(`year >= ${yearFrom}`);
+        }
+        if (yearTo) {
+          filterArray.push(`year <= ${yearTo}`);
+        }
+
+        const searchParams = {
+          limit: limitNum,
+          offset: skip,
+          filter: filterArray
+        };
+
+        const meiliRes = await index.search(q, searchParams);
+        return {
+          results: meiliRes.hits,
+          total: meiliRes.totalHits || meiliRes.estimatedTotalHits || meiliRes.hits.length,
+          page: pageNum,
+          limit: limitNum,
+          totalPages: Math.ceil((meiliRes.totalHits || meiliRes.hits.length) / limitNum)
+        };
+      } catch (meiliErr) {
+        console.error('[MEILI SEARCH FALLBACK] Falling back to MongoDB:', meiliErr);
+      }
+    }
+
     // ── Base filter (always applied) ─────────────────────────────────
     const baseFilter = {
       isDeleted: { $ne: true },

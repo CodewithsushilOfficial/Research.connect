@@ -1,112 +1,227 @@
 const projectRepository = require('../repository/project.repository');
-const { ConflictError, ForbiddenError, NotFoundError, ValidationError } = require('../../../common/errors/AppError');
+const projectMemberRepository = require('../repository/projectMember.repository');
+const activityLogRepository = require('../repository/projectActivityLog.repository');
+const projectNotification = require('../helper/projectNotification.helper');
+const { cacheService } = require('../../../cache/cache.service');
+const { NotFoundError, ForbiddenError, ConflictError, ValidationError } = require('../../../common/errors/AppError');
+const logger = require('../../../common/logger/winston');
 
-class ProjectService {
+const CACHE_TTL = 300; // 5 min
+
+const ProjectService = {
   async createProject(userId, data) {
-    const collaborators = this._normalizeCollaborators(data.collaborators, userId);
     const project = await projectRepository.create({
+      ...data,
+      owner: userId,
       userId,
-      title: data.title.trim(),
-      description: data.description.trim(),
-      status: data.status || 'Ongoing',
-      researchAreas: this._normalizeStrings(data.researchAreas),
-      collaborators,
-      imageUrl: data.imageUrl?.trim() || '',
-      deadline: data.deadline || null,
-      progress: data.progress ?? 0,
-      visibility: data.visibility || 'Public',
-      openToCollaboration: data.openToCollaboration ?? false
+      memberCount: 1,
     });
-    return project.populate([
-      { path: 'userId', select: 'firstName lastName fullName profileImage profileSlug' },
-      { path: 'collaborators', select: 'firstName lastName fullName profileImage profileSlug' }
-    ]);
-  }
 
-  async getProjects(userId, query) {
-    const page = Number(query.page) || 1;
-    const limit = Number(query.limit) || 10;
-    const filter = {};
+    // Auto-add owner as principal-investigator member
+    await projectMemberRepository.create({
+      projectId: project._id,
+      userId,
+      role: 'principal-investigator',
+      status: 'active',
+      joinedAt: new Date(),
+      permissions: {},
+    });
 
-    if (query.scope === 'owned') filter.userId = userId;
-    else if (query.scope === 'collaborating') filter.collaborators = userId;
-    else filter.$or = [{ userId }, { collaborators: userId }];
+    await activityLogRepository.log({
+      projectId: project._id,
+      actorId: userId,
+      type: 'project_created',
+      description: `Project "${project.title}" created`,
+      resourceType: 'project',
+      resourceId: project._id,
+    });
 
-    if (query.status) filter.status = query.status;
-    return projectRepository.findProjects(filter, { page, limit, sort: query.sort || '-createdAt', search: query.search?.trim() || '' });
-  }
+    await cacheService.del(`project:owner-stats:${userId}`);
 
-  async getProject(userId, projectId) {
-    const project = await projectRepository.findAccessibleById(projectId, userId);
-    if (!project) throw new NotFoundError('Project not found.');
     return project;
-  }
+  },
 
-  async updateProject(userId, projectId, data) {
-    const project = await this._findOwnedProject(userId, projectId);
-    const update = {};
-    ['title', 'description', 'status', 'imageUrl', 'deadline', 'progress', 'visibility', 'openToCollaboration'].forEach((field) => {
-      if (data[field] !== undefined) update[field] = typeof data[field] === 'string' ? data[field].trim() : data[field];
-    });
-    if (data.researchAreas !== undefined) update.researchAreas = this._normalizeStrings(data.researchAreas);
-    if (data.collaborators !== undefined) update.collaborators = this._normalizeCollaborators(data.collaborators, userId);
+  // ─── LIST / SEARCH ─────────────────────────────────────────────────────────
+  async listProjects(query) {
+    return await projectRepository.search(query);
+  },
 
-    if (!Object.keys(update).length) throw new ValidationError('Provide at least one project field to update.');
-    return projectRepository.update(project._id, update);
-  }
+  async getTrending(limit = 10) {
+    return await projectRepository.getTrending(limit);
+  },
 
-  async deleteProject(userId, projectId) {
-    const project = await this._findOwnedProject(userId, projectId);
-    return projectRepository.softDelete(project._id, userId);
-  }
+  async getRecommended(user, limit = 10) {
+    const profile = await this._getUserProfile(user._id);
+    const researchAreas = profile?.researchAreas || [];
+    const skills = profile?.skills || [];
+    return await projectRepository.getRecommended(user._id, researchAreas, skills, limit);
+  },
 
-  async restoreProject(userId, projectId) {
-    const project = await projectRepository.model.findOne({ _id: projectId, userId, isDeleted: true });
-    if (!project) throw new NotFoundError('Deleted project not found.');
-    return projectRepository.restore(project._id);
-  }
+  // ─── DETAIL ────────────────────────────────────────────────────────────────
+  async getProject(idOrSlug, viewerId = null) {
+    const cacheKey = `project:${idOrSlug}`;
+    let project = await cacheService.get(cacheKey);
 
-  async applyToProject(userId, projectId, message) {
-    const project = await projectRepository.model.findOne({ _id: projectId, isDeleted: { $ne: true } });
-    if (!project) throw new NotFoundError('Project not found.');
-    if (!project.openToCollaboration) throw new ValidationError('This project is not accepting collaboration applications.');
-    if (project.userId.toString() === userId.toString()) throw new ValidationError('Project owners cannot apply to their own project.');
-    if (project.collaborators.some((id) => id.toString() === userId.toString())) throw new ConflictError('You are already a collaborator on this project.');
-    if (await projectRepository.findApplication(projectId, userId)) throw new ConflictError('You have already applied to this project.');
-    return projectRepository.createApplication({ projectId, applicantId: userId, message: message.trim() });
-  }
-
-  async getApplications(userId, projectId) {
-    await this._findOwnedProject(userId, projectId);
-    return projectRepository.findApplications(projectId);
-  }
-
-  async reviewApplication(userId, projectId, applicationId, action) {
-    const project = await this._findOwnedProject(userId, projectId);
-    const application = await projectRepository.updateApplication(projectId, applicationId, { status: action === 'accept' ? 'accepted' : 'declined' });
-    if (!application) throw new NotFoundError('Application not found.');
-    if (action === 'accept' && !project.collaborators.some((id) => id.toString() === application.applicantId._id.toString())) {
-      project.collaborators.push(application.applicantId._id);
-      await project.save();
+    if (!project) {
+      project = await projectRepository.findByIdOrSlug(idOrSlug);
+      if (!project) throw new NotFoundError('Project not found.');
+      await cacheService.set(cacheKey, project, CACHE_TTL);
     }
-    return application;
-  }
 
-  async _findOwnedProject(userId, projectId) {
-    const project = await projectRepository.model.findOne({ _id: projectId, isDeleted: { $ne: true } });
-    if (!project) throw new NotFoundError('Project not found.');
-    if (project.userId.toString() !== userId.toString()) throw new ForbiddenError('Only the project owner can change this project.');
+    // Increment view count asynchronously (fire and forget)
+    if (viewerId) {
+      projectRepository.incrementView(project._id).catch((e) => logger.error('View inc error:', e));
+    }
+
     return project;
-  }
+  },
 
-  _normalizeStrings(values = []) {
-    return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
-  }
+  // ─── UPDATE ────────────────────────────────────────────────────────────────
+  async updateProject(projectId, userId, data) {
+    const project = await this._getOwnedProject(projectId, userId);
 
-  _normalizeCollaborators(collaborators = [], ownerId) {
-    const ownerIdString = ownerId.toString();
-    return [...new Set(collaborators.map((id) => id.toString()).filter((id) => id !== ownerIdString))];
-  }
-}
+    // Prevent status updates through this method
+    delete data.status;
+    delete data.owner;
+    delete data.userId;
+    delete data.viewCount;
+    delete data.applicationCount;
+    delete data.memberCount;
 
-module.exports = new ProjectService();
+    Object.assign(project, data);
+    await project.save();
+
+    await cacheService.del(`project:${project._id}`);
+    await cacheService.del(`project:${project.slug}`);
+    await cacheService.del(`project:owner-stats:${userId}`);
+
+    await activityLogRepository.log({
+      projectId: project._id,
+      actorId: userId,
+      type: 'project_updated',
+      description: 'Project details updated',
+      resourceType: 'project',
+      resourceId: project._id,
+    });
+
+    return project;
+  },
+
+  // ─── STATUS ────────────────────────────────────────────────────────────────
+  async updateStatus(projectId, userId, status) {
+    const project = await this._getOwnedProject(projectId, userId);
+    const oldStatus = project.status;
+    project.status = status;
+    if (status === 'completed') project.completedAt = new Date();
+    await project.save();
+
+    await cacheService.del(`project:${project._id}`);
+    await cacheService.del(`project:${project.slug}`);
+    await cacheService.del(`project:owner-stats:${userId}`);
+
+    await activityLogRepository.log({
+      projectId: project._id,
+      actorId: userId,
+      type: 'project_status_changed',
+      description: `Status changed from "${oldStatus}" to "${status}"`,
+      metadata: { oldStatus, newStatus: status },
+    });
+
+    return project;
+  },
+
+  // ─── ARCHIVE ───────────────────────────────────────────────────────────────
+  async archiveProject(projectId, userId) {
+    const project = await this._getOwnedProject(projectId, userId);
+    project.isArchived = !project.isArchived;
+    project.status = project.isArchived ? 'archived' : 'active';
+    await project.save();
+
+    await cacheService.del(`project:${project._id}`);
+    await cacheService.del(`project:${project.slug}`);
+    await cacheService.del(`project:owner-stats:${userId}`);
+
+    return project;
+  },
+
+  // ─── DELETE (soft) ─────────────────────────────────────────────────────────
+  async deleteProject(projectId, userId) {
+    const project = await this._getOwnedProject(projectId, userId);
+    project.isDeleted = true;
+    project.deletedAt = new Date();
+    project.deletedBy = userId;
+    await project.save();
+
+    await cacheService.del(`project:${project._id}`);
+    await cacheService.del(`project:${project.slug}`);
+    await cacheService.del(`project:owner-stats:${userId}`);
+
+    return { deleted: true, projectId };
+  },
+
+  // ─── DASHBOARD STATS ───────────────────────────────────────────────────────
+  async getOwnerStats(userId) {
+    const cacheKey = `project:owner-stats:${userId}`;
+    try {
+      const cached = await cacheService.get(cacheKey);
+      if (cached) return cached;
+    } catch (err) {
+      logger.warn(`Failed reading owner stats cache: ${err.message}`);
+    }
+
+    const mongoose = require('mongoose');
+    const rows = await projectRepository.getOwnerStats(mongoose.Types.ObjectId.createFromHexString
+      ? mongoose.Types.ObjectId.createFromHexString(userId.toString())
+      : new mongoose.Types.ObjectId(userId.toString()));
+
+    const value = (status) => rows.find((r) => r._id === status)?.count || 0;
+    const stats = {
+      totalProjects: rows.reduce((n, r) => n + r.count, 0),
+      totalViews: rows.reduce((n, r) => n + (r.totalViews || 0), 0),
+      totalApplications: rows.reduce((n, r) => n + (r.totalApplications || 0), 0),
+      totalMembers: rows.reduce((n, r) => n + (r.totalMembers || 0), 0),
+      recruiting: value('recruiting'),
+      active: value('active'),
+      completed: value('completed'),
+      draft: value('draft'),
+      breakdown: rows,
+    };
+
+    try {
+      await cacheService.set(cacheKey, stats, 300); // 5 min TTL
+    } catch (err) {
+      logger.warn(`Failed writing owner stats cache: ${err.message}`);
+    }
+
+    return stats;
+  },
+
+  // ─── PROGRESS ──────────────────────────────────────────────────────────────
+  async updateProgress(projectId, userId, progress) {
+    const project = await this._getOwnedProject(projectId, userId);
+    project.progress = Math.min(100, Math.max(0, progress));
+    await project.save();
+    return project;
+  },
+
+  // ─── HELPERS ───────────────────────────────────────────────────────────────
+  async _getOwnedProject(projectId, userId) {
+    const project = await projectRepository.findById(projectId);
+    if (!project) throw new NotFoundError('Project not found.');
+    if (project.owner.toString() !== userId.toString()) {
+      throw new ForbiddenError('Only the project owner can perform this action.');
+    }
+    return project;
+  },
+
+  async _getUserProfile(userId) {
+    try {
+      const Profile = require('../../../models/Profile');
+      return await Profile.findOne({ userId }).select('researchAreas skills').lean();
+    } catch {
+      return null;
+    }
+  },
+};
+
+module.exports = ProjectService;

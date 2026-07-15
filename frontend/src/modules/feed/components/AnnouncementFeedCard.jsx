@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Pin, Megaphone, User, Building2, ExternalLink } from 'lucide-react';
+import Avatar from '../../../components/ui/Avatar';
 
 const AnnouncementFeedCard = ({ event }) => {
   const meta = event.metadata || {};
@@ -31,11 +32,12 @@ const AnnouncementFeedCard = ({ event }) => {
 
         {/* Actor */}
         <div className="flex items-center gap-2 mb-3">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-rose-500/20 to-orange-500/20 flex items-center justify-center overflow-hidden shrink-0">
-            {actor.profileImage
-              ? <img src={actor.profileImage} alt="" className="w-full h-full object-cover" />
-              : <User size={14} className="text-rose-400" />}
-          </div>
+          <Avatar
+            src={actor.profileImage}
+            name={`${actor.firstName} ${actor.lastName}`}
+            size="sm"
+            showBorder
+          />
           <div>
             <span className="text-xs font-semibold text-text-primary">{actor.firstName} {actor.lastName}</span>
             {actor.institution && <span className="text-xs text-text-muted ml-1">· {actor.institution}</span>}

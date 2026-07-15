@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, BookOpen, GraduationCap, MapPin, Award, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Avatar from '../../../components/ui/Avatar';
 
 const ResearcherResultCard = ({ researcher, index = 0 }) => {
   const navigate = useNavigate();
@@ -29,20 +30,17 @@ const ResearcherResultCard = ({ researcher, index = 0 }) => {
       transition={{ duration: 0.25, delay: index * 0.04 }}
       className="bg-white rounded-2xl border border-gray-200 p-5 hover:border-blue-300 hover:shadow-md transition-all duration-200 flex flex-col sm:flex-row items-start sm:items-center gap-5"
     >
-      {/* Profile Photo / Avatar */}
       <div 
         onClick={() => navigate(`/profile/${slugToUse}`)}
-        className="w-16 h-16 rounded-2xl overflow-hidden flex-shrink-0 border border-slate-100 cursor-pointer bg-slate-50 flex items-center justify-center shadow-xs"
+        className="cursor-pointer flex-shrink-0"
       >
-        {profileImage ? (
-          <img 
-            src={typeof profileImage === 'string' ? profileImage : profileImage.url} 
-            alt={displayName} 
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <span className="text-xl font-bold text-blue-700">{initials}</span>
-        )}
+        <Avatar
+          src={profileImage}
+          name={displayName}
+          size="xl"
+          shape="rounded-2xl"
+          showBorder
+        />
       </div>
 
       {/* Info */}

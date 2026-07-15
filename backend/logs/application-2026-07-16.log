@@ -1,0 +1,16 @@
+{"category":"application","level":"info","message":"[DNS INIT] Not a mongodb+srv string. Skipping SRV DNS validation.","service":"research-connect","timestamp":"2026-07-16 00:00:15"}
+{"category":"application","level":"info","message":"Attempting to connect to MongoDB...","service":"research-connect","timestamp":"2026-07-16 00:00:15"}
+{"category":"application","level":"info","message":"[DNS INIT] Not a mongodb+srv string. Skipping SRV DNS validation.","service":"research-connect","timestamp":"2026-07-16 00:00:15"}
+{"category":"application","level":"info","message":"Attempting to connect to MongoDB...","service":"research-connect","timestamp":"2026-07-16 00:00:15"}
+{"category":"application","level":"info","message":"MongoDB connected.","service":"research-connect","timestamp":"2026-07-16 00:00:16"}
+{"category":"application","level":"warn","message":"[REDIS ERROR] Redis connection failed or limit exceeded. Disabling Redis and falling back to in-memory mode.","service":"research-connect","timestamp":"2026-07-16 00:00:16"}
+{"category":"application","level":"info","message":"MongoDB connected.","service":"research-connect","timestamp":"2026-07-16 00:00:16"}
+{"category":"application","level":"warn","message":"[REDIS ERROR] Redis connection failed or limit exceeded. Disabling Redis and falling back to in-memory mode.","service":"research-connect","timestamp":"2026-07-16 00:00:16"}
+{"category":"application","level":"info","message":"[MIGRATION] Starting legacy to Cloudflare R2 metadata migration...","service":"research-connect","timestamp":"2026-07-16 00:00:17"}
+{"category":"application","level":"info","message":"[MIGRATION] Found 0 publications to migrate.","service":"research-connect","timestamp":"2026-07-16 00:00:17"}
+{"category":"application","level":"info","message":"[MIGRATION] Successfully migrated 0 publications to Cloudflare R2 metadata.","service":"research-connect","timestamp":"2026-07-16 00:00:17"}
+{"category":"application","level":"info","message":"[MIGRATION] Starting legacy to Cloudflare R2 metadata migration...","service":"research-connect","timestamp":"2026-07-16 00:00:17"}
+{"category":"application","level":"info","message":"[MIGRATION] Found 0 publications to migrate.","service":"research-connect","timestamp":"2026-07-16 00:00:17"}
+{"category":"application","level":"info","message":"[MIGRATION] Successfully migrated 0 publications to Cloudflare R2 metadata.","service":"research-connect","timestamp":"2026-07-16 00:00:17"}
+{"category":"application","level":"info","message":"[BULLMQ] Connected to Redis for queue management.","service":"research-connect","timestamp":"2026-07-16 00:00:18"}
+{"category":"application","level":"info","message":"[BULLMQ] Connected to Redis for queue management.","service":"research-connect","timestamp":"2026-07-16 00:00:18"}

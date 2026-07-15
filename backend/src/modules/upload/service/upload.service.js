@@ -7,7 +7,7 @@ const User = require('../../../models/User');
 const Publication = require('../../../models/Publication');
 const { ValidationError, NotFoundError } = require('../../../common/errors/AppError');
 const logger = require('../../../common/logger/winston');
-const { ProfileCache, FeedCache } = require('../../../cache/cache.service');
+const { ProfileCache, FeedCache, cacheService } = require('../../../cache/cache.service');
 const env = require('../../../config/environment');
 
 const log = logger || console;
@@ -72,15 +72,24 @@ const generateIdForPurpose = (purpose) => {
 };
 
 /**
- * Emit a Socket.IO event to all open sessions of a user.
+ * Emit a Socket.IO event to all open sessions of a user, and globally broadcast profile update events.
  * Fires-and-forgets — never throws.
  */
 const emitProfileImageUpdate = (userId, eventName, payload) => {
   try {
     const socket = getSocket();
-    if (socket && socket.emitToUser) {
-      socket.emitToUser(String(userId), eventName, payload);
-      log.info(`[UPLOAD SERVICE] Emitted ${eventName} to user ${userId}`);
+    if (socket) {
+      if (socket.emitToUser) {
+        socket.emitToUser(String(userId), eventName, payload);
+      }
+      const io = socket.getIO();
+      if (io) {
+        io.emit('PROFILE_UPDATED', {
+          userId: String(userId),
+          ...payload
+        });
+        log.info(`[UPLOAD SERVICE] Globally broadcasted PROFILE_UPDATED socket event for user ${userId}`);
+      }
     }
   } catch (err) {
     log.warn(`[UPLOAD SERVICE] Socket emit failed for ${eventName}: ${err.message}`);
@@ -94,6 +103,9 @@ const invalidateProfileCache = async (userId) => {
   try {
     await ProfileCache.del(String(userId));
     await FeedCache.flush(); // Flush feed cache so new images appear
+    if (cacheService && cacheService.delPattern) {
+      await cacheService.delPattern('response:*');
+    }
     log.info(`[UPLOAD SERVICE] Cache invalidated for user ${userId}`);
   } catch (err) {
     log.warn(`[UPLOAD SERVICE] Cache invalidation failed for user ${userId}: ${err.message}`);
@@ -146,6 +158,7 @@ const uploadFileInternal = async ({ file, userId, purpose, resourceId, useTransa
   }
 
   let uploadedAsset = null;
+  let thumbAsset = null;
   let oldAsset = null;
 
   try {
@@ -164,15 +177,57 @@ const uploadFileInternal = async ({ file, userId, purpose, resourceId, useTransa
     }
 
     const storageStart = Date.now();
-    // 2. Upload new asset to R2
-    uploadedAsset = await r2Service.uploadFileBuffer(
-      file.buffer,
-      file.originalname,
-      userId,
-      purpose,
-      activeResourceId,
-      file.mimetype
-    );
+    const imageHelper = require('../helper/image.helper');
+
+    // 2. Process image optimizations and upload new asset to R2
+    if (purpose === 'profile-avatar') {
+      const [compressedAvatarBuffer, thumbnailBuffer] = await Promise.all([
+        imageHelper.compressAvatar(file.buffer),
+        imageHelper.generateThumbnail(file.buffer)
+      ]);
+
+      const [mainAsset, secondaryAsset] = await Promise.all([
+        r2Service.uploadFileBuffer(
+          compressedAvatarBuffer,
+          file.originalname.endsWith('.webp') ? file.originalname : `${file.originalname}.webp`,
+          userId,
+          purpose,
+          activeResourceId,
+          'image/webp'
+        ),
+        r2Service.uploadFileBuffer(
+          thumbnailBuffer,
+          file.originalname.endsWith('.webp') ? `thumb-${file.originalname}` : `thumb-${file.originalname}.webp`,
+          userId,
+          purpose,
+          activeResourceId,
+          'image/webp'
+        )
+      ]);
+
+      uploadedAsset = mainAsset;
+      thumbAsset = secondaryAsset;
+    } else if (purpose === 'profile-banner') {
+      const compressedBannerBuffer = await imageHelper.compressBanner(file.buffer);
+      uploadedAsset = await r2Service.uploadFileBuffer(
+        compressedBannerBuffer,
+        file.originalname.endsWith('.webp') ? file.originalname : `${file.originalname}.webp`,
+        userId,
+        purpose,
+        activeResourceId,
+        'image/webp'
+      );
+    } else {
+      // Standard upload for non-avatar/non-banner files
+      uploadedAsset = await r2Service.uploadFileBuffer(
+        file.buffer,
+        file.originalname,
+        userId,
+        purpose,
+        activeResourceId,
+        file.mimetype
+      );
+    }
     const storageTime = Date.now() - storageStart;
 
     const mongoStart = Date.now();
@@ -186,7 +241,7 @@ const uploadFileInternal = async ({ file, userId, purpose, resourceId, useTransa
       secure_url: uploadedAsset.secure_url,
       resource_type: uploadedAsset.resource_type,
       format: uploadedAsset.format,
-      bytes: uploadedAsset.bytes,
+      bytes: uploadedAsset.bytes + (thumbAsset ? thumbAsset.bytes : 0),
       width: uploadedAsset.width,
       height: uploadedAsset.height,
       pages: uploadedAsset.pages,
@@ -214,56 +269,35 @@ const uploadFileInternal = async ({ file, userId, purpose, resourceId, useTransa
       }
     }
 
-    const imgData = {
-      url: uploadedAsset.secure_url,
-      objectKey: uploadedAsset.public_id,
-      mimeType: file.mimetype || `image/${uploadedAsset.format}`,
-      fileSize: uploadedAsset.bytes,
-      uploadedAt: uploadedAsset.uploadedAt || new Date(),
-      storageProvider: 'cloudflare-r2',
-      bucket: env.r2?.bucketName || 'research-connect',
-      fileName: file.originalname || ''
-    };
+    // NOTE: Database updates to User/Profile are omitted here. The caller
+    // controller/service handles it explicitly via profileService.updateProfile,
+    // avoiding the double database save issue.
 
-    // 5. Update the parent MongoDB resource (Profile + User for avatar)
-    if (purpose === 'profile-avatar') {
-      if (useTransaction && session) {
-        await Profile.findOneAndUpdate({ userId }, { profileImage: imgData }, { session, new: true });
-        await User.findByIdAndUpdate(userId, { profileImage: imgData }, { session });
-      } else {
-        await Profile.findOneAndUpdate({ userId }, { profileImage: imgData });
-        await User.findByIdAndUpdate(userId, { profileImage: imgData });
-      }
-    } else if (purpose === 'profile-banner') {
-      if (useTransaction && session) {
-        await Profile.findOneAndUpdate({ userId }, { coverImage: imgData }, { session, new: true });
-      } else {
-        await Profile.findOneAndUpdate({ userId }, { coverImage: imgData });
-      }
-    }
-
-    // 6. Commit the MongoDB Transaction
+    // 5. Commit the MongoDB Transaction
     if (useTransaction && session) {
       await session.commitTransaction();
       session.endSession();
     }
     const mongoTime = Date.now() - mongoStart;
 
-    // 7. Post-Commit: delete replaced R2 asset to avoid orphaned files
+    // 6. Post-Commit: delete replaced R2 asset to avoid orphaned files
     if (oldAsset && oldAsset.public_id) {
       await r2Service.deleteFile(oldAsset.public_id, oldAsset.resource_type);
     }
 
-    // 8. Invalidate Redis / in-memory profile cache
+    // 7. Invalidate Redis / in-memory profile cache
     if (['profile-avatar', 'profile-banner'].includes(purpose)) {
       await invalidateProfileCache(userId);
     }
 
-    // 9. Emit Socket.IO real-time update to all user sessions
+    // 8. Emit Socket.IO real-time update to all user sessions
     if (purpose === 'profile-avatar') {
       const payload = {
         userId: String(userId),
         profileImage: uploadedAsset.secure_url,
+        thumbnail: thumbAsset ? thumbAsset.secure_url : uploadedAsset.secure_url,
+        etag: uploadedAsset.etag || '',
+        version: uploadedAsset.version || '1',
         uploadedAt: uploadedAsset.uploadedAt
       };
       emitProfileImageUpdate(userId, 'profile:imageUpdated', payload);
@@ -292,7 +326,17 @@ const uploadFileInternal = async ({ file, userId, purpose, resourceId, useTransa
       useTransaction
     });
 
-    return newUploadDoc;
+    const returnObj = newUploadDoc.toObject();
+    if (purpose === 'profile-avatar' && thumbAsset) {
+      returnObj.thumbnail = thumbAsset.secure_url;
+      returnObj.thumbnailKey = thumbAsset.public_id;
+      returnObj.etag = uploadedAsset.etag;
+      returnObj.version = uploadedAsset.version;
+    } else {
+      returnObj.etag = uploadedAsset.etag || '';
+      returnObj.version = uploadedAsset.version || '1';
+    }
+    return returnObj;
   } catch (error) {
     // Check if error is due to transaction numbers not allowed (standalone local MongoDB)
     const isTxError = error.message?.includes('Transaction numbers are only allowed') ||
@@ -317,12 +361,18 @@ const uploadFileInternal = async ({ file, userId, purpose, resourceId, useTransa
       session.endSession();
     }
 
-    // Clean up R2 asset to avoid orphaned files
+    // Clean up R2 assets to avoid orphaned files
     if (uploadedAsset && uploadedAsset.public_id) {
       log.info(`[UPLOAD SERVICE ROLLBACK] Deleting newly uploaded R2 asset to avoid orphans`, {
         publicId: uploadedAsset.public_id
       });
-      await r2Service.deleteFile(uploadedAsset.public_id, uploadedAsset.resource_type);
+      await r2Service.deleteFile(uploadedAsset.public_id, uploadedAsset.resource_type).catch(e => {});
+    }
+    if (thumbAsset && thumbAsset.public_id) {
+      log.info(`[UPLOAD SERVICE ROLLBACK] Deleting newly uploaded R2 thumbnail asset to avoid orphans`, {
+        publicId: thumbAsset.public_id
+      });
+      await r2Service.deleteFile(thumbAsset.public_id, thumbAsset.resource_type).catch(e => {});
     }
 
     throw error;
@@ -333,7 +383,7 @@ const uploadFileInternal = async ({ file, userId, purpose, resourceId, useTransa
  * Universal Upload File logic.
  */
 const uploadFile = async ({ file, userId, purpose, resourceId }) => {
-  return uploadFileInternal({ file, userId, purpose, resourceId, useTransaction: true });
+  return uploadFileInternal({ file, userId, purpose, resourceId, useTransaction: false });
 };
 
 /**
@@ -454,7 +504,7 @@ const deleteUploadInternal = async (assetId, userId, useTransaction = true) => {
  * Delete an upload from MongoDB and R2.
  */
 const deleteUpload = async (assetId, userId) => {
-  return deleteUploadInternal(assetId, userId, true);
+  return deleteUploadInternal(assetId, userId, false);
 };
 
 const deleteProfilePhoto = async (userId) => {
@@ -469,7 +519,7 @@ const deleteProfilePhoto = async (userId) => {
     emitProfileImageUpdate(userId, 'profileImageUpdated', payload);
     return { success: true, message: 'Profile photo cleared.' };
   }
-  return deleteUploadInternal(upload.asset_id, userId, true);
+  return deleteUploadInternal(upload.asset_id, userId, false);
 };
 
 /**
@@ -486,7 +536,7 @@ const deleteProfileBanner = async (userId) => {
     emitProfileImageUpdate(userId, 'bannerUpdated', payload);
     return { success: true, message: 'Profile banner reset to default.' };
   }
-  return deleteUploadInternal(upload.asset_id, userId, true);
+  return deleteUploadInternal(upload.asset_id, userId, false);
 };
 
 module.exports = {

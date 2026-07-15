@@ -56,9 +56,10 @@ class ProfileController {
   // Update cover banner image
   updateBanner = asyncHandler(async (req, res) => {
     let coverImage = req.body.coverImage;
+    let uploadDoc = null;
     if (req.file) {
       const uploadService = require('../../upload/service/upload.service');
-      const uploadDoc = await uploadService.uploadFile({
+      uploadDoc = await uploadService.uploadFile({
         file: req.file,
         userId: req.user._id,
         purpose: 'profile-banner'
@@ -68,34 +69,64 @@ class ProfileController {
         objectKey: uploadDoc.public_id,
         mimeType: req.file.mimetype || `image/${uploadDoc.format}`,
         fileSize: uploadDoc.bytes,
-        uploadedAt: uploadDoc.uploadedAt || new Date()
+        uploadedAt: uploadDoc.uploadedAt || new Date(),
+        fileName: req.file.originalname || ''
       };
     }
-    const profile = await profileService.updateProfile(req.user._id, { coverImage });
-    return res.success('Profile cover banner updated successfully.', profile);
+    
+    try {
+      const profile = await profileService.updateProfile(req.user._id, { coverImage }, { runBackground: true });
+      emitProfileUpdate(req).catch(err => console.error('[Socket] Failed to emit profile updates:', err));
+      return res.success('Profile cover banner updated successfully.', profile);
+    } catch (err) {
+      if (uploadDoc && uploadDoc.public_id) {
+        const r2Service = require('../../upload/service/r2.service');
+        await r2Service.deleteFile(uploadDoc.public_id, 'image').catch(e => console.error('[Rollback] Banner delete failed:', e));
+      }
+      throw err;
+    }
   });
 
   // Update profile avatar image
   updateAvatar = asyncHandler(async (req, res) => {
     let profileImage = req.body.profileImage;
+    let uploadDoc = null;
     if (req.file) {
       const uploadService = require('../../upload/service/upload.service');
-      const uploadDoc = await uploadService.uploadFile({
+      uploadDoc = await uploadService.uploadFile({
         file: req.file,
         userId: req.user._id,
         purpose: 'profile-avatar'
       });
       profileImage = {
         url: uploadDoc.secure_url,
+        thumbnail: uploadDoc.thumbnail || uploadDoc.secure_url,
+        etag: uploadDoc.etag || '',
+        version: uploadDoc.version || '1',
         objectKey: uploadDoc.public_id,
         mimeType: req.file.mimetype || `image/${uploadDoc.format}`,
         fileSize: uploadDoc.bytes,
-        uploadedAt: uploadDoc.uploadedAt || new Date()
+        uploadedAt: uploadDoc.uploadedAt || new Date(),
+        fileName: req.file.originalname || ''
       };
     }
-    const profile = await profileService.updateProfile(req.user._id, { profileImage });
-    await emitProfileUpdate(req);
-    return res.success('Profile avatar photo updated successfully.', profile);
+    
+    try {
+      const profile = await profileService.updateProfile(req.user._id, { profileImage }, { runBackground: true });
+      emitProfileUpdate(req).catch(err => console.error('[Socket] Failed to emit profile updates:', err));
+      return res.success('Profile avatar photo updated successfully.', profile);
+    } catch (err) {
+      if (uploadDoc) {
+        const r2Service = require('../../upload/service/r2.service');
+        if (uploadDoc.public_id) {
+          await r2Service.deleteFile(uploadDoc.public_id, 'image').catch(e => console.error('[Rollback] Avatar delete failed:', e));
+        }
+        if (uploadDoc.thumbnailKey) {
+          await r2Service.deleteFile(uploadDoc.thumbnailKey, 'image').catch(e => console.error('[Rollback] Thumbnail delete failed:', e));
+        }
+      }
+      throw err;
+    }
   });
 
   // Delete profile photo and reset to default
@@ -103,6 +134,7 @@ class ProfileController {
     const uploadService = require('../../upload/service/upload.service');
     await uploadService.deleteProfilePhoto(req.user._id);
     const profile = await profileService.getProfile(req.user._id);
+    emitProfileUpdate(req).catch(err => console.error('[Socket] Failed to emit profile updates:', err));
     return res.success('Profile photo removed successfully.', profile);
   });
 

@@ -56,6 +56,8 @@ const getFolderForPurpose = (purpose, userId, resourceId) => {
       return `research-connect/publications/${cleanResourceId}/cover`;
     case 'project-image':
       return `research-connect/projects/${cleanResourceId}`;
+    case 'project-file':
+      return `research-connect/projects/${cleanResourceId}/files`;
     case 'dataset':
       return `research-connect/datasets/${cleanResourceId}`;
     case 'certificate':
@@ -141,6 +143,7 @@ const uploadFileBuffer = async (fileBuffer, originalName, userId, purpose, resou
     originalName
   });
 
+  let etag = '';
   if (isR2Configured) {
     // Upload to Cloudflare R2
     const command = new PutObjectCommand({
@@ -157,7 +160,8 @@ const uploadFileBuffer = async (fileBuffer, originalName, userId, purpose, resou
       }
     });
 
-    await s3Client.send(command);
+    const s3Result = await s3Client.send(command);
+    etag = s3Result.ETag ? s3Result.ETag.replace(/"/g, '') : '';
   } else {
     // Upload to local storage fallback
     const targetDir = path.join(process.cwd(), 'uploads', folder);
@@ -166,6 +170,7 @@ const uploadFileBuffer = async (fileBuffer, originalName, userId, purpose, resou
     }
     const filePath = path.join(targetDir, filename);
     fs.writeFileSync(filePath, fileBuffer);
+    etag = `local-etag-${Date.now()}`;
   }
 
   const durationMs = Date.now() - uploadStart;
@@ -176,7 +181,8 @@ const uploadFileBuffer = async (fileBuffer, originalName, userId, purpose, resou
     assetId,
     bytes: fileBuffer.length,
     format,
-    durationMs
+    durationMs,
+    etag
   });
 
   return {
@@ -191,6 +197,7 @@ const uploadFileBuffer = async (fileBuffer, originalName, userId, purpose, resou
     pages: 0,
     folder,
     version: '1',
+    etag,
     original_filename: originalName || '',
     uploadedAt: new Date(),
     uploadDurationMs: durationMs

@@ -4,12 +4,8 @@ import FileAttachmentCard from './FileAttachmentCard';
 import Avatar from '../ui/Avatar';
 
 export default function MessageBubble({ message, animDelay = 0 }) {
-  const { activeConversationId, currentUserId } = useMessaging();
-  const isMine = 
-    message.senderId === currentUserId || 
-    message.senderId?._id === currentUserId ||
-    message.senderId === CURRENT_USER.id ||
-    message.senderId?._id === CURRENT_USER.id;
+  const { activeConversationId } = useMessaging();
+  const isMine = message.senderId === CURRENT_USER.id;
   const time = formatMsgTime(message.createdAt);
 
   return (
@@ -20,45 +16,36 @@ export default function MessageBubble({ message, animDelay = 0 }) {
       {/* Dusre user ki DP (Avatar) */}
       {!isMine && (
         <Avatar
-          user={message.senderId}
-          src={message.senderAvatarUrl || message.senderId?.profileImage}
-          name={message.senderName || message.senderId?.fullName || message.senderId?.firstName}
+          src={message.senderAvatarUrl}
+          name={message.senderName}
           size="sm"
-          className="shadow-sm"
+          showBorder
         />
       )}
 
-      <div className={isMine ? 'flex flex-col items-end gap-1 min-w-0 max-w-full' : 'min-w-0 max-w-full'}>
+      <div className={isMine ? 'flex flex-col items-end gap-1' : ''}>
         {/* Message ka dabba (Bubble) */}
         <div
-          className={`px-3 py-2 shadow-[0_1px_1px_rgba(0,0,0,0.1)] max-w-full relative
+          className={`px-4 pt-3.5 pb-3 shadow-sm transition-all duration-250
             ${isMine
-              ? 'bg-[#2563EB] text-white rounded-2xl rounded-tr-none'
-              : 'bg-white border border-[#E8EDF5] text-[#111b21] rounded-2xl rounded-tl-none'
+              ? 'bubble-outbound bubble-outbound-bg text-white'
+              : 'bubble-inbound bg-white border border-[#E8EDF5] text-[#0F172A] hover:border-[#C7D2FE]'
             }`}
         >
-          {(message.content || message.text || message.message) && (
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content || message.text || message.message}</p>
+          {message.content && (
+            <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
           )}
 
-          {(message.attachments?.length > 0 || message.attachment || message.attachmentId) && (
-            <div className="mt-3 space-y-2 min-w-0 max-w-full">
-              {(message.attachment || message.attachmentId) && (
-                <FileAttachmentCard 
-                  key={(message.attachment || message.attachmentId)._id || (message.attachment || message.attachmentId).id || 'att'} 
-                  attachment={message.attachment || message.attachmentId} 
-                />
-              )}
-              {message.attachments?.map((a) => (
-                <FileAttachmentCard key={a._id || a.id} attachment={a} />
+          {message.attachments?.length > 0 && (
+            <div className="mt-3 space-y-2">
+              {message.attachments.map((a) => (
+                <FileAttachmentCard key={a.id} attachment={a} />
               ))}
             </div>
           )}
 
           {!isMine && (
-            <div className="flex justify-end mt-1">
-              <span className="text-[10px] text-[#667781] leading-none">{time}</span>
-            </div>
+            <span className="text-[10px] text-[#94A3B8] mt-2 block">{time}</span>
           )}
         </div>
 
@@ -69,9 +56,9 @@ export default function MessageBubble({ message, animDelay = 0 }) {
               <span className="text-[10px] text-[#94A3B8] italic anim-gentle-pulse">Sending…</span>
             ) : (
               <>
-                <span className="text-[10px] text-[#94A3B8] leading-none">{time}</span>
+                <span className="text-[10px] text-[#94A3B8]">{time}</span>
                 {message.readAt && (
-                  <span className="text-[10px] text-[#2563EB] font-bold leading-none ml-1">✓✓</span>
+                  <span className="text-[10px] text-[#4F46E5] font-semibold anim-read-text">· Read</span>
                 )}
               </>
             )}

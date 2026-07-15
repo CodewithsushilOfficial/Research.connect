@@ -6,14 +6,14 @@
     "auditLog": "D:\\researchconnectfrontend\\backend\\logs\\.ce9d59dc26d97c3e6a7db419dcce613264f63fc2-audit.json",
     "files": [
         {
-            "date": 1783746268940,
-            "name": "D:\\researchconnectfrontend\\backend\\logs\\mongodb-2026-07-11.log",
-            "hash": "8d5a56a94aa54554e6d0cbeba35486188649a781bafed402144f262592b56952"
+            "date": 1784139539187,
+            "name": "D:\\researchconnectfrontend\\backend\\logs\\mongodb-2026-07-15.log",
+            "hash": "3a98f35530de2941073d0055bb864e3097720e37304a50fe0f21c82aed7fbd12"
         },
         {
-            "date": 1783842407150,
-            "name": "D:\\researchconnectfrontend\\backend\\logs\\mongodb-2026-07-12.log",
-            "hash": "b67384754106885828d55c6d43ec45d566eb4411de36368af2176092b73f10e4"
+            "date": 1784140214920,
+            "name": "D:\\researchconnectfrontend\\backend\\logs\\mongodb-2026-07-16.log",
+            "hash": "2cef2939539014d52580af18823b6fae70f7ccc9f3823efd1ae5d118bbadda68"
         }
     ],
     "hashType": "sha256"

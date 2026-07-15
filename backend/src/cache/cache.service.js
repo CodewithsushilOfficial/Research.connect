@@ -144,6 +144,12 @@ const PlatformStatsCache = {
   del: async () => cacheInstance.del('platform:stats')
 };
 
+const ProjectCache = {
+  get: async (idOrSlug) => cacheInstance.get(`project:${idOrSlug}`),
+  set: async (idOrSlug, data, ttl = 300) => cacheInstance.set(`project:${idOrSlug}`, data, ttl),
+  del: async (idOrSlug) => cacheInstance.del(`project:${idOrSlug}`)
+};
+
 module.exports = {
   cacheService: cacheInstance,
   ScholarCache,
@@ -152,5 +158,6 @@ module.exports = {
   PublicationCache,
   AIPromptCache,
   LookupCache,
-  PlatformStatsCache
+  PlatformStatsCache,
+  ProjectCache
 };

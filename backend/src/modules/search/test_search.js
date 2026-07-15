@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../../../.env') });
+const { connectDB } = require('../../config/database/connection');
 
 const SearchService = require('./service/search.service');
 const User = require('../../models/User');
@@ -10,7 +11,7 @@ const PublicationKeyword = require('../../models/PublicationKeyword');
 
 async function run() {
   console.log('Connecting to MongoDB...');
-  await mongoose.connect(process.env.MONGO_URI);
+  await connectDB();
   console.log('Connected!');
 
   try {

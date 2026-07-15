@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 const logger = require('../../common/logger/winston');
 const dnsPromises = require('dns').promises;
 const dns = require('dns');
+const fs = require('fs');
+const path = require('path');
 
 const MONGO_URI = process.env.MONGO_URI;
 if (!MONGO_URI) {
@@ -9,6 +11,7 @@ if (!MONGO_URI) {
 }
 
 const options = {
+  dbName: 'research_connect',
   maxPoolSize: parseInt(process.env.MONGO_MAX_POOL_SIZE, 10) || 100,
   minPoolSize: parseInt(process.env.MONGO_MIN_POOL_SIZE, 10) || 10,
   socketTimeoutMS: 45000,
@@ -62,6 +65,31 @@ async function initializeDNSResolution(uri) {
     return;
   }
 
+  const cacheDir = path.join(__dirname, 'temp');
+  const cachePath = path.join(cacheDir, 'dns_cache.json');
+
+  // Check if we have a valid cached DNS servers configuration
+  if (fs.existsSync(cachePath)) {
+    try {
+      const cacheData = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+      const ageMs = Date.now() - (cacheData.timestamp || 0);
+      if (ageMs < 86400000 && Array.isArray(cacheData.servers) && cacheData.servers.length > 0) {
+        logger.info(`[DNS INIT] Applying cached DNS configuration: ${JSON.stringify(cacheData.servers)}`);
+        dns.setServers(cacheData.servers);
+        
+        // Test cache
+        const check = await testSRVResolution(srvRecord);
+        if (check.success) {
+          logger.info('[DNS INIT] DNS resolved successfully from cache. Skipping active DNS fallback search.');
+          return;
+        }
+        logger.warn('[DNS INIT] Cached DNS resolution failed. Retrying active resolution.');
+      }
+    } catch (cacheErr) {
+      logger.warn(`[DNS INIT] Failed reading DNS cache: ${cacheErr.message}`);
+    }
+  }
+
   // 1. Check if user configured explicit DNS servers via environment
   const configDns = process.env.DNS_SERVERS;
   if (configDns) {
@@ -78,6 +106,7 @@ async function initializeDNSResolution(uri) {
 
   // 2. Proactively test resolution
   let check = await testSRVResolution(srvRecord);
+  let resolvedServers = dns.getServers();
   
   // 3. Fallback dynamically if resolution failed
   if (!check.success) {
@@ -91,9 +120,26 @@ async function initializeDNSResolution(uri) {
         logger.error('[DNS ALERT] Resolved SRV query still failed after switching to public DNS. Database connection might fail if a firewall or local proxy intercepts DNS traffic.');
       } else {
         logger.info('[DNS INIT] Public DNS fallback successfully resolved the SRV record.');
+        resolvedServers = fallbackServers;
       }
     } catch (err) {
       logger.error(`[DNS INIT] Failed to configure/test fallback DNS servers: ${err.message}`);
+    }
+  }
+
+  // Save successful DNS servers configuration to cache
+  if (check.success) {
+    try {
+      if (!fs.existsSync(cacheDir)) {
+        fs.mkdirSync(cacheDir, { recursive: true });
+      }
+      fs.writeFileSync(cachePath, JSON.stringify({
+        timestamp: Date.now(),
+        servers: resolvedServers
+      }), 'utf8');
+      logger.info('[DNS INIT] Saved resolved DNS configuration to cache.');
+    } catch (writeErr) {
+      logger.error(`[DNS INIT] Failed writing DNS cache: ${writeErr.message}`);
     }
   }
 }

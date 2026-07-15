@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, BookOpen, Award, ExternalLink, GraduationCap } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Avatar from '../../../components/ui/Avatar';
 
 const AuthorResultCard = ({ author, index = 0 }) => {
   const navigate = useNavigate();
@@ -23,9 +24,15 @@ const AuthorResultCard = ({ author, index = 0 }) => {
       {/* Avatar */}
       <div 
         onClick={() => (profileSlug || userId) && navigate(`/profile/${profileSlug || userId}`)}
-        className={`w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-bold flex-shrink-0 ${color} ${profileSlug || userId ? 'cursor-pointer' : ''}`}
+        className={`${profileSlug || userId ? 'cursor-pointer' : ''} flex-shrink-0`}
       >
-        {initials}
+        <Avatar
+          src={author.avatar || author.photo || author.profileImage}
+          name={name}
+          size="lg"
+          shape="rounded-2xl"
+          showBorder
+        />
       </div>
 
       {/* Info */}

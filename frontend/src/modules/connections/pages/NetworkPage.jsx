@@ -97,10 +97,24 @@ const NetworkPage = () => {
   // Mutations
   const connectMutation = useMutation({
     mutationFn: ({ userId }) => networkService.connect(userId),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       toast.success('Connection request updated!');
+
+      // Update the cache immediately so the button flips to "Pending" right
+      // away, in sync with the toast, instead of waiting for the network
+      // round-trip triggered by invalidateQueries below.
+      queryClient.setQueryData(['networkSuggestions'], (old) => {
+        if (!old) return old;
+        return old.map((item) =>
+          item.user._id === variables.userId
+            ? { ...item, connectionStatus: 'pending_sent' }
+            : item
+        );
+      });
+
       queryClient.invalidateQueries({ queryKey: ['networkOverview'] });
       queryClient.invalidateQueries({ queryKey: ['networkRequests'] });
+      queryClient.invalidateQueries({ queryKey: ['networkSuggestions'] });
     }
   });
 
@@ -290,13 +304,25 @@ const NetworkPage = () => {
 
                   <div className="flex items-center justify-between pt-3 border-t border-slate-100">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{cand.matchPercentage}% Match</span>
-                    <button
-                      onClick={() => connectMutation.mutate({ userId: cand.user._id })}
-                      className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-black uppercase rounded-lg shadow-xs transition-all flex items-center gap-1 active:scale-95 cursor-pointer"
-                    >
-                      <UserPlus className="w-3 h-3" />
-                      Connect
-                    </button>
+                    {cand.connectionStatus === 'pending_sent' ? (
+                      <span className="px-4 py-1.5 bg-amber-50 text-amber-600 text-[10px] font-black uppercase rounded-lg border border-amber-200 flex items-center gap-1 cursor-default">
+                        <Mail className="w-3 h-3" />
+                        Pending
+                      </span>
+                    ) : cand.connectionStatus === 'connected' ? (
+                      <span className="px-4 py-1.5 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase rounded-lg border border-emerald-200 flex items-center gap-1 cursor-default">
+                        <UserCheck className="w-3 h-3" />
+                        Connected
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => connectMutation.mutate({ userId: cand.user._id })}
+                        className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-black uppercase rounded-lg shadow-xs transition-all flex items-center gap-1 active:scale-95 cursor-pointer"
+                      >
+                        <UserPlus className="w-3 h-3" />
+                        Connect
+                      </button>
+                    )}
                   </div>
                 </div>
               ))
@@ -555,13 +581,29 @@ const NetworkPage = () => {
                   </div>
                 </div>
                 
-                <button
-                  onClick={() => connectMutation.mutate({ userId: cand.user._id })}
-                  className="p-2 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white rounded-xl transition-all cursor-pointer flex items-center justify-center shrink-0 active:scale-95 border border-blue-100/50"
-                  title="Connect"
-                >
-                  <UserPlus className="w-4 h-4" />
-                </button>
+                {cand.connectionStatus === 'pending_sent' ? (
+                  <span
+                    className="p-2 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center shrink-0 border border-amber-100/50 cursor-default"
+                    title="Request Pending"
+                  >
+                    <Mail className="w-4 h-4" />
+                  </span>
+                ) : cand.connectionStatus === 'connected' ? (
+                  <span
+                    className="p-2 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0 border border-emerald-100/50 cursor-default"
+                    title="Connected"
+                  >
+                    <UserCheck className="w-4 h-4" />
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => connectMutation.mutate({ userId: cand.user._id })}
+                    className="p-2 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white rounded-xl transition-all cursor-pointer flex items-center justify-center shrink-0 active:scale-95 border border-blue-100/50"
+                    title="Connect"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             ))
           ) : (

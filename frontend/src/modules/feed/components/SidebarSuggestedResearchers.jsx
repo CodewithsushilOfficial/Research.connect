@@ -3,6 +3,7 @@ import { Users, UserPlus, Check, Building2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import feedService from '../../../services/feed.service';
+import Avatar from '../../../components/ui/Avatar';
 
 const SidebarSuggestedResearchers = ({ researchers = [], onFollow }) => {
   const navigate = useNavigate();
@@ -50,11 +51,12 @@ const SidebarSuggestedResearchers = ({ researchers = [], onFollow }) => {
               onClick={() => targetSlug && navigate(`/profile/${targetSlug}`)}
             >
               {/* Avatar */}
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center shrink-0 overflow-hidden">
-                {r.avatar
-                  ? <img src={r.avatar} alt={name} className="w-full h-full object-cover" />
-                  : <span className="text-xs font-bold text-primary">{name[0]?.toUpperCase()}</span>}
-              </div>
+              <Avatar
+                src={r.avatar}
+                name={name}
+                size="sm"
+                showBorder
+              />
 
               {/* Info */}
               <div className="flex-1 min-w-0">

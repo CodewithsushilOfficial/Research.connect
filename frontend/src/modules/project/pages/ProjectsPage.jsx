@@ -1,573 +1,422 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  Search,
-  Plus,
-  Grid3x3,
-  List,
-  X,
-} from "lucide-react";
-
-import { STATS, TABS, ACTIVITY, TOP_COLLABORATORS, OVERVIEW, AVATAR_COLORS, TAG_STYLES, avatarInitials } from "../data";
-import projectService from '../../../services/project.service';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Search, Plus, Grid, List, Bookmark, Heart, Users, Calendar, ArrowUpRight, Filter, SortAsc } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import projectService from '../services/project.service';
+import { useAuth } from '../../../context/AuthContext';
+import ApplyModal from '../components/ApplyModal';
 
-import DonutChart from "../components/chart";
-import ProjectCard from "../components/ProjectCard";
-import ApplyModal from "../components/ApplyModal";
-import ApplicationsModal from "../components/ApplicationsModal";
-import SortDropdown from "../components/SortDropdown";
-import FilterDropdown from "../components/FilterDropdown";
-
-// Maps each visible tab label to the project.category value it should filter by.
-// "All Projects" has no category filter — every project matches.
-const TAB_TO_CATEGORY = {
-  "All Projects": null,
-  "Owned by Me": "owned",
-  Collaborating: "collaborating",
-  Invited: "invited",
-  Completed: "completed",
-  Archived: "archived",
-};
-
-const ITEMS_PER_PAGE = 4;
+const domains = [
+  'Artificial Intelligence', 'Machine Learning', 'Healthcare', 'Blockchain', 'IoT',
+  'Cybersecurity', 'Robotics', 'Cloud Computing', 'Bioinformatics', 'Computer Vision',
+  'Natural Language Processing', 'Material Science', 'Quantum Computing', 'Other'
+];
 
 export default function ProjectsPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
-  const [activeTab, setActiveTab] = useState("All Projects");
-  const [search, setSearch] = useState("");
-  const [projects, setProjects] = useState([]);
+  const [activeTab, setActiveTab] = useState('all'); // all, owned, collaborating, bookmarked
+  const [search, setSearch] = useState('');
+  const [domain, setDomain] = useState('');
+  const [status, setStatus] = useState('');
+  const [sortBy, setSortBy] = useState('-createdAt');
+  const [viewMode, setViewMode] = useState('grid'); // grid, list
+  const [page, setPage] = useState(1);
   const [applyingProject, setApplyingProject] = useState(null);
-  const [appliedIds, setAppliedIds] = useState(() => new Set());
-  const [applications, setApplications] = useState([]);
-  const [viewingApplicationsProject, setViewingApplicationsProject] = useState(null);
-  const [sortBy, setSortBy] = useState("newest");
-  const [filter, setFilter] = useState("all");
-  const [selectedProject, setSelectedProject] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
+  
+  // Real network connection tracking
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
 
-  const toDisplayProject = (project) => {
-    const createdAt = new Date(project.createdAt);
-    const owner = project.owner || {};
-    const ownerName = owner.fullName || `${owner.firstName || ''} ${owner.lastName || ''}`.trim() || 'Researcher';
-    const collaborators = project.collaborators?.length || 0;
-    const uiStatus = project.status === 'Ongoing' ? 'Active' : project.status;
-    return {
-      ...project,
-      pi: ownerName,
-      members: collaborators + 1,
-      collaborators,
-      extraAvatars: Math.max(0, collaborators - 3),
-      tags: project.researchAreas || [],
-      category: project.isOwner ? 'owned' : 'collaborating',
-      status: uiStatus,
-      statusColor: uiStatus === 'Active' ? 'bg-emerald-500' : uiStatus === 'Completed' ? 'bg-slate-400' : 'bg-slate-300',
-      created: Number.isNaN(createdAt.valueOf()) ? 'Unknown' : createdAt.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }),
-      updated: 'Recently updated'
+  React.useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
-  };
-
-  const fetchProjects = () => {
-    projectService.getProjects({ limit: 100 })
-      .then((response) => setProjects((response.data?.docs || []).map(toDisplayProject)))
-      .catch(() => setProjects([]));
-  };
-
-  useEffect(() => {
-    fetchProjects();
   }, []);
 
-  const filteredProjects = [...projects]
-    .filter((project) => {
-      const query = search.toLowerCase();
+  const getErrorMessage = (err) => {
+    if (!isOnline || err?.isOffline) return 'No internet connection.';
+    if (err?.isTimeout || err?.status === 408) return 'Server is taking longer than expected.';
+    const status = err?.status || err?.error?.status || err?.response?.status;
+    if (status === 401) return 'Session expired. Please login again.';
+    if (status === 403) return "You don't have permission.";
+    if (status === 404) return 'Projects not found.';
+    if (status === 500) return 'Internal server error.';
+    if (status === 503) return 'Service temporarily unavailable.';
+    return err?.message || err?.error?.message || 'Something went wrong. Please try again.';
+  };
 
-      const matchesSearch =
-        project.title?.toLowerCase().includes(query) ||
-        project.description?.toLowerCase().includes(query) ||
-        project.pi?.toLowerCase().includes(query) ||
-        project.tags?.some((tag) => tag.toLowerCase().includes(query));
-
-      const requiredCategory = TAB_TO_CATEGORY[activeTab];
-
-      const matchesTab = requiredCategory
-        ? project.category === requiredCategory
-        : true;
-
-      let matchesFilter = true;
-
-      switch (filter) {
-        case "active":
-          matchesFilter = project.status?.toLowerCase() === "active";
-          break;
-
-        case "completed":
-          matchesFilter = project.category === "completed";
-          break;
-
-        case "archived":
-          matchesFilter = project.category === "archived";
-          break;
-
-        case "open":
-          matchesFilter = project.openToCollaboration;
-          break;
-
-        default:
-          matchesFilter = true;
+  // 1. Fetch Projects list
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['projects', activeTab, search, domain, status, sortBy, page],
+    queryFn: async () => {
+      let res;
+      const params = { page, limit: 12, search, researchDomain: domain, status, sort: sortBy };
+      if (activeTab === 'owned') {
+        res = await projectService.getMyProjects(params);
+      } else if (activeTab === 'bookmarked') {
+        res = await projectService.getBookmarkedProjects(params);
+      } else if (activeTab === 'collaborating') {
+        res = await projectService.listProjects({ ...params, collaborating: true });
+      } else {
+        res = await projectService.listProjects(params);
       }
-
-      return matchesSearch && matchesTab && matchesFilter;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case "az":
-          return a.title.localeCompare(b.title);
-
-        case "members":
-          return (
-            (b.members ?? b.collaborators ?? 0) -
-            (a.members ?? a.collaborators ?? 0)
-          );
-
-        case "deadline":
-          if (!a.deadline || !b.deadline) return 0;
-          return new Date(a.deadline) - new Date(b.deadline);
-
-        case "oldest":
-          if (!a.createdAt || !b.createdAt) return 0;
-          return new Date(a.createdAt) - new Date(b.createdAt);
-
-        default:
-          if (!a.createdAt || !b.createdAt) return 0;
-          return new Date(b.createdAt) - new Date(a.createdAt);
-      }
-    });
-
-  const displayStats = STATS.map((stat) => {
-    if (stat.key === 'total') return { ...stat, value: projects.length };
-    if (stat.key === 'collaborators') return { ...stat, value: projects.reduce((total, project) => total + (project.collaborators || 0), 0) };
-    if (stat.key === 'active') return { ...stat, value: projects.filter((project) => project.status === 'Active').length };
-    if (stat.key === 'completed') return { ...stat, value: projects.filter((project) => project.status === 'Completed').length };
-    return stat;
+      return res.data; // { docs, total, page, limit, totalPages }
+    },
+    placeholderData: (previousData) => previousData,
+    // Retry 3 times with exponential backoff (500ms, 1s, 2s) for GET requests
+    retry: (failureCount, err) => {
+      if (err?.isCanceled) return false;
+      return failureCount < 3;
+    },
+    retryDelay: (attempt) => [500, 1000, 2000][attempt] || 2000,
   });
 
-  const totalPages = Math.max(1, Math.ceil(filteredProjects.length / ITEMS_PER_PAGE));
+  // 2. Fetch owner stats if authenticated
+  const { data: stats } = useQuery({
+    queryKey: ['projects:stats:owner'],
+    queryFn: async () => {
+      const res = await projectService.getOwnerStats();
+      return res.data;
+    },
+    enabled: !!user,
+    retry: (failureCount, err) => {
+      if (err?.isCanceled) return false;
+      return failureCount < 3;
+    },
+    retryDelay: (attempt) => [500, 1000, 2000][attempt] || 2000,
+  });
 
-  const currentProjects = filteredProjects.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
+  // Bookmark toggle mutation
+  const bookmarkMutation = useMutation({
+    mutationFn: ({ projectId, type }) => projectService.toggleBookmark(projectId, type),
+    onSuccess: (res, variables) => {
+      toast.success(res.message || `Project ${res.data.action} successfully.`);
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    },
+  });
 
-  // Any time search, filter, sort, or the active tab changes, jump back to
-  // page 1 so the user never lands on an out-of-range page.
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, filter, sortBy, activeTab]);
+  const handleApplyClick = (project, e) => {
+    e.stopPropagation();
+    setApplyingProject(project);
+  };
 
-  async function toggleOpenToCollaboration(id) {
-    const project = projects.find((item) => item.id === id);
-    if (!project?.isOwner) return;
-    const response = await projectService.updateProject(id, { openToCollaboration: !project.openToCollaboration });
-    const updated = toDisplayProject(response.data);
-    setProjects((prev) => prev.map((item) => item.id === id ? updated : item));
-  }
-
-  async function handleDeleteProject(id) {
-    if (window.confirm("Are you sure you want to delete this project?")) {
-      try {
-        await projectService.deleteProject(id);
-        toast.success("Project deleted successfully.");
-        fetchProjects();
-      } catch (err) {
-        toast.error("Failed to delete project.");
-      }
+  const handleApplySubmit = async (answers, message) => {
+    try {
+      await projectService.applyToProject(applyingProject._id, {
+        screeningAnswers: answers,
+        message
+      });
+      toast.success('Application submitted successfully.');
+      setApplyingProject(null);
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    } catch (err) {
+      toast.error(err.message || 'Failed to submit application.');
     }
-  }
-
-  async function handleApplySubmit(_name, message) {
-    await projectService.applyToProject(applyingProject.id, message);
-    setAppliedIds((prev) => new Set(prev).add(applyingProject.id));
-    setApplyingProject(null);
-  }
-
-  async function handleAcceptApplication(appId) {
-    const response = await projectService.reviewApplication(viewingApplicationsProject.id, appId, 'accept');
-    setApplications((prev) => prev.map((app) => app.id === appId ? response.data : app));
-  }
-
-  async function handleDeclineApplication(appId) {
-    const response = await projectService.reviewApplication(viewingApplicationsProject.id, appId, 'decline');
-    setApplications((prev) => prev.map((app) => app.id === appId ? response.data : app));
-  }
-
-  function pendingCountFor(projectId) {
-    return applications.filter((a) => a.projectId === projectId && a.status === "pending").length;
-  }
-
-  function applicationsCountFor(projectId) {
-    return applications.filter((a) => a.projectId === projectId).length;
-  }
-
-  async function openApplications(project) {
-    const response = await projectService.getApplications(project.id);
-    setApplications(response.data || []);
-    setViewingApplicationsProject(project);
-  }
+  };
 
   return (
-    <div className="w-full bg-slate-50 font-sans text-slate-900">
-      <div className="px-6 py-6">
-        <div className="flex flex-col gap-6 xl:flex-row">
-            {/* Left / center column */}
-            <div className="flex-1">
-              <div className="mb-5">
-                <h1 className="text-2xl font-bold text-slate-900">My Projects</h1>
-                <p className="text-sm text-slate-500">
-                  Manage your research projects and collaborations
-                </p>
-              </div>
-
-              {/* Search + filter row */}
-              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-
-                {/* Search */}
-                <div className="relative flex-1">
-                  <Search
-                    size={16}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                  />
-
-                  <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search projects..."
-                    className="w-full rounded-lg border border-slate-200 py-2 pl-10 pr-4 outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                {/* Filter */}
-                <FilterDropdown value={filter} onChange={setFilter} />
-
-                {/* Sort */}
-                <SortDropdown value={sortBy} onChange={setSortBy} />
-
-                {/* View Toggle */}
-                <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1">
-                  <button className="rounded-md bg-blue-50 p-1.5 text-blue-600">
-                    <Grid3x3 size={16} />
-                  </button>
-
-                  <button className="rounded-md p-1.5 text-slate-400 hover:bg-slate-50">
-                    <List size={16} />
-                  </button>
-                </div>
-
-              </div>
-
-              {/* Stat cards */}
-              <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-                {displayStats.map((s) => {
-                  const Icon = s.icon;
-                  return (
-                    <div
-                      key={s.key}
-                      className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4"
-                    >
-                      <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${s.tint}`}>
-                        <Icon size={18} />
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-500">{s.label}</p>
-                        <p className="text-xl font-bold text-slate-900">{s.value}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Tabs */}
-              <div className="mb-2 flex gap-6 border-b border-slate-200 text-sm font-medium text-slate-500 overflow-x-auto">
-                {TABS.map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`whitespace-nowrap border-b-2 pb-3 pt-1 transition-colors ${
-                      activeTab === tab
-                        ? "border-blue-600 text-blue-600"
-                        : "border-transparent hover:text-slate-700"
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
-
-              {/* Project list */}
-              <div className="rounded-xl border border-slate-200 bg-white px-5">
-                {filteredProjects.length ? (
-                  currentProjects.map((p) => (
-                    <ProjectCard
-                      key={p.id}
-                      project={p}
-                      onToggleOpen={toggleOpenToCollaboration}
-                      onApply={setApplyingProject}
-                      hasApplied={appliedIds.has(p.id)}
-                      pendingCount={pendingCountFor(p.id)}
-                      onViewApplications={openApplications}
-                      onClick={setSelectedProject}
-                    />
-                  ))
-                ) : (
-                  <p className="py-10 text-center text-sm text-slate-400">
-                    No projects in this view yet.
-                  </p>
-                )}
-              </div>
-
-              {/* Pagination */}
-              {filteredProjects.length > 0 && (
-                <div className="mt-4 flex items-center justify-center gap-1.5">
-                  <button
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    Previous
-                  </button>
-
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`h-8 w-8 rounded-lg text-xs font-semibold ${
-                        page === currentPage
-                          ? "bg-blue-600 text-white"
-                          : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
-
-                  <button
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Right sidebar */}
-            <aside className="w-full flex-shrink-0 space-y-5 xl:w-80">
-              <button
-                onClick={() => navigate("/projects/create")}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 cursor-pointer"
-              >
-                <Plus size={16} /> Create New Project
-              </button>
-
-              {/* Overview */}
-              <div className="rounded-xl border border-slate-200 bg-white p-5">
-                <h3 className="mb-4 text-sm font-semibold text-slate-800">Projects Overview</h3>
-                <div className="flex items-center gap-6">
-                  <DonutChart />
-                  <div className="space-y-2 text-xs">
-                    {OVERVIEW.map((o) => (
-                      <div key={o.key} className="flex items-center gap-2">
-                        <span
-                          className="h-2 w-2 rounded-full"
-                          style={{ backgroundColor: o.color }}
-                        />
-                        <span className="text-slate-500">{o.label} {o.value}</span>
-                        {o.pct === 12.5 && (
-                          <span className="text-slate-400">({o.pct}%)</span>
-                        )}
-                        {o.pct === 50 && o.key === "active2" && (
-                          <span className="text-slate-400">({o.pct}%)</span>
-                        )}
-                      </div>
-                    ))}
+    <div className="w-full bg-slate-50 min-h-screen pb-16 font-sans">
+      {/* Stats Header (collaboration overview) */}
+      {user && stats && (
+        <div className="bg-white border-b border-slate-200 px-6 py-6 mb-6">
+          <div className="max-w-7xl mx-auto">
+            <h1 className="text-xl font-extrabold text-slate-900 mb-4">Workspace Overview</h1>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { label: 'Total Projects', count: stats.totalProjects, color: 'text-blue-600 bg-blue-50' },
+                { label: 'Collaborators', count: stats.totalMembers, color: 'text-emerald-600 bg-emerald-50' },
+                { label: 'Applications', count: stats.totalApplications, color: 'text-amber-600 bg-amber-50' },
+                { label: 'Total Views', count: stats.totalViews, color: 'text-purple-600 bg-purple-50' }
+              ].map((s, idx) => (
+                <div key={idx} className="border border-slate-100 rounded-xl p-4 bg-white shadow-sm flex items-center gap-4">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg ${s.color}`}>
+                    {s.count}
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">{s.label}</p>
+                    <p className="text-lg font-extrabold text-slate-800">{s.count}</p>
                   </div>
                 </div>
-              </div>
-
-              {/* Recent Activity */}
-              <div className="rounded-xl border border-slate-200 bg-white p-5">
-                <h3 className="mb-4 text-sm font-semibold text-slate-800">Recent Activity</h3>
-                <div className="space-y-4">
-                  {ACTIVITY.map((a) => {
-                    const Icon = a.icon;
-                    return (
-                      <div key={a.id} className="flex gap-3">
-                        <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${a.iconTint}`}>
-                          <Icon size={14} />
-                        </div>
-                        <p className="text-sm leading-snug text-slate-600">
-                          <span className="font-semibold text-slate-800">{a.name}</span>{" "}
-                          {a.action}{" "}
-                          <span className="font-medium text-blue-600">{a.target}</span>
-                          <br />
-                          <span className="text-xs text-slate-400">{a.time}</span>
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Top Collaborators */}
-              <div className="rounded-xl border border-slate-200 bg-white p-5">
-                <h3 className="mb-4 text-sm font-semibold text-slate-800">Top Collaborators</h3>
-                <div className="space-y-3">
-                  {TOP_COLLABORATORS.map((c, i) => (
-                    <div key={c.id} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold text-white ${AVATAR_COLORS[i % AVATAR_COLORS.length]}`}
-                        >
-                          {avatarInitials(c.name)}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-slate-800">{c.name}</p>
-                          <p className="text-xs text-slate-400">{c.projects} Projects</p>
-                        </div>
-                      </div>
-                      <button className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-slate-50">
-                        View Profile
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </aside>
-        </div>
-      </div>
-
-      {applyingProject && (
-        <ApplyModal
-          project={applyingProject}
-          onClose={() => setApplyingProject(null)}
-          onSubmit={handleApplySubmit}
-        />
-      )}
-
-      {viewingApplicationsProject && (
-        <ApplicationsModal
-          project={viewingApplicationsProject}
-          applications={applications.filter(
-            (a) => a.projectId === viewingApplicationsProject.id
-          )}
-          onClose={() => setViewingApplicationsProject(null)}
-          onAccept={handleAcceptApplication}
-          onDecline={handleDeclineApplication}
-        />
-      )}
-
-      {/* Project Details Drawer */}
-      {selectedProject && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          {/* Overlay — click outside the drawer to close */}
-          <div
-            className="absolute inset-0 bg-slate-900/40"
-            onClick={() => setSelectedProject(null)}
-          />
-
-          <div className="relative flex h-full w-full max-w-md flex-col overflow-y-auto bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-              <h2 className="text-lg font-semibold text-slate-900">Project Details</h2>
-              <button
-                onClick={() => setSelectedProject(null)}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-50 hover:text-slate-600"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="flex-1 space-y-5 px-6 py-5">
-              <div>
-                <h3 className="text-xl font-bold text-slate-900">{selectedProject.title}</h3>
-                <p className="mt-1 text-sm leading-relaxed text-slate-500">
-                  {selectedProject.description}
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {selectedProject.tags?.map((tag) => (
-                  <span
-                    key={tag}
-                    className={`rounded-md px-2 py-0.5 text-xs font-medium ${TAG_STYLES[tag] || "bg-slate-100 text-slate-600"}`}
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-
-              <dl className="grid grid-cols-2 gap-x-4 gap-y-4 text-sm">
-                <div>
-                  <dt className="text-xs text-slate-400">Principal Investigator</dt>
-                  <dd className="mt-0.5 font-medium text-slate-800">
-                    {selectedProject.pi || "Not specified"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-slate-400">Members</dt>
-                  <dd className="mt-0.5 font-medium text-slate-800">
-                    {selectedProject.members ?? selectedProject.collaborators ?? "N/A"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-slate-400">Deadline</dt>
-                  <dd className="mt-0.5 font-medium text-slate-800">
-                    {selectedProject.deadline || "No deadline set"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-slate-400">Status</dt>
-                  <dd className="mt-0.5 font-medium text-slate-800">
-                    {selectedProject.status || "Unknown"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-slate-400">Progress</dt>
-                  <dd className="mt-0.5 font-medium text-slate-800">
-                    {selectedProject.progress != null ? `${selectedProject.progress}%` : "Not tracked"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-slate-400">Visibility</dt>
-                  <dd className="mt-0.5 font-medium text-slate-800">
-                    {selectedProject.visibility || "Not specified"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-slate-400">Applications</dt>
-                  <dd className="mt-0.5 font-medium text-slate-800">
-                    {applicationsCountFor(selectedProject.id)}
-                  </dd>
-                </div>
-              </dl>
-
-              {selectedProject.progress != null && (
-                <div>
-                  <div className="mb-1 flex items-center justify-between text-xs text-slate-400">
-                    <span>Progress</span>
-                    <span>{selectedProject.progress}%</span>
-                  </div>
-                  <div className="h-2 w-full rounded-full bg-slate-100">
-                    <div
-                      className="h-2 rounded-full bg-blue-600"
-                      style={{ width: `${selectedProject.progress}%` }}
-                    />
-                  </div>
-                </div>
-              )}
+              ))}
             </div>
           </div>
         </div>
+      )}
+
+      <div className="max-w-7xl mx-auto px-6">
+        {/* Sub-header & Action */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-2xl font-black text-slate-900">Research Projects</h2>
+            <p className="text-xs text-slate-500 font-semibold mt-0.5">Explore active research projects and join collaboration rooms</p>
+          </div>
+          {user && (
+            <button
+              onClick={() => navigate('/projects/create')}
+              className="inline-flex items-center gap-2 bg-blue-650 text-white rounded-xl px-4 py-2.5 text-xs font-black shadow-lg shadow-blue-650/15 hover:bg-blue-700 transition"
+            >
+              <Plus size={16} /> Start Project
+            </button>
+          )}
+        </div>
+
+        {/* Tab Selection */}
+        <div className="flex border-b border-slate-200 mb-6 gap-6 overflow-x-auto scrollbar-hide">
+          {[
+            { id: 'all', label: 'All Projects' },
+            { id: 'owned', label: 'Owned by Me', count: stats?.totalProjects },
+            { id: 'collaborating', label: 'Collaborating' },
+            { id: 'bookmarked', label: 'Bookmarked' }
+          ].map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => { setActiveTab(tab.id); setPage(1); }}
+                className={`py-3 text-xs font-black relative shrink-0 border-b-2 transition ${
+                  isActive ? 'text-blue-650 border-blue-650' : 'text-slate-550 border-transparent hover:text-slate-700'
+                }`}
+              >
+                {tab.label}
+                {tab.count !== undefined && (
+                  <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-black ${isActive ? 'bg-blue-50 text-blue-650' : 'bg-slate-100 text-slate-500'}`}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Search, Filter, & Sort Controls */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm mb-6 flex flex-col md:flex-row gap-3 items-stretch md:items-center">
+          <div className="relative flex-1">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search projects by title, keywords, tags..."
+              className="w-full bg-slate-50 rounded-xl border border-slate-150 pl-10 pr-4 py-2 text-xs font-semibold outline-none focus:border-blue-500 focus:bg-white transition"
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-2 items-center">
+            {/* Domain Filter */}
+            <div className="relative">
+              <Filter size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <select
+                value={domain}
+                onChange={(e) => setDomain(e.target.value)}
+                className="bg-slate-50 rounded-xl border border-slate-150 pl-8 pr-3 py-2 text-xs font-bold text-slate-600 outline-none hover:bg-slate-100 cursor-pointer"
+              >
+                <option value="">All Domains</option>
+                {domains.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+
+            {/* Status Filter */}
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="bg-slate-50 rounded-xl border border-slate-150 px-3 py-2 text-xs font-bold text-slate-600 outline-none hover:bg-slate-100 cursor-pointer"
+            >
+              <option value="">All Statuses</option>
+              <option value="recruiting">Recruiting</option>
+              <option value="active">Active</option>
+              <option value="completed">Completed</option>
+            </select>
+
+            {/* Sort Dropdown */}
+            <div className="relative">
+              <SortAsc size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="bg-slate-50 rounded-xl border border-slate-150 pl-8 pr-3 py-2 text-xs font-bold text-slate-600 outline-none hover:bg-slate-100 cursor-pointer"
+              >
+                <option value="-createdAt">Newest</option>
+                <option value="createdAt">Oldest</option>
+                <option value="-viewCount">Popular</option>
+                <option value="title">Title (A-Z)</option>
+              </select>
+            </div>
+
+            {/* View Mode Toggle */}
+            <div className="flex border border-slate-200 rounded-xl overflow-hidden p-0.5">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-1.5 rounded-lg ${viewMode === 'grid' ? 'bg-slate-100 text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                <Grid size={15} />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-1.5 rounded-lg ${viewMode === 'list' ? 'bg-slate-100 text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                <List size={15} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Loading / Error States */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4 animate-pulse">
+                <div className="h-4 bg-slate-100 rounded w-1/3" />
+                <div className="h-6 bg-slate-100 rounded w-3/4" />
+                <div className="h-16 bg-slate-100 rounded" />
+                <div className="flex gap-2">
+                  <div className="h-5 bg-slate-100 rounded w-12" />
+                  <div className="h-5 bg-slate-100 rounded w-16" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : error ? (
+          <div className="bg-red-50 border border-red-150 rounded-2xl p-6 text-center text-red-650 font-bold">
+            {getErrorMessage(error)}
+          </div>
+        ) : data?.docs?.length === 0 ? (
+          <div className="bg-white border border-slate-200 rounded-2xl p-16 text-center shadow-sm">
+            <Users size={48} className="mx-auto text-slate-300 mb-4" />
+            <h3 className="text-base font-extrabold text-slate-800">No Projects Found</h3>
+            <p className="text-xs text-slate-400 font-semibold mt-1">Try relaxing your search query or filters.</p>
+          </div>
+        ) : (
+          /* Projects Render Grid/List */
+          <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
+            {data?.docs?.map((project) => {
+              const isOwner = user && project.owner?._id === user._id;
+              const hasApplied = false; // logic resolved by API if needed
+
+              return (
+                <div
+                  key={project._id}
+                  onClick={() => navigate(`/projects/${project._id}`)}
+                  className={`bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition cursor-pointer flex flex-col overflow-hidden group ${
+                    viewMode === 'list' ? 'flex-row items-center p-4 gap-4' : ''
+                  }`}
+                >
+                  {/* Thumbnail / Cover */}
+                  <div className={`relative bg-gradient-to-br from-blue-700 via-slate-800 to-slate-900 flex items-center justify-center shrink-0 ${
+                    viewMode === 'list' ? 'w-24 h-20 rounded-xl' : 'h-36 w-full'
+                  }`}>
+                    {project.coverImage ? (
+                      <img src={project.coverImage} alt={project.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <Users size={32} className="text-white/20" />
+                    )}
+
+                    {/* Status Badge */}
+                    <span className={`absolute top-3 left-3 text-[9px] uppercase font-black px-2 py-0.5 rounded-full tracking-wider shadow-sm text-white ${
+                      project.status === 'recruiting' ? 'bg-emerald-500' : project.status === 'active' ? 'bg-blue-600' : 'bg-slate-500'
+                    }`}>
+                      {project.status}
+                    </span>
+                  </div>
+
+                  {/* Body Content */}
+                  <div className="p-5 flex-1 flex flex-col justify-between min-w-0">
+                    <div>
+                      <span className="text-[10px] font-black uppercase text-blue-600 tracking-wider">
+                        {project.researchDomain}
+                      </span>
+                      <h3 className="text-sm font-extrabold text-slate-800 group-hover:text-blue-650 transition mt-1 truncate">
+                        {project.title}
+                      </h3>
+                      <p className="text-xs text-slate-500 font-semibold line-clamp-2 mt-1 leading-relaxed">
+                        {project.description}
+                      </p>
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-slate-50 flex items-center justify-between text-[11px] text-slate-400 font-semibold">
+                      <div className="flex items-center gap-1">
+                        <Users size={12} />
+                        <span>{project.memberCount || 1} members</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {isOwner && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/projects/${project._id}/edit`);
+                            }}
+                            className="hover:text-blue-650 text-blue-600 font-black text-[10px] uppercase border border-slate-150 px-2 py-0.5 rounded hover:bg-slate-50 transition"
+                          >
+                            Edit
+                          </button>
+                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            bookmarkMutation.mutate({ projectId: project._id, type: 'star' });
+                          }}
+                          className="hover:text-amber-500 transition flex items-center gap-0.5"
+                          aria-label="Star project"
+                        >
+                          <Heart size={12} />
+                          <span>{project.starCount || 0}</span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            bookmarkMutation.mutate({ projectId: project._id, type: 'bookmark' });
+                          }}
+                          className="hover:text-blue-500 transition"
+                          aria-label="Bookmark project"
+                        >
+                          <Bookmark size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {data && data.totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-12">
+            {Array.from({ length: data.totalPages }).map((_, i) => {
+              const p = i + 1;
+              return (
+                <button
+                  key={p}
+                  onClick={() => setPage(p)}
+                  className={`w-8 h-8 rounded-lg text-xs font-black border transition ${
+                    page === p
+                      ? 'bg-blue-650 text-white border-blue-650 shadow-md shadow-blue-650/10'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  {p}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Apply Modal */}
+      {applyingProject && (
+        <ApplyModal
+          project={applyingProject}
+          isOpen={!!applyingProject}
+          onClose={() => setApplyingProject(null)}
+          onSubmit={handleApplySubmit}
+        />
       )}
     </div>
   );

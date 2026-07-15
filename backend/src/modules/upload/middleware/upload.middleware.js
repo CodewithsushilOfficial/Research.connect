@@ -50,12 +50,14 @@ const validateUpload = (req, res, next) => {
   const purpose = req.body.purpose || req.query.purpose || '';
 
   if (purpose === 'profile-avatar') {
-    const validMimes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!validMimes.includes(req.file.mimetype)) {
-      return next(new ValidationError('Profile avatar must be a JPG, PNG, or WEBP image.'));
+    const validMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+    const ext = extension.toLowerCase();
+    const isExtValid = ['.jpg', '.jpeg', '.png', '.webp'].includes(ext);
+    if (!validMimes.includes(req.file.mimetype) || !isExtValid) {
+      return next(new ValidationError('Profile avatar must be a JPG, JPEG, PNG, or WEBP image.'));
     }
-    if (req.file.size > 5 * 1024 * 1024) {
-      return next(new ValidationError('Profile avatar cannot exceed 5MB.'));
+    if (req.file.size > 10 * 1024 * 1024) {
+      return next(new ValidationError('Profile avatar cannot exceed 10MB.'));
     }
   }
 

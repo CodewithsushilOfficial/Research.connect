@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
-import { Github, Linkedin, Globe } from 'lucide-react';
+import { Linkedin, Globe } from 'lucide-react';
 import profileService from '../../../services/profile.service';
 
 const OrcidIcon = () => (
@@ -23,7 +23,6 @@ const ConnectedAccountsSettings = ({ profile, refetch }) => {
     googleScholar: '',
     linkedin: '',
     website: '',
-    github: '',
   });
 
   const [inputVisible, setInputVisible] = useState(null);
@@ -38,7 +37,6 @@ const ConnectedAccountsSettings = ({ profile, refetch }) => {
         googleScholar: profile.socialLinks.googleScholar || '',
         linkedin: profile.socialLinks.linkedin || '',
         website: profile.socialLinks.website || '',
-        github: profile.socialLinks.github || '',
       });
     }
   }, [profile]);
@@ -101,15 +99,6 @@ const ConnectedAccountsSettings = ({ profile, refetch }) => {
       connected: !!socialLinks.googleScholar,
       displayId: socialLinks.googleScholar,
       placeholder: 'Enter Google Scholar URL',
-    },
-    {
-      id: 'github',
-      name: 'GitHub',
-      description: 'Link your GitHub profile to showcase code repositories, tool integrations, and contributions.',
-      icon: () => <Github className="w-5 h-5 text-slate-800" />,
-      connected: !!socialLinks.github,
-      displayId: socialLinks.github,
-      placeholder: 'Enter GitHub Profile URL',
     },
     {
       id: 'linkedin',

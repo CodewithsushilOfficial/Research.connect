@@ -65,8 +65,6 @@ const updateProfileValidator = [
     .optional({ checkFalsy: true }).trim().isString(),
   body('socialLinks.scopus')
     .optional({ checkFalsy: true }).trim().isString(),
-  body('socialLinks.github')
-    .optional({ checkFalsy: true }).trim().isString(),
   body('dateOfBirth')
     .optional({ checkFalsy: true }).trim().isString(),
   body('nationality')

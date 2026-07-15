@@ -1,59 +1,87 @@
 const { body, param, query, validationResult } = require('express-validator');
-const { ValidationError } = require('../../../common/errors/AppError');
 
-const handleValidationErrors = (req, res, next) => {
+// ─── Utility ─────────────────────────────────────────────────────────────────
+const validate = (req, res, next) => {
   const errors = validationResult(req);
-  if (errors.isEmpty()) return next();
-
-  const details = errors.array().reduce((result, error) => {
-    result[error.path || error.param] = error.msg;
-    return result;
-  }, {});
-  throw new ValidationError('Validation failed. Please correct the fields.', details);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({
+      success: false,
+      message: 'Validation failed.',
+      error: errors.array(),
+    });
+  }
+  next();
 };
 
-const projectFields = [
-  body('title').optional().trim().notEmpty().withMessage('Title cannot be empty.').isLength({ max: 200 }).withMessage('Title cannot exceed 200 characters.'),
-  body('description').optional().trim().notEmpty().withMessage('Description cannot be empty.'),
-  body('status').optional().isIn(['Ongoing', 'Completed', 'Proposed', 'Archived']).withMessage('Status must be Ongoing, Completed, Proposed, or Archived.'),
-  body('researchAreas').optional().isArray().withMessage('Research areas must be an array.'),
-  body('researchAreas.*').optional().isString().trim().notEmpty().withMessage('Each research area must be a non-empty string.'),
-  body('collaborators').optional().isArray().withMessage('Collaborators must be an array.'),
-  body('collaborators.*').optional().isMongoId().withMessage('Each collaborator must be a valid user ID.'),
-  body('imageUrl').optional().isString().trim().isLength({ max: 2048 }).withMessage('Image URL is invalid.'),
-  body('deadline').optional({ nullable: true }).isISO8601().withMessage('Deadline must be a valid date.'),
-  body('progress').optional().isInt({ min: 0, max: 100 }).withMessage('Progress must be between 0 and 100.'),
-  body('visibility').optional().isIn(['Public', 'Private']).withMessage('Visibility must be Public or Private.'),
-  body('openToCollaboration').optional().isBoolean().withMessage('Open to collaboration must be true or false.')
+// ─── Project Validators ───────────────────────────────────────────────────────
+const createProjectRules = [
+  body('title').trim().notEmpty().withMessage('Title is required.').isLength({ max: 200 }),
+  body('description').trim().notEmpty().withMessage('Description is required.').isLength({ max: 500 }),
+  body('status').optional({ values: 'falsy' }).isIn(['draft', 'recruiting', 'active', 'completed', 'archived', 'cancelled']),
+  body('visibility').optional({ values: 'falsy' }).isIn(['public', 'private', 'hidden', 'institution-only', 'invitation-only']),
+  body('projectType').optional({ values: 'falsy' }).isIn(['open-source', 'private', 'institution-only', 'invitation-only']),
+  body('maxTeamMembers').optional({ values: 'falsy' }).isInt({ min: 1, max: 1000 }),
+  body('applicationDeadline').optional({ values: 'falsy' }).isISO8601(),
+  body('startDate').optional({ values: 'falsy' }).isISO8601(),
+  body('endDate').optional({ values: 'falsy' }).isISO8601(),
+  body('budget').optional({ values: 'falsy' }).isNumeric({ min: 0 }),
+  body('objectives').optional({ values: 'falsy' }).isArray(),
+  body('requiredSkills').optional({ values: 'falsy' }).isArray(),
+  body('tags').optional({ values: 'falsy' }).isArray(),
+  body('keywords').optional({ values: 'falsy' }).isArray(),
+  body('researchAreas').optional({ values: 'falsy' }).isArray(),
+  body('screeningQuestions').optional({ values: 'falsy' }).isArray(),
 ];
 
-const createProjectValidator = [
-  body('title').trim().notEmpty().withMessage('Title is required.').isLength({ max: 200 }).withMessage('Title cannot exceed 200 characters.'),
-  body('description').trim().notEmpty().withMessage('Description is required.'),
-  ...projectFields.slice(2),
-  handleValidationErrors
+const updateProjectRules = [
+  body('title').optional({ values: 'falsy' }).trim().isLength({ min: 1, max: 200 }),
+  body('description').optional({ values: 'falsy' }).trim().isLength({ max: 500 }),
+  body('abstract').optional({ values: 'falsy' }).trim().isLength({ max: 1000 }),
+  body('longDescription').optional({ values: 'falsy' }).isLength({ max: 20000 }),
+  body('maxTeamMembers').optional({ values: 'falsy' }).isInt({ min: 1, max: 1000 }),
+  body('applicationDeadline').optional({ values: 'falsy' }).isISO8601(),
+  body('visibility').optional({ values: 'falsy' }).isIn(['public', 'private', 'hidden', 'institution-only', 'invitation-only']),
+  body('allowApplications').optional({ values: 'falsy' }).isBoolean(),
+  body('allowInvitations').optional({ values: 'falsy' }).isBoolean(),
+  body('progress').optional({ values: 'falsy' }).isFloat({ min: 0, max: 100 }),
+  body('researchDomain').optional({ values: 'falsy' }).trim(),
+  body('researchAreas').optional({ values: 'falsy' }).isArray(),
+  body('requiredSkills').optional({ values: 'falsy' }).isArray(),
+  body('keywords').optional({ values: 'falsy' }).isArray(),
+  body('tags').optional({ values: 'falsy' }).isArray(),
+  body('projectType').optional({ values: 'falsy' }).isIn(['open-source', 'private', 'institution-only', 'invitation-only']),
+  body('startDate').optional({ values: 'falsy' }).isISO8601(),
+  body('endDate').optional({ values: 'falsy' }).isISO8601(),
+  body('estimatedDuration').optional({ values: 'falsy' }).trim(),
+  body('budget').optional({ values: 'falsy' }).isNumeric({ min: 0 }),
+  body('currency').optional({ values: 'falsy' }).trim(),
+  body('fundingSource').optional({ values: 'falsy' }).trim(),
+  body('institution').optional({ values: 'falsy' }).trim(),
+  body('department').optional({ values: 'falsy' }).trim(),
+  body('screeningQuestions').optional({ values: 'falsy' }).isArray(),
+  body('githubUrl').optional({ values: 'falsy' }).trim(),
+  body('website').optional({ values: 'falsy' }).trim(),
+  body('ethicsApproval').optional({ values: 'falsy' }).isBoolean(),
+  body('irbNumber').optional({ values: 'falsy' }).trim(),
+  body('objectives').optional({ values: 'falsy' }).isArray(),
+  body('expectedOutcomes').optional({ values: 'falsy' }).isArray(),
 ];
 
-const updateProjectValidator = [...projectFields, handleValidationErrors];
-const projectIdValidator = [param('id').isMongoId().withMessage('Project ID is invalid.'), handleValidationErrors];
-const listProjectsValidator = [
-  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer.'),
-  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100.'),
-  query('status').optional().isIn(['Ongoing', 'Completed', 'Proposed', 'Archived']).withMessage('Status is invalid.'),
-  query('scope').optional().isIn(['all', 'owned', 'collaborating']).withMessage('Scope must be all, owned, or collaborating.'),
-  handleValidationErrors
+const listProjectsRules = [
+  query('page').optional({ values: 'falsy' }).isInt({ min: 1 }),
+  query('limit').optional({ values: 'falsy' }).isInt({ min: 1, max: 100 }),
+  query('status').optional({ values: 'falsy' }).isIn(['draft', 'recruiting', 'active', 'completed', 'archived', 'cancelled']),
+  query('visibility').optional({ values: 'falsy' }).isIn(['public', 'private', 'hidden', 'institution-only', 'invitation-only']),
 ];
 
-const applyToProjectValidator = [
-  param('id').isMongoId().withMessage('Project ID is invalid.'),
-  body('message').trim().notEmpty().isLength({ max: 2000 }).withMessage('Application message is required and must not exceed 2000 characters.'),
-  handleValidationErrors
-];
-const reviewApplicationValidator = [
-  param('id').isMongoId().withMessage('Project ID is invalid.'),
-  param('applicationId').isMongoId().withMessage('Application ID is invalid.'),
-  body('action').isIn(['accept', 'decline']).withMessage('Action must be accept or decline.'),
-  handleValidationErrors
+const mongoIdParam = (name = 'id') => [
+  param(name).isMongoId().withMessage(`Invalid ${name}.`),
 ];
 
-module.exports = { createProjectValidator, updateProjectValidator, projectIdValidator, listProjectsValidator, applyToProjectValidator, reviewApplicationValidator };
+module.exports = {
+  validate,
+  createProjectRules,
+  updateProjectRules,
+  listProjectsRules,
+  mongoIdParam,
+};

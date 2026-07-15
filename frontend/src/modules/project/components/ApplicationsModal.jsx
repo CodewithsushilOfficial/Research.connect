@@ -1,6 +1,6 @@
 import React from "react";
 import { X, CheckCircle2 } from "lucide-react";
-import { AVATAR_COLORS, avatarInitials } from "../data";
+import UserAvatar from '../../../components/ui/Avatar';
 
 // Owner-facing view: everyone who has applied to collaborate on a project,
 // with the ability to accept or decline each request.
@@ -26,11 +26,12 @@ export default function ApplicationsModal({ project, applications, onClose, onAc
               <div key={app.id} className="rounded-lg border border-slate-200 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div
-                      className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${AVATAR_COLORS[i % AVATAR_COLORS.length]}`}
-                    >
-                      {avatarInitials(app.applicantName)}
-                    </div>
+                    <UserAvatar
+                      src={app.applicantPhoto || app.applicantAvatar || app.applicantImage || app.avatar}
+                      name={app.applicantName}
+                      size="sm"
+                      showBorder
+                    />
                     <div>
                       <p className="text-sm font-semibold text-slate-800">{app.applicantName}</p>
                       <p className="text-xs text-slate-400">{app.appliedAt}</p>

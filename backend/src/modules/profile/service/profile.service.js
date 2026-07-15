@@ -87,7 +87,7 @@ class ProfileService {
     ]);
 
     const socialLinks = socialLinksObj || profile.socialLinks || {
-      orcid: '', googleScholar: '', researchGate: '', linkedin: '', website: '', scopus: '', github: ''
+      orcid: '', googleScholar: '', researchGate: '', linkedin: '', website: '', scopus: ''
     };
 
     let profileCompletion = completionObj ? completionObj.percentage : 0;
@@ -122,6 +122,9 @@ class ProfileService {
       headline: profile.headline || '',
       coverImage: getImageUrl(profile.coverImage) || 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=1200',
       profileImage: getImageUrl(profile.profileImage) || getImageUrl(user.profileImage) || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png',
+      thumbnail: profile.profileImage?.thumbnail || user.profileImage?.thumbnail || getImageUrl(profile.profileImage) || getImageUrl(user.profileImage) || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png',
+      etag: profile.profileImage?.etag || user.profileImage?.etag || '',
+      version: profile.profileImage?.version || user.profileImage?.version || '1',
       dateOfBirth: profile.dateOfBirth || '',
       nationality: profile.nationality || '',
       country: profile.country || user.country || '',
@@ -425,7 +428,7 @@ class ProfileService {
     return await ProfileAnalytics.find({ userId }).sort({ date: 1 }).limit(30);
   }
 
-  async updateProfile(userId, updateData) {
+  async updateProfile(userId, updateData, options = {}) {
     const profile = await Profile.findOne({ userId, isDeleted: { $ne: true } });
     if (!profile) throw new NotFoundError('Profile not found.');
 
@@ -541,8 +544,13 @@ class ProfileService {
     }
 
     // 6. Recalculate and Sync
-    await this.calculateAndSaveProfileCompletion(userId);
-    await this.calculateAndSaveResearchMetrics(userId);
+    if (options.runBackground) {
+      this.calculateAndSaveProfileCompletion(userId).catch(err => console.error('[Background] Profile completion calculation failed:', err));
+      this.calculateAndSaveResearchMetrics(userId).catch(err => console.error('[Background] Research metrics calculation failed:', err));
+    } else {
+      await this.calculateAndSaveProfileCompletion(userId);
+      await this.calculateAndSaveResearchMetrics(userId);
+    }
 
     // Invalidate Cache
     const { ProfileCache: ProfileCacheInvalidate, LookupCache } = require('../../../cache/cache.service');

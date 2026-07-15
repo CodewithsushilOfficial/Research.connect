@@ -3,6 +3,9 @@ const Schema = mongoose.Schema;
 
 const ImageMetadataSchema = new Schema({
   url: { type: String, default: '' },
+  thumbnail: { type: String, default: '' },
+  etag: { type: String, default: '' },
+  version: { type: String, default: '1' },
   objectKey: { type: String, default: '' },
   mimeType: { type: String, default: '' },
   fileSize: { type: Number, default: 0 },

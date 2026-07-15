@@ -11,7 +11,16 @@ const { parseBrowser, parsePlatform, getDeviceType } = require('../../common/uti
 class SocketGateway {
   constructor() {
     this.io = null;
+    this.emitter = null;
     this.heartbeatIntervalId = null;
+  }
+
+  getEmitter() {
+    if (!this.emitter && redisClient && redisClient.isOpen) {
+      const { Emitter } = require('@socket.io/redis-emitter');
+      this.emitter = new Emitter(redisClient);
+    }
+    return this.emitter;
   }
 
   /**
@@ -23,9 +32,30 @@ class SocketGateway {
         origin: env.clientUrl,
         methods: ['GET', 'POST']
       },
-
       pingTimeout: 20000,
       pingInterval: 25000
+    });
+
+    // Configure Socket.IO Redis Adapter for horizontal scaling
+    if (redisClient) {
+      try {
+        const pubClient = redisClient.duplicate();
+        const subClient = redisClient.duplicate();
+        Promise.all([pubClient.connect(), subClient.connect()]).then(() => {
+          const { createAdapter } = require('@socket.io/redis-adapter');
+          this.io.adapter(createAdapter(pubClient, subClient));
+          logger.info('🔌 Socket.IO Redis Adapter configured successfully.');
+        }).catch((err) => {
+          logger.error('Failed to configure Socket.IO Redis Adapter:', err);
+        });
+      } catch (err) {
+        logger.error('Failed to duplicate Redis client for Socket.IO Adapter:', err);
+      }
+    }
+
+    // Clean up all socket sessions on startup to avoid stale DB entries
+    SocketSession.deleteMany({}).catch((err) => {
+      logger.error(`Failed to clean up stale socket sessions: ${err.message}`);
     });
 
     // 1. Mount auth and rate limiters
@@ -38,7 +68,7 @@ class SocketGateway {
         const userId = socket.user.userId || socket.user.id || socket.user._id;
         const socketId = socket.id;
 
-        // Parse user-agent info if available
+        // Parse user-agent info
         const userAgentStr = socket.handshake.headers['user-agent'] || '';
         const ip = socket.handshake.address || '';
         
@@ -58,6 +88,9 @@ class SocketGateway {
         // Join default namespaces rooms
         roomManager.joinUserRooms(socket);
 
+        // NOTE: Redesigned multi-device support - DO NOT disconnect older sockets of the same user.
+        // Multiple tabs and devices are tracked together in the Redis Set user:{userId}:sockets.
+
         // Register notifications socket router
         try {
           require('../../modules/notifications/socket/notification.socket')(this.io, socket);
@@ -72,7 +105,7 @@ class SocketGateway {
           logger.error(`Failed mounting messaging socket listeners: ${err.message}`);
         }
 
-        // Register call socket router
+        // Register call socket router (Redesigned)
         try {
           require('../../modules/messaging/socket/call.socket')(this.io, socket);
         } catch (err) {
@@ -86,20 +119,12 @@ class SocketGateway {
           logger.error(`Failed mounting collaboration socket listeners: ${err.message}`);
         }
 
-        // Heartbeat signal from client (received every 30s)
-        socket.on('heartbeat', async () => {
-          try {
-            await SocketSession.updateOne(
-              { socketId },
-              { $set: { lastHeartbeat: new Date() } }
-            );
-            if (redisClient && redisClient.isOpen && redisClient.isReady) {
-              await redisClient.expire(`presence:status:${userId}`, 300);
-            }
-          } catch (err) {
-            logger.error(`Socket heartbeat update failed: ${err.message}`);
-          }
-        });
+        // Register project socket router
+        try {
+          require('../../modules/project/socket/project.socket')(this.io, socket);
+        } catch (err) {
+          logger.error(`Failed mounting project socket listeners: ${err.message}`);
+        }
 
         // Disconnect
         socket.on('disconnect', async (reason) => {
@@ -115,63 +140,41 @@ class SocketGateway {
       }
     });
 
-    // 3. Start Heartbeat Pruning Scheduler (runs every 30 seconds)
-    this.startHeartbeatPruner();
-
     return this.io;
-  }
-
-  /**
-   * Background pruner to clean up dead sessions that missed heartbeats
-   */
-  startHeartbeatPruner() {
-    this.heartbeatIntervalId = setInterval(async () => {
-      try {
-        const threshold = new Date(Date.now() - 60000); // Missed 2 heartbeats (60s)
-        const deadSessions = await SocketSession.find({
-          lastHeartbeat: { $lt: threshold }
-        }).lean();
-
-        if (deadSessions.length > 0) {
-          logger.info(`⚙️ Socket Heartbeat Pruner: Cleaning up ${deadSessions.length} dead socket sessions.`);
-          for (const session of deadSessions) {
-            await presenceManager.setUserOffline(session.userId, session.socketId, this.io);
-          }
-        }
-      } catch (err) {
-        logger.error(`Socket heartbeat pruner error: ${err.message}`);
-      }
-    }, 30000);
   }
 
   /**
    * Stop background timers on shutdown
    */
   destroy() {
-    if (this.heartbeatIntervalId) {
-      clearInterval(this.heartbeatIntervalId);
-    }
+    // Timer removed, heartbeat handled natively by Socket.IO
   }
 
   getIO() {
-    if (!this.io) {
-      throw new Error('Socket.IO is not initialized yet!');
-    }
-    return this.io;
+    return this.io; // Return null instead of throwing error in decoupled REST server mode
   }
 
   emitToUser(userId, event, data) {
     if (this.io) {
       this.io.to(`user:${userId}`).emit(event, data);
+    } else {
+      const emitter = this.getEmitter();
+      if (emitter) {
+        emitter.to(`user:${userId}`).emit(event, data);
+      }
     }
   }
 
   emitToRoom(roomId, event, data) {
     if (this.io) {
       this.io.to(roomId).emit(event, data);
+    } else {
+      const emitter = this.getEmitter();
+      if (emitter) {
+        emitter.to(roomId).emit(event, data);
+      }
     }
   }
 }
 
 module.exports = new SocketGateway();
-

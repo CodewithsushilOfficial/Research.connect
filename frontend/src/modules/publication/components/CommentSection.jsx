@@ -7,6 +7,7 @@ import {
 import { toast } from 'react-hot-toast';
 import publicationService from '../../../services/publication.service';
 import { useSelector } from 'react-redux';
+import UserAvatar from '../../../components/ui/Avatar';
 
 const formatTimeAgo = (dateStr) => {
   const now = new Date();
@@ -22,10 +23,13 @@ const formatTimeAgo = (dateStr) => {
   return date.toLocaleDateString();
 };
 
-const Avatar = ({ name }) => (
-  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 text-xs font-black text-blue-700">
-    {(name || '?').charAt(0).toUpperCase()}
-  </div>
+const Avatar = ({ name, src }) => (
+  <UserAvatar
+    src={src}
+    name={name}
+    size="sm"
+    showBorder
+  />
 );
 
 const CommentInput = ({ onSubmit, placeholder = 'Write a comment…', loading, autoFocus = false }) => {
@@ -94,7 +98,7 @@ const SingleComment = ({ comment, publicationId, currentUserId, depth = 0 }) => 
 
   return (
     <div className={`flex gap-2.5 ${depth > 0 ? 'ml-8 border-l-2 border-slate-100 pl-3' : ''}`}>
-      <Avatar name={displayName} />
+      <Avatar name={displayName} src={comment.userId?.profileImage} />
       <div className="flex-1 min-w-0 space-y-1.5">
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-slate-800">{displayName}</span>
@@ -243,7 +247,7 @@ const CommentSection = ({ publicationId }) => {
       {/* New Comment Input */}
       {currentUserId ? (
         <div className="flex gap-2.5">
-          <Avatar name={currentUser?.fullName || currentUser?.username} />
+          <Avatar name={currentUser?.fullName || currentUser?.username} src={currentUser?.profileImage} />
           <div className="flex-1">
             <CommentInput
               placeholder="Share your thoughts on this publication…"

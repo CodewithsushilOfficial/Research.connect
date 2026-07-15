@@ -108,11 +108,11 @@ const PublicationsLibraryPage = () => {
   const profile = profileRes?.success ? profileRes.data : null;
   const currentUserId = currentUser?._id || currentUser?.id;
   const profileUserId = profile?.userId?._id || profile?.userId?.id || profile?.userId;
-  const isOwner = currentUser && profile && (
+  const isOwner = !!(currentUser && profile && (
     (currentUserId && profileUserId && currentUserId.toString() === profileUserId.toString()) || 
     currentUser.profileSlug === profileSlug || 
     currentUser.username === profileSlug
-  );
+  ));
 
   // 2. Fetch Publications Portfolio
   const { data: pubsRes, isLoading: isPubsLoading, refetch } = useQuery({
@@ -175,7 +175,7 @@ const PublicationsLibraryPage = () => {
   const { data: trashCountRes, refetch: refetchTrashCount } = useQuery({
     queryKey: ['publications-trash-count', profileSlug],
     queryFn: () => publicationService.getMyPublications({ page: 1, limit: 1, trash: 'true' }),
-    enabled: !!profileSlug && isOwner
+    enabled: !!profileSlug && !!isOwner
   });
   const trashCount = trashCountRes?.success ? (trashCountRes.data.total ?? 0) : 0;
 
@@ -477,25 +477,25 @@ const PublicationsLibraryPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] py-8 px-4 sm:px-6 lg:px-8 text-left text-slate-800">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className={`min-h-screen bg-[#F8FAFC] py-5 sm:py-8 px-3 sm:px-6 lg:px-8 text-left text-slate-800 ${selectedIds.length > 0 ? 'pb-28 sm:pb-8' : ''}`}>
+      <div className="max-w-7xl mx-auto space-y-5 sm:space-y-8">
         
         {/* 1. Header Area */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/60 pb-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/60 pb-5 sm:pb-6">
           <div className="space-y-1">
             {profileSlug && profileSlug !== 'undefined' && (
               <button
                 onClick={() => navigate(`/profile/${profileSlug}`)}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors mb-1.5"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors mb-1.5 py-1 -ml-1 px-1"
               >
                 <ChevronLeft className="w-4 h-4" />
                 <span>Back to Profile</span>
               </button>
             )}
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#0F172A] tracking-tight">
               {isOwner ? 'Publication Management' : 'Researcher Publications'}
             </h1>
-            <p className="text-sm text-[#475569]">
+            <p className="text-xs sm:text-sm text-[#475569]">
               {isOwner 
                 ? 'Manage all your research outputs, drafts, visibility and Scholar citations in one place.' 
                 : `Explore the research outputs published by ${profile?.displayName || profile?.fullName || 'this researcher'}.`
@@ -503,49 +503,53 @@ const PublicationsLibraryPage = () => {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-2.5">
             {isOwner && (
-              <>
-                <button
-                  onClick={() => navigate('/publications/create')}
-                  className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all px-4.5 py-2.5 rounded-[16px] shadow-sm active:scale-[0.98]"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Upload Research</span>
-                </button>
+              <button
+                onClick={() => navigate('/publications/create')}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-all px-4 sm:px-4.5 py-2.5 rounded-[14px] sm:rounded-[16px] shadow-sm active:scale-[0.98]"
+              >
+                <Plus className="w-4 h-4 shrink-0" />
+                <span className="whitespace-nowrap">Upload Research</span>
+              </button>
+            )}
+
+            {/* Sync + Refresh share a row: Refresh is just an icon button, not its own full-width row */}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              {isOwner && (
                 <button
                   disabled={isSyncing}
                   onClick={handleScholarSync}
-                  className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-[#475569] bg-white border border-[#E2E8F0] hover:bg-slate-50 transition-all px-4.5 py-2.5 rounded-[16px] active:scale-[0.98] disabled:opacity-50"
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 text-xs font-bold text-[#475569] bg-white border border-[#E2E8F0] hover:bg-slate-50 transition-all px-4 sm:px-4.5 py-2.5 rounded-[14px] sm:rounded-[16px] active:scale-[0.98] disabled:opacity-50"
                 >
-                  <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                  <span>Import Google Scholar</span>
+                  <RefreshCw className={`w-4 h-4 shrink-0 ${isSyncing ? 'animate-spin' : ''}`} />
+                  <span className="whitespace-nowrap">Sync Google Scholar</span>
                 </button>
-              </>
-            )}
-            <button
-              onClick={() => {
-                refetch();
-                toast.success('Publications refreshed!');
-              }}
-              className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-[#475569] bg-white border border-[#E2E8F0] hover:bg-slate-50 transition-all p-2.5 rounded-[16px]"
-              title="Refresh List"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
+              )}
+              <button
+                onClick={() => {
+                  refetch();
+                  toast.success('Publications refreshed!');
+                }}
+                className="shrink-0 inline-flex items-center justify-center text-[#475569] bg-white border border-[#E2E8F0] hover:bg-slate-50 hover:text-[#2563EB] transition-all w-[42px] h-[42px] rounded-[14px] sm:rounded-[16px] active:scale-[0.98]"
+                title="Refresh List"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
 
         {/* 2. Top Statistics Cards */}
         {isOwner && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-9 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-9 gap-2.5 sm:gap-3">
             {displayStats.filter(m => Number(m.value || 0) > 0).map((m, idx) => {
               const Icon = m.icon;
               return (
                 <motion.div 
                   key={idx}
                   whileHover={{ y: -1 }}
-                  className="bg-white p-3.5 rounded-[16px] border border-[#E2E8F0] flex flex-col justify-between min-h-[95px] shadow-[0_2px_4px_rgba(0,0,0,0.02)]"
+                  className="bg-white p-3 sm:p-3.5 rounded-[14px] sm:rounded-[16px] border border-[#E2E8F0] flex flex-col justify-between min-h-[85px] sm:min-h-[95px] shadow-[0_2px_4px_rgba(0,0,0,0.02)]"
                 >
                   <div className="flex items-center justify-between gap-1">
                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider line-clamp-1">{m.label}</span>
@@ -562,100 +566,108 @@ const PublicationsLibraryPage = () => {
 
         {/* 3. Navigation Tabs (Drafts, Published, Bookmarks, Trash) */}
         {isOwner && (
-          <div className="border-b border-[#E2E8F0] flex flex-wrap gap-2 pt-2">
-            {[
-              { id: 'all', label: 'All Output', count: stats?.totalPublications },
-              { id: 'published', label: 'Published', count: stats?.published },
-              { id: 'draft', label: 'Drafts', count: stats?.drafts },
-              { id: 'bookmarks', label: 'Bookmarks', count: stats?.bookmarks },
-              { id: 'trash', label: 'Trash', count: trashCount }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => handleTabChange(tab.id)}
-                className={`pb-3 px-4 text-xs font-bold transition-all relative border-b-2 ${
-                  filterStatus === tab.id
-                    ? 'border-[#2563EB] text-[#2563EB]'
-                    : 'border-transparent text-[#475569] hover:text-[#0F172A]'
-                }`}
-              >
-                <div className="flex items-center gap-1.5">
-                  <span>{tab.label}</span>
-                  {tab.count !== undefined && (
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
-                      filterStatus === tab.id 
-                        ? 'bg-blue-50 text-blue-600' 
-                        : 'bg-slate-100 text-slate-500'
-                    }`}>
-                      {tab.count}
-                    </span>
-                  )}
-                </div>
-              </button>
-            ))}
+          <div className="pb-1">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+              {[
+                { id: 'all', label: 'All Output', count: stats?.totalPublications },
+                { id: 'published', label: 'Published', count: stats?.published },
+                { id: 'draft', label: 'Drafts', count: stats?.drafts },
+                { id: 'bookmarks', label: 'Bookmarks', count: stats?.bookmarks },
+                { id: 'trash', label: 'Trash', count: trashCount }
+              ].map((tab, idx, arr) => {
+                const isLastOdd = arr.length % 2 !== 0 && idx === arr.length - 1;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleTabChange(tab.id)}
+                    className={`whitespace-nowrap rounded-[14px] sm:rounded-full px-3.5 py-2.5 sm:py-1.5 text-xs font-bold transition-all border ${isLastOdd ? 'col-span-2' : ''} sm:w-auto ${
+                      filterStatus === tab.id
+                        ? 'bg-[#2563EB] border-[#2563EB] text-white shadow-sm'
+                        : 'bg-white border-[#E2E8F0] text-[#475569] hover:border-slate-300 hover:text-[#0F172A]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center sm:justify-start gap-1.5">
+                      <span>{tab.label}</span>
+                      {tab.count !== undefined && (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
+                          filterStatus === tab.id 
+                            ? 'bg-white/20 text-white' 
+                            : 'bg-slate-100 text-slate-500'
+                        }`}>
+                          {tab.count}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 
         {/* 4. Toolbar: Search, Filters & Toggles */}
-        <div className="bg-white border border-[#E2E8F0] rounded-[16px] p-4 shadow-[0_2px_4px_rgba(0,0,0,0.01)] flex flex-col gap-4 md:flex-row md:items-center justify-between">
-          <div className="flex flex-wrap items-center gap-2 flex-grow">
+        <div className="bg-white border border-[#E2E8F0] rounded-[16px] p-3 sm:p-4 shadow-[0_2px_4px_rgba(0,0,0,0.01)] flex flex-col gap-3 md:flex-row md:items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 flex-grow min-w-0">
             {/* Search Input */}
-            <div className="relative flex-grow max-w-xs">
+            <div className="relative w-full sm:w-auto sm:flex-grow sm:max-w-xs">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search Title, DOI, Keyword, Author..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 rounded-[16px] border border-[#E2E8F0] text-xs focus:outline-none focus:ring-2 focus:ring-[#2563EB] text-[#0F172A]"
+                className="w-full pl-9 pr-4 py-2.5 sm:py-2 rounded-[14px] sm:rounded-[16px] border border-[#E2E8F0] text-xs focus:outline-none focus:ring-2 focus:ring-[#2563EB] text-[#0F172A]"
               />
             </div>
 
-            {/* Filter: Publication Type */}
-            <select
-              value={filterType}
-              onChange={(e) => { setFilterType(e.target.value); setPage(1); }}
-              className="px-3 py-2 rounded-[16px] border border-[#E2E8F0] text-xs font-semibold focus:outline-none text-slate-700 bg-white"
-            >
-              <option value="all">All Formats</option>
-              <option value="article">Articles</option>
-              <option value="journal-paper">Journal Papers</option>
-              <option value="book">Books</option>
-              <option value="conference-paper">Conference Papers</option>
-              <option value="patent">Patents</option>
-              <option value="preprint">Preprints</option>
-            </select>
+            {/* Filters row: wraps on mobile so every filter stays visible without needing to swipe */}
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              {/* Filter: Publication Type */}
+              <select
+                value={filterType}
+                onChange={(e) => { setFilterType(e.target.value); setPage(1); }}
+                className="shrink-0 px-3 py-2.5 sm:py-2 rounded-[14px] sm:rounded-[16px] border border-[#E2E8F0] text-xs font-semibold focus:outline-none text-slate-700 bg-white"
+              >
+                <option value="all">All Formats</option>
+                <option value="article">Articles</option>
+                <option value="journal-paper">Journal Papers</option>
+                <option value="book">Books</option>
+                <option value="conference-paper">Conference Papers</option>
+                <option value="patent">Patents</option>
+                <option value="preprint">Preprints</option>
+              </select>
 
-            {/* Filter: Visibility */}
-            <select
-              value={filterVisibility}
-              onChange={(e) => { setFilterVisibility(e.target.value); setPage(1); }}
-              className="px-3 py-2 rounded-[16px] border border-[#E2E8F0] text-xs font-semibold focus:outline-none text-slate-700 bg-white"
-            >
-              <option value="all">All Visibility</option>
-              <option value="Public">Public</option>
-              <option value="Private">Private</option>
-              <option value="Institution Only">Institution Only</option>
-            </select>
+              {/* Filter: Visibility */}
+              <select
+                value={filterVisibility}
+                onChange={(e) => { setFilterVisibility(e.target.value); setPage(1); }}
+                className="shrink-0 px-3 py-2.5 sm:py-2 rounded-[14px] sm:rounded-[16px] border border-[#E2E8F0] text-xs font-semibold focus:outline-none text-slate-700 bg-white"
+              >
+                <option value="all">All Visibility</option>
+                <option value="Public">Public</option>
+                <option value="Private">Private</option>
+                <option value="Institution Only">Institution Only</option>
+              </select>
 
-            {/* Year Selector */}
-            <select
-              value={filterYear}
-              onChange={(e) => { setFilterYear(e.target.value); setPage(1); }}
-              className="px-3 py-2 rounded-[16px] border border-[#E2E8F0] text-xs font-semibold focus:outline-none text-slate-700 bg-white"
-            >
-              <option value="all">All Years</option>
-              {Array.from({ length: 15 }, (_, i) => new Date().getFullYear() - i).map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
+              {/* Year Selector */}
+              <select
+                value={filterYear}
+                onChange={(e) => { setFilterYear(e.target.value); setPage(1); }}
+                className="shrink-0 px-3 py-2.5 sm:py-2 rounded-[14px] sm:rounded-[16px] border border-[#E2E8F0] text-xs font-semibold focus:outline-none text-slate-700 bg-white"
+              >
+                <option value="all">All Years</option>
+                {Array.from({ length: 15 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* View Toggles */}
-          <div className="flex items-center gap-1.5 pt-3 border-t border-slate-100 md:pt-0 md:border-t-0 shrink-0">
+          <div className="flex items-center justify-center sm:justify-start gap-1.5 pt-3 border-t border-slate-100 md:pt-0 md:border-t-0 shrink-0">
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-lg border transition-colors ${
+              className={`flex-1 sm:flex-none flex items-center justify-center p-2.5 sm:p-2 rounded-lg border transition-colors ${
                 viewMode === 'grid' ? 'bg-blue-50 border-blue-200 text-[#2563EB]' : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600'
               }`}
               title="Grid View"
@@ -664,7 +676,7 @@ const PublicationsLibraryPage = () => {
             </button>
             <button
               onClick={() => setViewMode('card')}
-              className={`p-2 rounded-lg border transition-colors ${
+              className={`flex-1 sm:flex-none flex items-center justify-center p-2.5 sm:p-2 rounded-lg border transition-colors ${
                 viewMode === 'card' ? 'bg-blue-50 border-blue-200 text-[#2563EB]' : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600'
               }`}
               title="Card View"
@@ -673,7 +685,7 @@ const PublicationsLibraryPage = () => {
             </button>
             <button
               onClick={() => setViewMode('table')}
-              className={`p-2 rounded-lg border transition-colors ${
+              className={`flex-1 sm:flex-none flex items-center justify-center p-2.5 sm:p-2 rounded-lg border transition-colors ${
                 viewMode === 'table' ? 'bg-blue-50 border-blue-200 text-[#2563EB]' : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600'
               }`}
               title="Table View"
@@ -813,8 +825,8 @@ const PublicationsLibraryPage = () => {
                       </div>
 
                       {/* Card Actions Footer */}
-                      <div className="border-t border-[#E2E8F0] pt-4 mt-5 flex items-center justify-between gap-2 text-xs">
-                        <div className="flex items-center gap-1">
+                      <div className="border-t border-[#E2E8F0] pt-4 mt-5 flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <div className="flex flex-wrap items-center gap-1">
                           <button
                             onClick={() => handleReadClick(pub)}
                             className="text-xs font-bold text-[#2563EB] bg-blue-50/80 hover:bg-blue-50 px-3.5 py-1.5 rounded-[12px]"
@@ -946,14 +958,14 @@ const PublicationsLibraryPage = () => {
                       </div>
 
                       {/* Right Hand Actions */}
-                      <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end border-t border-slate-100 md:border-t-0 pt-3 md:pt-0 shrink-0">
+                      <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-between md:justify-end border-t border-slate-100 md:border-t-0 pt-3 md:pt-0 shrink-0">
                         {/* Stats mini */}
                         <div className="flex gap-2.5 text-[10px] text-[#475569] font-bold">
                           <span>{pub.views || 0} Reads</span>
                           <span>{pub.downloads || 0} DLs</span>
                         </div>
                         
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex flex-wrap items-center gap-1.5">
                           <button
                             onClick={() => handleReadClick(pub)}
                             className="text-xs font-bold text-[#2563EB] bg-blue-50/80 px-3 py-1.5 rounded-[12px] hover:bg-blue-50"
@@ -1007,6 +1019,9 @@ const PublicationsLibraryPage = () => {
             {/* Table View Mode (Highly Detailed Grid list) */}
             {viewMode === 'table' && (
               <div className="bg-white border border-[#E2E8F0] rounded-[16px] overflow-hidden shadow-xs">
+                <p className="sm:hidden text-[10px] font-bold text-slate-400 px-4 pt-3 flex items-center gap-1">
+                  <ChevronLeft className="w-3 h-3" /><ChevronRight className="w-3 h-3 -ml-2" /> Swipe sideways to see all columns
+                </p>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs text-left">
                     <thead className="bg-[#F8FAFC] text-[#475569] font-bold uppercase tracking-wider border-b border-[#E2E8F0]">
@@ -1087,8 +1102,8 @@ const PublicationsLibraryPage = () => {
 
             {/* Pagination Component */}
             {totalPages > 1 && (
-              <div className="flex justify-between items-center bg-white border border-[#E2E8F0] rounded-[16px] p-4 shadow-xs">
-                <span className="text-xs text-[#475569] font-bold">
+              <div className="flex flex-col sm:flex-row gap-3 justify-between items-center bg-white border border-[#E2E8F0] rounded-[16px] p-4 shadow-xs">
+                <span className="text-xs text-[#475569] font-bold text-center sm:text-left">
                   Showing Page {page} of {totalPages} ({totalPubs} Total publications)
                 </span>
                 
@@ -1096,14 +1111,14 @@ const PublicationsLibraryPage = () => {
                   <button
                     disabled={page === 1}
                     onClick={() => setPage(p => Math.max(p - 1, 1))}
-                    className="p-2 border border-[#E2E8F0] bg-white rounded-xl hover:bg-slate-50 disabled:opacity-50 text-[#475569]"
+                    className="p-2.5 sm:p-2 border border-[#E2E8F0] bg-white rounded-xl hover:bg-slate-50 disabled:opacity-50 text-[#475569]"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                   <button
                     disabled={page === totalPages}
                     onClick={() => setPage(p => Math.min(p + 1, totalPages))}
-                    className="p-2 border border-[#E2E8F0] bg-white rounded-xl hover:bg-slate-50 disabled:opacity-50 text-[#475569]"
+                    className="p-2.5 sm:p-2 border border-[#E2E8F0] bg-white rounded-xl hover:bg-slate-50 disabled:opacity-50 text-[#475569]"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
@@ -1116,23 +1131,34 @@ const PublicationsLibraryPage = () => {
 
         {/* 6. Sticky Floating Bulk Actions Drawer */}
         {isOwner && selectedIds.length > 0 && (
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-800 text-white px-6 py-4 rounded-[16px] shadow-2xl flex flex-wrap items-center justify-between gap-6 z-40 max-w-4xl w-[90%] animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="flex items-center gap-2 shrink-0">
-              <CheckSquare className="w-5 h-5 text-blue-500" />
-              <span className="text-xs font-bold uppercase tracking-wider">{selectedIds.length} Publications Selected</span>
+          <div className="fixed bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-800 text-white rounded-[16px] shadow-2xl z-40 max-w-4xl w-[95%] sm:w-[90%] overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
+            {/* Count + close row (always visible, own row on mobile) */}
+            <div className="flex items-center justify-between gap-3 px-4 sm:px-6 pt-3 sm:pt-4 pb-2 sm:pb-0">
+              <div className="flex items-center gap-2 shrink-0">
+                <CheckSquare className="w-5 h-5 text-blue-500" />
+                <span className="text-xs font-bold uppercase tracking-wider">{selectedIds.length} Selected</span>
+              </div>
+              <button 
+                onClick={() => setSelectedIds([])} 
+                className="sm:hidden p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors"
+                title="Cancel selection"
+              >
+                <X className="w-4.5 h-4.5" />
+              </button>
             </div>
             
-            <div className="flex flex-wrap items-center gap-3.5">
+            {/* Actions row: wraps on mobile so every action button stays visible without needing to swipe */}
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3.5 px-4 sm:px-6 pb-3 sm:py-4 sm:pt-0 max-h-[45vh] overflow-y-auto">
               <button 
                 onClick={() => handleBulkActionExecute('publish')} 
-                className="text-xs font-bold bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-3.5 py-2 rounded-xl transition-all active:scale-[0.98]"
+                className="shrink-0 whitespace-nowrap text-xs font-bold bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-3.5 py-2 rounded-xl transition-all active:scale-[0.98]"
               >
                 Publish
               </button>
               
               <button 
                 onClick={() => handleBulkActionExecute('move-draft')} 
-                className="text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white px-3.5 py-2 rounded-xl transition-all active:scale-[0.98]"
+                className="shrink-0 whitespace-nowrap text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white px-3.5 py-2 rounded-xl transition-all active:scale-[0.98]"
               >
                 Move Draft
               </button>
@@ -1141,13 +1167,13 @@ const PublicationsLibraryPage = () => {
                 <>
                   <button 
                     onClick={() => handleBulkActionExecute('restore')} 
-                    className="text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl transition-all active:scale-[0.98]"
+                    className="shrink-0 whitespace-nowrap text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl transition-all active:scale-[0.98]"
                   >
                     Restore
                   </button>
                   <button 
                     onClick={() => handleBulkActionExecute('permanent-delete')} 
-                    className="text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-2 rounded-xl transition-all active:scale-[0.98]"
+                    className="shrink-0 whitespace-nowrap text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-2 rounded-xl transition-all active:scale-[0.98]"
                   >
                     Delete Permanently
                   </button>
@@ -1155,7 +1181,7 @@ const PublicationsLibraryPage = () => {
               ) : (
                 <button 
                   onClick={() => handleBulkActionExecute('delete')} 
-                  className="text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-2 rounded-xl transition-all active:scale-[0.98]"
+                  className="shrink-0 whitespace-nowrap text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-2 rounded-xl transition-all active:scale-[0.98]"
                   title="Move to Trash"
                 >
                   Move Trash
@@ -1163,7 +1189,7 @@ const PublicationsLibraryPage = () => {
               )}
 
               {/* Bulk Visibility Changer */}
-              <div className="flex items-center gap-1 border border-slate-700 rounded-xl px-2.5 py-1 bg-slate-850">
+              <div className="shrink-0 flex items-center gap-1 border border-slate-700 rounded-xl px-2.5 py-1 bg-slate-850">
                 <select 
                   value={bulkVisibility}
                   onChange={(e) => setBulkVisibility(e.target.value)}
@@ -1175,7 +1201,7 @@ const PublicationsLibraryPage = () => {
                 </select>
                 <button 
                   onClick={() => handleBulkActionExecute('update-visibility')}
-                  className="text-[10px] bg-slate-800 hover:bg-slate-750 font-black px-2 py-1 rounded"
+                  className="text-[10px] bg-slate-800 hover:bg-slate-750 font-black px-2 py-1 rounded whitespace-nowrap"
                 >
                   Apply
                 </button>
@@ -1183,14 +1209,14 @@ const PublicationsLibraryPage = () => {
 
               <button 
                 onClick={handleBulkCSVExport} 
-                className="text-xs font-bold bg-slate-800 hover:bg-slate-750 text-slate-350 px-3.5 py-2 rounded-xl border border-slate-700"
+                className="shrink-0 whitespace-nowrap text-xs font-bold bg-slate-800 hover:bg-slate-750 text-slate-350 px-3.5 py-2 rounded-xl border border-slate-700"
               >
                 Export Selected
               </button>
 
               <button 
                 onClick={() => setSelectedIds([])} 
-                className="p-2 text-slate-400 hover:text-white rounded-lg transition-colors"
+                className="hidden sm:block shrink-0 p-2 text-slate-400 hover:text-white rounded-lg transition-colors"
                 title="Cancel selection"
               >
                 <X className="w-4.5 h-4.5" />
@@ -1342,35 +1368,35 @@ const PublicationsLibraryPage = () => {
       {/* Reader Modal Overlay */}
       <AnimatePresence>
         {activeReadPub && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-md p-4 sm:p-6 lg:p-10">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-md p-0 sm:p-6 lg:p-10">
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               transition={{ type: 'spring', damping: 25, stiffness: 250 }}
-              className="bg-slate-50 w-full max-w-7xl h-[85vh] rounded-3xl overflow-hidden shadow-2xl flex flex-col border border-slate-200 relative text-left"
+              className="bg-slate-50 w-full max-w-7xl h-[100dvh] sm:h-[85vh] rounded-none sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col border-0 sm:border border-slate-200 relative text-left"
             >
               {/* Reader Header bar */}
-              <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
-                <div className="space-y-1">
+              <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
+                <div className="space-y-1 min-w-0">
                   <span className="inline-flex items-center text-[9px] font-extrabold tracking-wider uppercase bg-blue-50 text-blue-600 px-2.5 py-0.5 rounded">
                     {activeReadPub.publicationType || 'RESEARCH ARTICLE'}
                   </span>
-                  <h2 className="text-sm sm:text-base font-extrabold text-slate-900 truncate max-w-2xl" title={activeReadPub.title}>
+                  <h2 className="text-xs sm:text-base font-extrabold text-slate-900 truncate max-w-[70vw] sm:max-w-2xl" title={activeReadPub.title}>
                     {activeReadPub.title}
                   </h2>
                 </div>
                 <button
                   onClick={() => setActiveReadPub(null)}
-                  className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-all"
+                  className="shrink-0 p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-all"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               {/* Main Content Areas */}
-              <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                <div className="lg:col-span-2 h-full min-h-[450px]">
+              <div className="flex-1 min-h-0 flex flex-col overflow-hidden lg:grid lg:grid-cols-3 lg:gap-6 lg:p-6 lg:items-start lg:overflow-y-auto">
+                <div className="h-[58dvh] sm:h-[62dvh] shrink-0 p-3 sm:p-4 lg:p-0 lg:h-full lg:min-h-[450px] lg:shrink lg:col-span-2">
                   {activeReadPub.pdfUrl ? (
                     <PDFReader
                       title={activeReadPub.title}
@@ -1392,8 +1418,8 @@ const PublicationsLibraryPage = () => {
                   )}
                 </div>
 
-                {/* Right Column: Metadata Details */}
-                <div className="lg:col-span-1 space-y-6">
+                {/* Right Column: Metadata Details - its own independent scroll region on mobile */}
+                <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 space-y-6 lg:p-0 lg:overflow-visible lg:col-span-1">
                   <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-6">
                     {/* Authors */}
                     <div className="space-y-2">

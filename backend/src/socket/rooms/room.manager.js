@@ -15,6 +15,9 @@ class RoomManager {
     ];
 
     rooms.forEach((room) => {
+      if (socket.rooms && socket.rooms.has(room)) {
+        return;
+      }
       socket.join(room);
       logger.info(`🏠 Socket ${socket.id} joined personal room: ${room}`);
     });
@@ -26,6 +29,9 @@ class RoomManager {
   joinConversation(socket, conversationId) {
     if (!conversationId) return;
     const roomId = `conversation:${conversationId}`;
+    if (socket.rooms && socket.rooms.has(roomId)) {
+      return;
+    }
     socket.join(roomId);
     logger.info(`💬 Socket ${socket.id} joined conversation room: ${roomId}`);
   }
