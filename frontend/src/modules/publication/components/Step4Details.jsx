@@ -144,7 +144,7 @@ const Step4Details = ({ formData, onChange, currentUser }) => {
     <div className="space-y-8 max-w-4xl mx-auto text-left text-slate-800">
       
       {/* 1. Core Metadata */}
-      <section className="bg-white p-6 rounded-2xl border border-slate-200 space-y-4">
+      <section className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 space-y-4">
         <h3 className="font-extrabold text-sm text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
           <FileText className="w-4 h-4 text-blue-600" />
           <span>Core Metadata</span>
@@ -220,7 +220,7 @@ const Step4Details = ({ formData, onChange, currentUser }) => {
       </section>
 
       {/* 2. Authors Management */}
-      <section className="bg-white p-6 rounded-2xl border border-slate-200 space-y-4">
+      <section className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 space-y-4">
         <h3 className="font-extrabold text-sm text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
           <User className="w-4 h-4 text-blue-600" />
           <span>Authors & Order</span>
@@ -325,7 +325,7 @@ const Step4Details = ({ formData, onChange, currentUser }) => {
       </section>
 
       {/* 3. Venue & Identifiers */}
-      <section className="bg-white p-6 rounded-2xl border border-slate-200 space-y-4">
+      <section className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 space-y-4">
         <h3 className="font-extrabold text-sm text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
           <Building2 className="w-4 h-4 text-blue-600" />
           <span>Publishing Venue & Identifiers</span>
@@ -454,46 +454,46 @@ const Step4Details = ({ formData, onChange, currentUser }) => {
                 className="w-full px-2.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none text-slate-950"
               />
             </div>
+          </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">License</label>
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">License</label>
+            <input
+              type="text"
+              value={formData.license || ''}
+              onChange={(e) => handleInputChange('license', e.target.value)}
+              placeholder="e.g. CC BY 4.0"
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent text-slate-950"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Funding Information</label>
+            <input
+              type="text"
+              value={formData.funding || ''}
+              onChange={(e) => handleInputChange('funding', e.target.value)}
+              placeholder="e.g. NIH Grant #12345"
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent text-slate-950"
+            />
+          </div>
+
+          <div className="flex items-center">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
               <input
-                type="text"
-                value={formData.license || ''}
-                onChange={(e) => handleInputChange('license', e.target.value)}
-                placeholder="e.g. CC BY 4.0"
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent text-slate-950"
+                type="checkbox"
+                checked={!!formData.openAccess}
+                onChange={(e) => handleInputChange('openAccess', e.target.checked)}
+                className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
               />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Funding Information</label>
-              <input
-                type="text"
-                value={formData.funding || ''}
-                onChange={(e) => handleInputChange('funding', e.target.value)}
-                placeholder="e.g. NIH Grant #12345"
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent text-slate-950"
-              />
-            </div>
-
-            <div className="flex items-center pt-6">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={!!formData.openAccess}
-                  onChange={(e) => handleInputChange('openAccess', e.target.checked)}
-                  className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
-                />
-                <span className="text-xs font-bold text-slate-700">Open Access Publication</span>
-              </label>
-            </div>
+              <span className="text-xs font-bold text-slate-700">Open Access Publication</span>
+            </label>
           </div>
         </div>
       </section>
 
       {/* 4. Research Area, Keywords & Visibility */}
-      <section className="bg-white p-6 rounded-2xl border border-slate-200 space-y-5">
+      <section className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 space-y-5">
         <h3 className="font-extrabold text-sm text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
           <Tag className="w-4 h-4 text-blue-600" />
           <span>Taxonomies & Visibility</span>
