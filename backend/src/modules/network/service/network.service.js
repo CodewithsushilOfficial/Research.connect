@@ -59,10 +59,22 @@ class NetworkService {
    */
   async getSuggestions(userId, queryOptions) {
     const { limit = 6, page = 1 } = queryOptions;
-    return await followService.getSuggestions(userId, {
+    const result = await followService.getSuggestions(userId, {
       limit: Number(limit),
       page: Number(page)
     });
+
+    // Attach live connection status (none | pending_sent | pending_received | connected)
+    // so the UI can hide/replace the Connect button for users who already have
+    // a request sent, received, or accepted.
+    for (const item of result.docs) {
+      const statusInfo = await connectionsService.getConnectionStatus(userId, item.user._id);
+      item.connectionStatus = statusInfo.status;
+      item.requestId = statusInfo.requestId;
+      item.connectionId = statusInfo.connectionId;
+    }
+
+    return result;
   }
 
   /**
