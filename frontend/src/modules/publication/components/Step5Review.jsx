@@ -133,12 +133,12 @@ const Step5Review = ({ formData, fileDetails }) => {
 
         {/* File Section */}
         {fileDetails?.secure_url ? (
-          <div className="border-t border-slate-100 pt-4 flex items-center justify-between bg-slate-50/50 rounded-xl p-3.5">
-            <div className="flex items-center gap-3">
-              <span className="p-2.5 rounded-lg bg-blue-50 text-blue-600">
+          <div className="border-t border-slate-100 pt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-slate-50/50 rounded-xl p-3.5">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="p-2.5 rounded-lg bg-blue-50 text-blue-600 shrink-0">
                 <FileText className="w-5 h-5" />
               </span>
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs font-bold text-slate-900 truncate max-w-[200px] sm:max-w-md">
                   {fileDetails.originalName || 'uploaded_document'}
                 </p>
@@ -151,7 +151,7 @@ const Step5Review = ({ formData, fileDetails }) => {
               href={fileDetails.secure_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:underline"
+              className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:underline shrink-0 whitespace-nowrap self-start sm:self-auto"
             >
               <Eye className="w-3.5 h-3.5" />
               <span>Preview Link</span>

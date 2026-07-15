@@ -276,11 +276,20 @@ const PublicationCreatePage = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-65px)] bg-slate-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto space-y-6">
-        
+    <div className="min-h-[calc(100vh-65px)] bg-slate-50 py-5 sm:py-8 px-3 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
+
+        {/* Back Navigation */}
+        <button
+          onClick={() => navigate('/publications')}
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors py-1 -ml-1 px-1"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to Publications</span>
+        </button>
+
         {/* Step Indicator / Stepper */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
+        <div className="bg-white border border-slate-200 rounded-2xl p-3.5 sm:p-5 shadow-xs">
           <div className="flex items-center justify-between">
             {STEPS.map((s, idx) => {
               const currentIdx = idx + 1;
@@ -326,7 +335,7 @@ const PublicationCreatePage = () => {
         </div>
 
         {/* Wizard Step Render */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm min-h-[350px] flex flex-col justify-between">
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-sm min-h-[350px] flex flex-col justify-between">
           <div className="flex-grow">
             <AnimatePresence mode="wait">
               <motion.div
@@ -374,27 +383,27 @@ const PublicationCreatePage = () => {
           </div>
 
           {/* Stepper Footer Action Buttons */}
-          <div className="flex justify-between items-center border-t border-slate-100 pt-5 mt-6 gap-3">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center border-t border-slate-100 pt-5 mt-6 gap-3">
             {step > 1 ? (
               <button
                 type="button"
                 onClick={handleBack}
-                className="inline-flex items-center gap-1 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors px-4 py-2.5 rounded-xl active:scale-[0.98]"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-1 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors px-4 py-2.5 rounded-xl active:scale-[0.98] order-2 sm:order-1"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Back</span>
               </button>
             ) : (
-              <div />
+              <div className="hidden sm:block" />
             )}
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto order-1 sm:order-2">
               {step > 3 && (
                 <button
                   type="button"
                   disabled={isSavingDraft || isSubmitting}
                   onClick={handleSaveDraft}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50/60 hover:bg-blue-50 border border-blue-200 px-4 py-2.5 rounded-xl transition-all disabled:opacity-50 active:scale-[0.98]"
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50/60 hover:bg-blue-50 border border-blue-200 px-4 py-2.5 rounded-xl transition-all disabled:opacity-50 active:scale-[0.98]"
                 >
                   {isSavingDraft ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   <span>Save Draft</span>
@@ -406,7 +415,7 @@ const PublicationCreatePage = () => {
                   type="button"
                   disabled={isSubmitting || isSavingDraft}
                   onClick={handlePublish}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-750 text-white px-5 py-2.5 rounded-xl transition-all shadow-md shadow-blue-600/10 disabled:opacity-50 active:scale-[0.98]"
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-750 text-white px-5 py-2.5 rounded-xl transition-all shadow-md shadow-blue-600/10 disabled:opacity-50 active:scale-[0.98]"
                 >
                   {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   <span>Publish Research</span>
@@ -415,7 +424,7 @@ const PublicationCreatePage = () => {
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-750 text-white px-5 py-2.5 rounded-xl transition-all shadow-md shadow-blue-600/10 active:scale-[0.98]"
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-750 text-white px-5 py-2.5 rounded-xl transition-all shadow-md shadow-blue-600/10 active:scale-[0.98]"
                 >
                   <span>Review Details</span>
                   <ArrowRight className="w-4 h-4" />
@@ -428,7 +437,7 @@ const PublicationCreatePage = () => {
                     (step === 2 && !formData.publicationFormat)
                   }
                   onClick={handleNext}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-750 text-white px-5 py-2.5 rounded-xl transition-all shadow-md shadow-blue-600/10 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-750 text-white px-5 py-2.5 rounded-xl transition-all shadow-md shadow-blue-600/10 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
                 >
                   <span>Continue</span>
                   <ArrowRight className="w-4 h-4" />
