@@ -43,7 +43,11 @@ const ProfileSidebar = ({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobile
   const { username } = useParams();
   const { user } = useSelector((state) => state.auth);
 
-  const profileSlug = username || user?.slug || user?.profileSlug || 'me';
+  const ownSlug = user?.slug || user?.profileSlug || user?.username || 'me';
+
+  // Sidebar nav always points to the logged-in user's own pages,
+  // never the profile currently being viewed.
+  const profileSlug = ownSlug;
 
   const sections = NAV_SECTIONS.map((section) => ({
     ...section,
