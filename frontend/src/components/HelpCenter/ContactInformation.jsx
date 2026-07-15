@@ -10,26 +10,34 @@ const ContactInformation = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    let isCurrent = true;
     const fetchContactInfo = async () => {
       try {
         const response = await helpService.getContactInfo();
-        if (response) {
-          if (response.success && response.data) {
-            setContactInfo(response.data);
+        if (isCurrent) {
+          if (response) {
+            if (response.success && response.data) {
+              setContactInfo(response.data);
+            } else {
+              // Support both standard envelope and direct raw data response formats
+              setContactInfo(response);
+            }
           } else {
-            // Support both standard envelope and direct raw data response formats
-            setContactInfo(response);
+            setError('Failed to load contact information. Please try again.');
           }
-        } else {
-          setError('Failed to load contact information. Please try again.');
+          setLoading(false);
         }
       } catch (err) {
-        setError('Failed to load contact information. Please try again.');
-      } finally {
-        setLoading(false);
+        if (isCurrent) {
+          setError('Failed to load contact information. Please try again.');
+          setLoading(false);
+        }
       }
     };
     fetchContactInfo();
+    return () => {
+      isCurrent = false;
+    };
   }, []);
 
   if (loading) {
