@@ -56,4 +56,15 @@ const reviewApplicationValidator = [
   handleValidationErrors
 ];
 
-module.exports = { createProjectValidator, updateProjectValidator, projectIdValidator, listProjectsValidator, applyToProjectValidator, reviewApplicationValidator };
+module.exports = { 
+  validate: handleValidationErrors,
+  createProjectRules: createProjectValidator,
+  updateProjectRules: updateProjectValidator,
+  listProjectsRules: listProjectsValidator,
+  createProjectValidator, 
+  updateProjectValidator, 
+  projectIdValidator, 
+  listProjectsValidator, 
+  applyToProjectValidator, 
+  reviewApplicationValidator 
+};
