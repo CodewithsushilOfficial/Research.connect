@@ -5,7 +5,7 @@ import { updateToken, logoutSuccess } from '../redux/slices/authSlice';
 
 // Use the backend url with suffix 'api' since in backend all routes are defined with prefix 'api'
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'  || '/api', 
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api' || '/api', 
   timeout: 10000, // Enforce standard 10-second timeout
   withCredentials: true,
   headers: {
@@ -13,6 +13,25 @@ const axiosInstance = axios.create({
     'Accept': 'application/json'
   }
 });
+
+// --- FEATURE 1: RETRY CONFIGURATION ---
+const MAX_RETRIES = 3;
+const RETRY_DELAY_BASE = 1000; // 1 second base delay
+const IDEMPOTENT_METHODS = ['get', 'head', 'options', 'put', 'delete'];
+
+const shouldRetry = (error) => {
+  // Don't retry if the request was aborted/cancelled manually
+  if (axios.isCancel(error)) return false;
+  
+  // Retry on network errors or transient 5xx server errors
+  const status = error.response ? error.response.status : null;
+  const isNetworkOrTransient = !status || (status >= 500 && status <= 599);
+  
+  // Only retry idempotent methods to prevent duplicating side-effects (like POST)
+  const isIdempotent = error.config && IDEMPOTENT_METHODS.includes(error.config.method?.toLowerCase());
+  
+  return isNetworkOrTransient && isIdempotent;
+};
 
 // Request Deduplication and Abort tracking
 const pendingRequests = new Map();
@@ -46,6 +65,15 @@ const removePendingRequest = (config) => {
 // Request Interceptor
 axiosInstance.interceptors.request.use(
   (config) => {
+    // --- FEATURE 2: DEV LOGGING (REQUEST) ---
+    if (import.meta.env.DEV) {
+      console.log(`%c[Axios Request] [${config.method?.toUpperCase()}] %c${config.url}`, 'color: #3B82F6; font-weight: bold;', 'color: inherit;', {
+        params: config.params,
+        headers: config.headers,
+        data: config.data,
+      });
+    }
+
     // Abort duplicate requests
     addPendingRequest(config);
 
@@ -109,17 +137,52 @@ const showDeduplicatedError = (message, options) => {
 axiosInstance.interceptors.response.use(
   (response) => {
     removePendingRequest(response.config);
+
+    // --- FEATURE 2: DEV LOGGING (RESPONSE) ---
+    if (import.meta.env.DEV) {
+      console.log(`%c[Axios Response] %c${response.config.url}`, 'color: #10B981; font-weight: bold;', 'color: inherit;', response.data);
+    }
+
     // Return formatted data block directly for ease of use
     return response.data;
   },
   async (error) => {
-    if (error.config) {
-      removePendingRequest(error.config);
+    const originalRequest = error.config;
+
+    // --- FEATURE 2: DEV LOGGING (ERROR) ---
+    if (import.meta.env.DEV) {
+      console.error(`%c[Axios Error] %c${originalRequest?.url || 'Unknown URL'}`, 'color: #EF4444; font-weight: bold;', 'color: inherit;', error);
+    }
+
+    if (originalRequest) {
+      removePendingRequest(originalRequest);
     }
 
     // Check if request was aborted/cancelled
     if (axios.isCancel(error)) {
       return Promise.reject({ isCanceled: true, message: 'Request aborted.' });
+    }
+
+    // --- FEATURE 1: RETRY LOGIC WITH EXPONENTIAL BACKOFF ---
+    if (originalRequest && shouldRetry(error)) {
+      originalRequest._retryCount = originalRequest._retryCount || 0;
+
+      if (originalRequest._retryCount < MAX_RETRIES) {
+        originalRequest._retryCount += 1;
+        
+        // Calculate backoff delay: 1000ms, 2000ms, 4000ms, etc.
+        const delay = RETRY_DELAY_BASE * Math.pow(2, originalRequest._retryCount - 1);
+        
+        if (import.meta.env.DEV) {
+          console.warn(`[Axios Retry] Retrying request to ${originalRequest.url} (Attempt ${originalRequest._retryCount}/${MAX_RETRIES}) in ${delay}ms...`);
+        }
+
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            resolve(axiosInstance(originalRequest));
+          }, delay);
+        });
+      }
     }
 
     // Toast configuration
@@ -154,12 +217,11 @@ axiosInstance.interceptors.response.use(
       return Promise.reject(timeoutError);
     }
 
-    const originalRequest = error.config;
     const status = error.response ? error.response.status : null;
 
-    if (status === 401 && !originalRequest._retry) {
+    if (status === 401 && !originalRequest?._retry) {
       // If we are already on login page or attempting to refresh token, do not retry
-      if (window.location.pathname.includes('/login') || originalRequest.url.includes('/refresh-token')) {
+      if (window.location.pathname.includes('/login') || originalRequest?.url.includes('/refresh-token')) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('profile');
@@ -183,7 +245,9 @@ axiosInstance.interceptors.response.use(
         });
       }
 
-      originalRequest._retry = true;
+      if (originalRequest) {
+        originalRequest._retry = true;
+      }
       isRefreshing = true;
 
       return new Promise(function(resolve, reject) {
@@ -192,7 +256,9 @@ axiosInstance.interceptors.response.use(
             if (res.success && res.data?.accessToken) {
               const newToken = res.data.accessToken;
               store.dispatch(updateToken(newToken));
-              originalRequest.headers['Authorization'] = 'Bearer ' + newToken;
+              if (originalRequest) {
+                originalRequest.headers['Authorization'] = 'Bearer ' + newToken;
+              }
               processQueue(null, newToken);
               resolve(axiosInstance(originalRequest));
             } else {
