@@ -1,167 +1,439 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Check, Trash2, Eye, Circle, Mail, Users, FileText, Sparkles, MessageSquare, User } from 'lucide-react';
-import { toast } from 'react-hot-toast';
-import notificationsService from '../services/notifications.service';
-import UserAvatar from '../../../components/ui/Avatar';
+import {
+  BookOpen, AtSign, FileText, RefreshCw,
+  Clock, Trash2, CheckCheck, ExternalLink,
+  MessageCircle, UserCheck, Star,
+  CheckCircle2, AlertCircle, Info,
+  UserPlus, MessageSquare, Users, FolderOpen,
+} from 'lucide-react';
 
-const formatTimeAgo = (dateStr) => {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now - date;
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHr = Math.floor(diffMin / 60);
-  const diffDays = Math.floor(diffHr / 24);
-
-  if (diffSec < 60) return 'Just now';
-  if (diffMin < 60) return `${diffMin}m ago`;
-  if (diffHr < 24) return `${diffHr}h ago`;
-  return `${diffDays}d ago`;
+// ── Type visual map ───────────────────────────────────────────────────────────
+const TYPE_STYLES = {
+  citation: {
+    gradient:    'linear-gradient(135deg, #DBEAFE 0%, #EDE9FE 100%)',
+    icon:        BookOpen,
+    iconColor:   '#2563EB',
+    borderColor: '#3B82F6',
+    glowColor:   'rgba(37,99,235,0.15)',
+    badgeText:   'Citation',
+    badgeBg:     '#EFF6FF',
+    badgeColor:  '#2563EB',
+  },
+  mention: {
+    gradient:    'linear-gradient(135deg, #EDE9FE 0%, #F5F3FF 100%)',
+    icon:        AtSign,
+    iconColor:   '#4F46E5',
+    borderColor: '#6366F1',
+    glowColor:   'rgba(79,70,229,0.15)',
+    badgeText:   'Mention',
+    badgeBg:     '#F5F3FF',
+    badgeColor:  '#4F46E5',
+  },
+  review: {
+    gradient:    'linear-gradient(135deg, #FEF3C7 0%, #FEF9C3 100%)',
+    icon:        FileText,
+    iconColor:   '#D97706',
+    borderColor: '#F59E0B',
+    glowColor:   'rgba(245,158,11,0.15)',
+    badgeText:   'Peer Review',
+    badgeBg:     '#FFFBEB',
+    badgeColor:  '#D97706',
+  },
+  system: {
+    gradient:    'linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%)',
+    icon:        RefreshCw,
+    iconColor:   '#475569',
+    borderColor: '#94A3B8',
+    glowColor:   'rgba(71,85,105,0.10)',
+    badgeText:   'System',
+    badgeBg:     '#F8FAFC',
+    badgeColor:  '#64748B',
+  },
+  follow: {
+    gradient:    'linear-gradient(135deg, #FCE7F3 0%, #FBCFE8 100%)',
+    icon:        UserPlus,
+    iconColor:   '#DB2777',
+    borderColor: '#EC4899',
+    glowColor:   'rgba(219,39,119,0.15)',
+    badgeText:   'New Follower',
+    badgeBg:     '#FDF2F8',
+    badgeColor:  '#DB2777',
+  },
+  message: {
+    gradient:    'linear-gradient(135deg, #F3E8FF 0%, #E9D5FF 100%)',
+    icon:        MessageSquare,
+    iconColor:   '#7C3AED',
+    borderColor: '#8B5CF6',
+    glowColor:   'rgba(124,58,237,0.15)',
+    badgeText:   'Message',
+    badgeBg:     '#FAF5FF',
+    badgeColor:  '#7C3AED',
+  },
+  collab: {
+    gradient:    'linear-gradient(135deg, #CFFAFE 0%, #A5F3FC 100%)',
+    icon:        Users,
+    iconColor:   '#0891B2',
+    borderColor: '#06B6D4',
+    glowColor:   'rgba(8,145,178,0.15)',
+    badgeText:   'Collaboration',
+    badgeBg:     '#ECFEFF',
+    badgeColor:  '#0891B2',
+  },
+  project: {
+    gradient:    'linear-gradient(135deg, #E0F2FE 0%, #BAE6FD 100%)',
+    icon:        FolderOpen,
+    iconColor:   '#0284C7',
+    borderColor: '#0EA5E9',
+    glowColor:   'rgba(2,132,199,0.15)',
+    badgeText:   'Project',
+    badgeBg:     '#F0F9FF',
+    badgeColor:  '#0284C7',
+  },
 };
 
-const getNotificationIcon = (type) => {
-  const baseClass = "w-4 h-4";
-  if (type.startsWith('follow')) return <Sparkles className={`${baseClass} text-indigo-500`} />;
-  if (type.startsWith('connection')) return <Users className={`${baseClass} text-blue-500`} />;
-  if (type.startsWith('publication')) return <FileText className={`${baseClass} text-emerald-500`} />;
-  if (type.startsWith('comment') || type.startsWith('mention')) return <MessageSquare className={`${baseClass} text-pink-500`} />;
-  return <Mail className={`${baseClass} text-slate-400`} />;
+// ── Priority badge ─────────────────────────────────────────────────────────────
+const PRIORITY_STYLES = {
+  high:   { bg: '#FEF2F2', color: '#DC2626', icon: AlertCircle, label: 'High' },
+  medium: { bg: '#FFFBEB', color: '#D97706', icon: Info,         label: 'Med' },
+  low:    { bg: '#F0FDF4', color: '#16A34A', icon: CheckCircle2, label: 'Low' },
 };
 
-const NotificationCard = ({ notification }) => {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const { _id, actorId, title, message, isRead, createdAt, targetUrl } = notification;
+const PriorityBadge = ({ priority }) => {
+  const p = PRIORITY_STYLES[priority?.toLowerCase()] || PRIORITY_STYLES.low;
+  const PIcon = p.icon;
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
+      style={{ background: p.bg, color: p.color }}
+    >
+      <PIcon className="w-2.5 h-2.5" />
+      {p.label}
+    </span>
+  );
+};
 
-  const actorName = actorId ? `${actorId.firstName} ${actorId.lastName}` : 'Someone';
-  const actorImage = actorId?.profileImage;
-
-  // Mark read mutation
-  const markReadMutation = useMutation({
-    mutationFn: async () => {
-      return await notificationsService.markAsRead(_id);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['unreadCount'] });
-    }
+// ── Highlight text renderer ───────────────────────────────────────────────────
+const renderDescription = (text = '', highlights = []) => {
+  if (!highlights || highlights.length === 0) return text;
+  let parts = [text];
+  highlights.forEach((hl) => {
+    const newParts = [];
+    parts.forEach((part) => {
+      if (typeof part !== 'string') { newParts.push(part); return; }
+      const chunks = part.split(hl);
+      chunks.forEach((s, i) => {
+        newParts.push(s);
+        if (i < chunks.length - 1) {
+          newParts.push(
+            <span
+              key={`${hl}-${i}`}
+              className="inline-block px-1.5 py-0.5 rounded-md bg-[#DBEAFE] text-[#2563EB] font-semibold mx-0.5 text-[12px]"
+            >
+              {hl}
+            </span>
+          );
+        }
+      });
+    });
+    parts = newParts;
   });
+  return parts;
+};
 
-  // Delete mutation
-  const deleteMutation = useMutation({
-    mutationFn: async () => {
-      return await notificationsService.deleteNotification(_id);
-    },
-    onSuccess: () => {
-      toast.success('Notification deleted');
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['unreadCount'] });
-    }
-  });
+// ── Spring configs ─────────────────────────────────────────────────────────────
+const HOVER_SPRING  = { type: 'spring', stiffness: 400, damping: 22 };
+const LAYOUT_SPRING = { type: 'spring', stiffness: 300, damping: 25 };
 
-  const handleCardClick = () => {
-    if (!isRead) {
-      markReadMutation.mutate();
+// ── Main NotificationCard ─────────────────────────────────────────────────────
+const NotificationCard = ({ notification, index = 0, onDismiss, onMarkRead }) => {
+  const [isHovered, setIsHovered]       = useState(false);
+  const [bookmarked, setBookmarked]     = useState(false);
+  const navigate                         = useNavigate();
+
+  const style = TYPE_STYLES[notification.type] || TYPE_STYLES.system;
+  const Icon  = style.icon;
+
+  // ── Navigate on primary click ──────────────────────────────────────────────
+  const handlePrimaryClick = (e) => {
+    e.stopPropagation();
+    if (!notification.isRead && onMarkRead) {
+      onMarkRead(notification.id || notification._id);
     }
-    if (targetUrl) {
-      navigate(targetUrl);
+    let link = notification.targetUrl || notification.link;
+    if (!link) {
+      if (notification.targetType === 'User' || notification.originalType?.includes('connection') || notification.originalType === 'follow') {
+        const actor = notification.actorId;
+        const slug  = actor?.profileSlug || actor?.username || actor?._id || actor;
+        if (slug) link = `/profile/${slug}`;
+      } else if (notification.targetType === 'Publication') {
+        link = `/publications/${notification.targetId}`;
+      } else if (notification.targetType === 'Dataset') {
+        link = `/datasets/${notification.targetId}`;
+      } else if (notification.targetType === 'Project') {
+        link = `/projects/${notification.targetId}`;
+      }
     }
+    if (link && link !== '#') navigate(link);
   };
 
+  const handleMarkRead = (e) => {
+    e.stopPropagation();
+    if (onMarkRead) onMarkRead(notification.id || notification._id);
+  };
+
+  const handleDismiss = () => {
+    if (onDismiss) onDismiss(notification.id || notification._id);
+  };
+
+  // ── Avatar initials from actor ─────────────────────────────────────────────
+  const actorName = notification.actorId
+    ? `${notification.actorId.firstName || ''} ${notification.actorId.lastName || ''}`.trim()
+    : '';
+  const initials = actorName
+    ? actorName.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
+    : notification.type[0].toUpperCase();
+    
+  const rawImage = notification.actorId?.avatar || notification.actorId?.profileImage;
+  const avatarUrl = typeof rawImage === 'string' ? rawImage : rawImage?.url || null;
+
+  const [imgError, setImgError] = useState(false);
+
   return (
-    <div 
-      className={`p-4 border rounded-2xl transition-all duration-250 flex items-start justify-between gap-4 text-left relative overflow-hidden ${
-        isRead 
-          ? 'bg-white border-slate-200 hover:border-slate-350' 
-          : 'bg-blue-50/30 border-blue-100 hover:border-blue-200'
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 20, scale: 0.98 }}
+      animate={{
+        opacity: 1, y: 0, scale: 1,
+        transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1], delay: index * 0.06 },
+      }}
+      exit={{
+        opacity: 0, x: 60, height: 0,
+        marginBottom: 0, paddingTop: 0, paddingBottom: 0,
+        transition: { duration: 0.28, ease: [0.4, 0, 0.6, 1] },
+      }}
+      transition={{ layout: LAYOUT_SPRING }}
+      whileHover={{ scale: 1.012, y: -2 }}
+      onHoverStart={() => setIsHovered(true)}
+      onHoverEnd={() => setIsHovered(false)}
+      className={`relative w-full bg-white rounded-[20px] border overflow-hidden cursor-default ${
+        notification.isRead ? 'border-[#E2E8F0]' : 'border-[#BFDBFE]'
       }`}
+      style={{
+        boxShadow: isHovered
+          ? `0 12px 36px ${style.glowColor}, 0 2px 8px rgba(0,0,0,0.04)`
+          : '0 2px 8px rgba(15,23,42,0.04)',
+        transition: 'box-shadow 220ms ease',
+      }}
     >
-      {/* Unread indicator dot */}
-      {!isRead && (
-        <span className="absolute top-4 right-4 w-2.5 h-2.5 bg-blue-600 rounded-full" />
+      {/* Unread left accent */}
+      {!notification.isRead && (
+        <motion.div
+          className="absolute left-0 top-0 bottom-0 w-1 rounded-l-[20px]"
+          style={{
+            background: `linear-gradient(180deg, ${style.borderColor}, ${style.borderColor}60)`,
+          }}
+          initial={{ scaleY: 0 }}
+          animate={{ scaleY: 1 }}
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        />
       )}
 
-      <div className="flex gap-3.5 items-start cursor-pointer flex-1 min-w-0" onClick={handleCardClick}>
-        {/* Actor Avatar / Icon stack */}
-        <div className="relative shrink-0">
-          <UserAvatar
-            src={actorImage}
-            name={actorName}
-            size="md"
-          />
-          <div className="absolute -bottom-1 -right-1 p-1 bg-white rounded-full shadow-xs border border-slate-100 flex items-center justify-center">
-            {getNotificationIcon(notification.type)}
+      {/* Hover gradient overlay */}
+      <motion.div
+        className="absolute inset-0 pointer-events-none rounded-[20px]"
+        animate={{ opacity: isHovered ? 0.04 : 0 }}
+        transition={{ duration: 0.2 }}
+        style={{ background: style.gradient }}
+      />
+
+      <div className="p-5 flex gap-4 relative">
+        {/* Unread sonar dot */}
+        {!notification.isRead && (
+          <div className="absolute top-4 right-4 z-10">
+            <div className="relative w-2.5 h-2.5">
+              <div className="absolute inset-0 bg-[#2563EB] rounded-full z-10 animate-pulse" />
+              <div
+                className="absolute inset-0 rounded-full animate-ping opacity-60"
+                style={{ background: '#2563EB' }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Avatar */}
+        <div className="relative flex-shrink-0">
+          <motion.div
+            className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden"
+            style={{
+              background: (avatarUrl && !imgError) ? 'transparent' : style.gradient,
+              border: `2px solid ${style.borderColor}40`,
+              boxShadow: isHovered ? `0 4px 12px ${style.glowColor}` : 'none',
+              transition: 'box-shadow 220ms ease',
+            }}
+            animate={{ scale: isHovered ? 1.08 : 1 }}
+            transition={HOVER_SPRING}
+          >
+            {avatarUrl && !imgError ? (
+              <img
+                src={avatarUrl}
+                alt={actorName}
+                className="w-full h-full object-cover rounded-full"
+                onError={() => setImgError(true)}
+              />
+            ) : (
+              <span style={{ color: style.iconColor }}>{initials}</span>
+            )}
+          </motion.div>
+
+          {/* Type icon badge */}
+          <div
+            className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center border-2 border-white"
+            style={{ background: style.gradient }}
+          >
+            <Icon className="w-2.5 h-2.5" style={{ color: style.iconColor }} />
           </div>
         </div>
 
-        {/* Message details */}
-        <div className="space-y-0.5 flex-1 min-w-0 pr-8">
-          <h4 className="text-xs font-black text-slate-900 leading-tight">
-            {title}
-          </h4>
-          <p className="text-[11px] font-semibold text-[#475569] leading-relaxed break-words">
-            {message}
-          </p>
-          <span className="text-[9px] font-bold text-slate-400 block pt-0.5">
-            {formatTimeAgo(createdAt)}
-          </span>
-          {notification.type === 'publication_uploaded' && (
-            <div className="flex gap-2 pt-2.5" onClick={(e) => e.stopPropagation()}>
-              <button
-                onClick={() => {
-                  if (!isRead) markReadMutation.mutate();
-                  if (targetUrl) navigate(targetUrl);
-                }}
-                className="px-2.5 py-1 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm transition-all cursor-pointer active:scale-95"
+        {/* Content */}
+        <div className="flex-1 min-w-0 pr-6">
+          {/* Top row: title + badges + time */}
+          <div className="flex flex-wrap items-start gap-x-2 gap-y-1 mb-1.5">
+            <h4
+              className="text-[14px] font-bold leading-snug transition-colors duration-200 truncate"
+              style={{ color: isHovered ? style.iconColor : '#0F172A' }}
+            >
+              {notification.title}
+            </h4>
+
+            {/* Type badge */}
+            <span
+              className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold flex-shrink-0"
+              style={{ background: style.badgeBg, color: style.badgeColor }}
+            >
+              {style.badgeText}
+            </span>
+
+            {/* Priority badge */}
+            {notification.priority && (
+              <PriorityBadge priority={notification.priority} />
+            )}
+
+            {/* Time */}
+            <div className="ml-auto flex items-center gap-1 text-[11px] text-[#94A3B8] flex-shrink-0">
+              <motion.div
+                animate={{ opacity: isHovered ? 1 : 0.5 }}
+                transition={{ duration: 0.2 }}
               >
-                Read Publication
-              </button>
-              <button
-                onClick={() => {
-                  if (!isRead) markReadMutation.mutate();
-                  if (actorId) navigate(`/profile/${actorId.profileSlug || actorId.username}`);
-                }}
-                className="px-2.5 py-1 border border-slate-200 bg-white hover:bg-slate-50 text-slate-650 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer active:scale-95"
-              >
-                View Researcher
-              </button>
+                <Clock className="w-3 h-3" />
+              </motion.div>
+              <span>{notification.time}</span>
             </div>
+          </div>
+
+          {/* Actor name line */}
+          {actorName && (
+            <p className="text-[12px] text-[#64748B] mb-1.5 font-medium">
+              from <span className="text-[#2563EB]">{actorName}</span>
+            </p>
           )}
+
+          {/* Description */}
+          <p className="text-[#64748B] text-[13px] leading-[1.65] mb-3 line-clamp-2">
+            {renderDescription(notification.description, notification.highlights)}
+          </p>
+
+          {/* Action buttons row */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Primary CTA */}
+            <motion.button
+              onClick={handlePrimaryClick}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.96 }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[12px] font-semibold text-white transition-all duration-200"
+              style={{ background: `linear-gradient(135deg, ${style.iconColor}, ${style.borderColor})` }}
+            >
+              <ExternalLink className="w-3 h-3" />
+              {notification.primaryAction || 'View'}
+            </motion.button>
+
+            {/* Reply button */}
+            {(notification.type === 'mention' || notification.type === 'review') && (
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.96 }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[12px] font-semibold border border-[#E2E8F0] text-[#475569] bg-white hover:border-[#BFDBFE] hover:text-[#2563EB] transition-all duration-200"
+              >
+                <MessageCircle className="w-3 h-3" />
+                Reply
+              </motion.button>
+            )}
+
+            {/* Accept / Decline for collaboration */}
+            {notification.type === 'system' && (
+              <>
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.96 }}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[12px] font-semibold text-[#16A34A] border border-[#86EFAC] bg-[#F0FDF4] hover:bg-[#DCFCE7] transition-all duration-200"
+                >
+                  <UserCheck className="w-3 h-3" />
+                  Accept
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.96 }}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[12px] font-semibold text-[#DC2626] border border-[#FECACA] bg-[#FEF2F2] hover:bg-[#FEE2E2] transition-all duration-200"
+                >
+                  Decline
+                </motion.button>
+              </>
+            )}
+
+            {/* Mark read */}
+            {!notification.isRead && (
+              <motion.button
+                onClick={handleMarkRead}
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.9 }}
+                className="inline-flex items-center gap-1 text-[12px] text-[#22C55E] hover:text-[#16A34A] font-semibold transition-colors duration-150"
+              >
+                <CheckCheck className="w-3.5 h-3.5" />
+                Mark read
+              </motion.button>
+            )}
+
+            {/* Bookmark */}
+            <motion.button
+              onClick={() => setBookmarked((b) => !b)}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              className="ml-auto"
+            >
+              <Star
+                className={`w-4 h-4 transition-all duration-200 ${
+                  bookmarked
+                    ? 'fill-[#F59E0B] text-[#F59E0B]'
+                    : 'text-[#CBD5E1] hover:text-[#F59E0B]'
+                }`}
+              />
+            </motion.button>
+
+            {/* Dismiss */}
+            <motion.button
+              onClick={handleDismiss}
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.9 }}
+              className="inline-flex items-center gap-1 text-[12px] text-[#CBD5E1] hover:text-[#EF4444] transition-colors duration-150"
+            >
+              <Trash2 className="w-3 h-3" />
+            </motion.button>
+          </div>
         </div>
       </div>
-
-      {/* Action Buttons */}
-      <div className="flex items-center gap-1 shrink-0 self-center">
-        {!isRead && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              markReadMutation.mutate();
-            }}
-            disabled={markReadMutation.isPending}
-            className="p-1.5 hover:bg-emerald-50 text-emerald-600 rounded-xl transition-all cursor-pointer border border-transparent hover:border-emerald-100"
-            title="Mark as Read"
-          >
-            <Check className="w-3.5 h-3.5" />
-          </button>
-        )}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            deleteMutation.mutate();
-          }}
-          disabled={deleteMutation.isPending}
-          className="p-1.5 hover:bg-red-50 text-red-650 rounded-xl transition-all cursor-pointer border border-transparent hover:border-red-100"
-          title="Delete Notification"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
-      </div>
-    </div>
+    </motion.div>
   );
 };
 
 export default NotificationCard;
-export { formatTimeAgo };
