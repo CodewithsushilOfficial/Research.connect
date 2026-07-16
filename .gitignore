@@ -39,3 +39,6 @@ backend/logs/
 
 # Uploads
 backend/uploads/
+
+# DNS cache and temp config files
+backend/src/config/database/temp/
