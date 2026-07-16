@@ -36,21 +36,23 @@ class SocketGateway {
       pingInterval: 25000
     });
 
-    // Configure Socket.IO Redis Adapter for horizontal scaling
-    if (redisClient) {
+    // Configure Socket.IO Redis Adapter for horizontal scaling (optional)
+    if (redisClient && redisClient.isOpen && !redisClient.isLimitExceeded) {
       try {
         const pubClient = redisClient.duplicate();
         const subClient = redisClient.duplicate();
         Promise.all([pubClient.connect(), subClient.connect()]).then(() => {
           const { createAdapter } = require('@socket.io/redis-adapter');
           this.io.adapter(createAdapter(pubClient, subClient));
-          logger.info('🔌 Socket.IO Redis Adapter configured successfully.');
+          logger.info('Socket.IO Redis Adapter configured successfully.');
         }).catch((err) => {
-          logger.error('Failed to configure Socket.IO Redis Adapter:', err);
+          logger.warn('Redis Adapter unavailable. Running Socket.IO without Redis adapter.');
         });
       } catch (err) {
-        logger.error('Failed to duplicate Redis client for Socket.IO Adapter:', err);
+        logger.warn('Redis unavailable for Socket.IO Adapter. Running in standalone mode.');
       }
+    } else {
+      logger.info('Redis not available. Socket.IO running in standalone mode.');
     }
 
     // Clean up all socket sessions on startup to avoid stale DB entries

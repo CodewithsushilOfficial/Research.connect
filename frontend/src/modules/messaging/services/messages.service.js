@@ -228,6 +228,14 @@ class MessagesService {
   }
 
   /**
+   * Reject/Decline connection request
+   */
+  async rejectRequest(requestId) {
+    const res = await axiosInstance.post('/v1/network/reject', { requestId });
+    return res;
+  }
+
+  /**
    * Reject connection request
    */
   async rejectRequest(requestId) {

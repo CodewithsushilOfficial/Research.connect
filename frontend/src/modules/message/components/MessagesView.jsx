@@ -76,6 +76,15 @@ const MessagesView = () => {
     return typeof s === 'object' && s ? (s._id || s.id)?.toString() : s?.toString();
   };
 
+  const getUserIdStr = (u) => {
+    if (!u) return '';
+    if (typeof u === 'object') {
+      const idVal = u.userId || u._id || u.id;
+      return idVal ? idVal.toString() : '';
+    }
+    return u.toString();
+  };
+
   const activeConversation = conversations.find((conversation) => (conversation._id || conversation.id) === activeConversationId) || conversations[0] || null;
   const activeMessages = activeConversationId ? (messagesByConversation[activeConversationId] || []) : [];
 
@@ -84,6 +93,7 @@ const MessagesView = () => {
   let lastSenderId = null;
 
   activeMessages.forEach((msg, index) => {
+    // eslint-disable-next-line react-hooks/purity
     const msgDate = new Date(msg.createdAt || Date.now()).toDateString();
     const showDateSeparator = msgDate !== lastDateStr;
     
@@ -346,16 +356,6 @@ const MessagesView = () => {
           }
 
           const { msg, isDifferentSender } = item;
-
-          // Helper to extract string ID
-          const getUserIdStr = (u) => {
-            if (!u) return '';
-            if (typeof u === 'object') {
-              const idVal = u.userId || u._id || u.id;
-              return idVal ? idVal.toString() : '';
-            }
-            return u.toString();
-          };
 
           const currentUserId = getUserIdStr(user);
           const senderIdStr = getUserIdStr(msg.senderId || msg.sender);

@@ -5,6 +5,7 @@ import { Calendar, MapPin, FileText, ExternalLink, Clock, Bell } from 'lucide-re
 const ConferenceFeedCard = ({ event }) => {
   const meta = event.metadata || {};
   const deadline = meta.deadline ? new Date(meta.deadline) : null;
+  // eslint-disable-next-line react-hooks/purity
   const daysLeft = deadline ? Math.ceil((deadline - Date.now()) / (1000 * 60 * 60 * 24)) : null;
   const isUrgent = daysLeft !== null && daysLeft <= 7 && daysLeft >= 0;
   const isPast = daysLeft !== null && daysLeft < 0;

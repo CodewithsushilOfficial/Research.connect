@@ -32,12 +32,12 @@ const isRedisConnError = (err) => {
 const redisClient = createClient({
   url: REDIS_URI,
   socket: {
-    // Required for secure connection to Upstash Redis
-    tls: true,
-    rejectUnauthorized: false,
     reconnectStrategy: (retries) => {
-      const delay = Math.min(retries * 100, 3000);
-      return delay;
+      // Stop retrying immediately if Redis is not available
+      if (isLimitExceeded || retries > 0) {
+        return false;
+      }
+      return 1000;
     }
   }
 });
@@ -48,7 +48,7 @@ redisClient.on('error', (err) => {
   if (isRedisConnError(err)) {
     if (!isLimitExceeded) {
       isLimitExceeded = true;
-      logger.warn('[REDIS ERROR] Redis connection failed or limit exceeded. Disabling Redis and falling back to in-memory mode.');
+      logger.warn('[REDIS] Redis not available. Running without Redis (in-memory mode).');
     }
   } else {
     if (!isLimitExceeded) {

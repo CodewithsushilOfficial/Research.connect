@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { X, Folder, FolderPlus, Check } from 'lucide-react';
 
 const BookmarkFoldersModal = ({ isOpen, onClose, folders, onSelectFolder, initialFolder = 'General' }) => {
-  if (!isOpen) return null;
-
   const [selected, setSelected] = useState(initialFolder);
   const [newFolder, setNewFolder] = useState('');
   const [showAddInput, setShowAddInput] = useState(false);
+
+  if (!isOpen) return null;
 
   const handleCreateAndSelect = () => {
     if (newFolder.trim()) {

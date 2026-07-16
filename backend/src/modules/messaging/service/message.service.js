@@ -15,6 +15,7 @@ const MessageAttachment = require('../model/MessageAttachment');
 const MessageReaction = require('../model/MessageReaction');
 const CallHistory = require('../../../models/CallHistory');
 const { emitToUser, emitToRoom, isUserOnline } = require('../../../config/socket');
+const logger = require('../../../common/logger/winston');
 
 class MessageService {
   /**
@@ -136,6 +137,9 @@ class MessageService {
     const messageStatus = isOnline ? 'delivered' : 'sent';
     const deliveryDate = isOnline ? new Date() : null;
 
+    // Ensure text is always a string (fallback to empty)
+    const messageText = (text || '').toString();
+
     // Create the message
     const message = new Message({
       conversationId,
@@ -143,8 +147,8 @@ class MessageService {
       receiverId,
       type: type || 'text',
       messageType: type || 'text',
-      text,
-      message: text,
+      text: messageText,
+      message: messageText,
       attachment: attachmentId || null,
       attachmentId: attachmentId || null,
       replyTo: replyTo || null,

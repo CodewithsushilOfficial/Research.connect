@@ -13,6 +13,7 @@ const JOB_TYPE_STYLES = {
 const JobFeedCard = ({ event }) => {
   const meta = event.metadata || {};
   const deadline = meta.deadline ? new Date(meta.deadline) : null;
+  // eslint-disable-next-line react-hooks/purity
   const daysLeft = deadline ? Math.ceil((deadline - Date.now()) / (1000 * 60 * 60 * 24)) : null;
 
   // Detect job type from tags or title

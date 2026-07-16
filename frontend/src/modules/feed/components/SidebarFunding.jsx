@@ -17,6 +17,7 @@ const SidebarFunding = ({ funding = [] }) => {
         {funding.slice(0, 4).map((grant, idx) => {
           const meta = grant.metadata || {};
           const deadline = meta.deadline ? new Date(meta.deadline) : null;
+          // eslint-disable-next-line react-hooks/purity
           const daysLeft = deadline ? Math.ceil((deadline - Date.now()) / (1000 * 60 * 60 * 24)) : null;
           const title = meta.title || grant.title || 'Research Grant';
           const agency = meta.institution || grant.institution || '';

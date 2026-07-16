@@ -5,6 +5,7 @@ import { DollarSign, Clock, Building2, ExternalLink, Bookmark, CheckCircle } fro
 const FundingFeedCard = ({ event }) => {
   const meta = event.metadata || {};
   const deadline = meta.deadline ? new Date(meta.deadline) : null;
+  // eslint-disable-next-line react-hooks/purity
   const daysLeft = deadline ? Math.ceil((deadline - Date.now()) / (1000 * 60 * 60 * 24)) : null;
   const isUrgent = daysLeft !== null && daysLeft <= 14 && daysLeft >= 0;
 

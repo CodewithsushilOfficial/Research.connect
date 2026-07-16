@@ -31,6 +31,13 @@ const PublicationsLibraryPage = () => {
   const [viewMode, setViewMode] = useState('grid'); // grid | card | table
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState('all');
+  const [filterYear, setFilterYear] = useState('all');
+  const [filterVisibility, setFilterVisibility] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all'); // all | published | draft | trash | bookmarks
+  const [sortBy, setSortBy] = useState('-createdAt');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(1000);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -43,14 +50,6 @@ const PublicationsLibraryPage = () => {
 
     return () => clearTimeout(handler);
   }, [searchInput]);
-
-  const [filterType, setFilterType] = useState('all');
-  const [filterYear, setFilterYear] = useState('all');
-  const [filterVisibility, setFilterVisibility] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all'); // all | published | draft | trash | bookmarks
-  const [sortBy, setSortBy] = useState('-createdAt');
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(1000);
   const [isSyncing, setIsSyncing] = useState(false);
 
   // Bulk Selection States

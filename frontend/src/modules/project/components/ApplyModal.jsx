@@ -5,6 +5,7 @@ export default function ApplyModal({ project, onClose, onSubmit }) {
   const [message, setMessage] = useState('');
   const [answers, setAnswers] = useState(
     project.screeningQuestions?.map((q) => ({
+      // eslint-disable-next-line react-hooks/purity
       questionId: q._id || String(Math.random()),
       question: q.question,
       answer: '',

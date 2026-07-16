@@ -80,7 +80,9 @@ class SerpApiService {
     // If demo API key is used, fallback immediately to mock data
     if (this.apiKey === 'demoserpapikey' || !this.apiKey) {
       logger.warn('SerpAPI key is missing or is demo key. Falling back to mock data.');
-      return this._generateMockAuthorDetails(authorId);
+      const mock = this._generateMockAuthorDetails(authorId);
+      mock._isMock = true;
+      return mock;
     }
 
     try {
@@ -94,10 +96,13 @@ class SerpApiService {
         throw new Error('Author details not present in SerpAPI response.');
       }
 
+      data._isMock = false;
       return data;
     } catch (err) {
       logger.error(`Failed to fetch author details from SerpAPI. Falling back to mock data: ${err.message}`);
-      return this._generateMockAuthorDetails(authorId);
+      const mock = this._generateMockAuthorDetails(authorId);
+      mock._isMock = true;
+      return mock;
     }
   }
 

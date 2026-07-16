@@ -28,11 +28,6 @@ const CitationExport = ({ publicationId, publicationTitle, isOpen, onClose }) =>
   const [copiedKey, setCopiedKey] = useState('');
   const [activeGroup, setActiveGroup] = useState('Author-Date');
 
-  useEffect(() => {
-    if (!isOpen || !publicationId) return;
-    loadCitations();
-  }, [isOpen, publicationId]);
-
   const loadCitations = async () => {
     setIsLoading(true);
     try {
@@ -44,6 +39,11 @@ const CitationExport = ({ publicationId, publicationTitle, isOpen, onClose }) =>
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!isOpen || !publicationId) return;
+    loadCitations();
+  }, [isOpen, publicationId]);
 
   const currentCitation = citations[activeFormat] || '';
 

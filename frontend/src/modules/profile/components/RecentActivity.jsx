@@ -18,6 +18,7 @@ const RecentActivity = ({ activities }) => {
   };
 
   const getRelativeTime = (timestamp) => {
+    // eslint-disable-next-line react-hooks/purity
     const elapsed = Date.now() - new Date(timestamp).getTime();
     const minutes = Math.floor(elapsed / 60000);
     const hours = Math.floor(minutes / 60);

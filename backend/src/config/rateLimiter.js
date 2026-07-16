@@ -144,12 +144,12 @@ const searchLimiter = rateLimit({
 
 const scholarSyncLimiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 minutes
-  limit: 3, // Limit each IP to 3 Google Scholar sync imports per 10 minutes
+  limit: 30, // Allow 30 syncs per 10 minutes (was 3 - users hitting limit)
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   store: createStore('scholar_sync'),
   passOnStoreError: true,
-  message: createMessage('Google Scholar portfolio synchronization is throttled to 3 times per 10 minutes.', 'SYNC_THROTTLED')
+  message: createMessage('Too many sync requests. Please wait a moment and try again.', 'SYNC_THROTTLED')
 });
 
 const uploadLimiter = rateLimit({

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Check, Trash2, Eye, Circle, Mail, Users, FileText, Sparkles, MessageSquare } from 'lucide-react';
+import { Check, Trash2, Eye, Circle, Mail, Users, FileText, Sparkles, MessageSquare, User } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import notificationsService from '../services/notifications.service';
 import UserAvatar from '../../../components/ui/Avatar';

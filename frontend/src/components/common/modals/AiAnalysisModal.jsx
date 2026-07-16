@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { X, Sparkles, BookOpen, GitBranch, Lightbulb, Compass, Award, ShieldAlert } from 'lucide-react';
 
 const AiAnalysisModal = ({ isOpen, onClose, publication }) => {
-  if (!isOpen || !publication) return null;
-
   const [activeTab, setActiveTab] = useState('summary');
+
+  if (!isOpen || !publication) return null;
   const ai = publication.aiAnalysis || {};
 
   const tabs = [
