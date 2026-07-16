@@ -30,7 +30,8 @@ const ProfileLayout = () => {
     queryFn: async () => {
       return await profileService.getPublicProfile(username);
     },
-    staleTime: 1000 * 60 * 5 // 5 minutes
+    staleTime: 1000 * 30, // 30 seconds — keeps profile fresh after scholar sync
+    refetchOnWindowFocus: true
   });
 
   const profile = profileData?.data;

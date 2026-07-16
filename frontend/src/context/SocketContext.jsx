@@ -216,6 +216,20 @@ export const SocketProvider = ({ children }) => {
       queryClient.invalidateQueries({ queryKey: ['profile', userId] });
     });
 
+    // Listen for profile updates after Google Scholar sync completes
+    newSocket.on('profileUpdated', ({ userId }) => {
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+    });
+
+    // Listen for Google Scholar import/sync completion events
+    newSocket.on('scholarImported', ({ userId }) => {
+      queryClient.invalidateQueries({ queryKey: ['scholarProfile'] });
+    });
+
+    newSocket.on('scholarSyncCompleted', ({ userId }) => {
+      queryClient.invalidateQueries({ queryKey: ['scholarProfile'] });
+    });
+
     // Listen for conversation sidebar lists updates
     newSocket.on('conversation:update', ({ conversationId, lastMessage }) => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
