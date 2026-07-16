@@ -61,6 +61,7 @@ const ConversationItem = memo(({ conv, activeId, onSelect, onContextMenu, format
     </div>
   );
 });
+ConversationItem.displayName = 'ConversationItem';
 
 const ConversationList = ({
   conversations = [],

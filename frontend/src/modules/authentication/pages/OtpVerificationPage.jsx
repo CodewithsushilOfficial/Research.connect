@@ -210,11 +210,7 @@ const OtpVerificationPage = () => {
           // If registration verify fails, try login verify as fallback just in case
           const code = err?.error?.code;
           if (code === 'INVALID_OTP' || code === 'NOT_FOUND' || err?.statusCode === 404) {
-            try {
-              response = await authService.verifyLoginOtp(otpEmail, otpCode);
-            } catch (loginErr) {
-              throw loginErr;
-            }
+            response = await authService.verifyLoginOtp(otpEmail, otpCode);
           } else {
             throw err;
           }
@@ -226,11 +222,7 @@ const OtpVerificationPage = () => {
           // If login verify fails, try registration verify as fallback
           const code = err?.error?.code;
           if (code === 'EMAIL_NOT_VERIFIED' || code === 'INVALID_OTP' || code === 'NOT_FOUND' || err?.statusCode === 404) {
-            try {
-              response = await authService.verifyRegistrationOtp(otpEmail, otpCode);
-            } catch (regErr) {
-              throw regErr;
-            }
+            response = await authService.verifyRegistrationOtp(otpEmail, otpCode);
           } else {
             throw err;
           }

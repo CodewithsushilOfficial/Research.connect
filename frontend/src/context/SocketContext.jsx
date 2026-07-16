@@ -15,6 +15,7 @@ export const SocketProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const queryClient = useQueryClient();
 
+  // eslint-disable-next-line react-hooks/purity
   const lastPongRef = useRef(Date.now());
   const heartbeatIntervalRef = useRef(null);
 
@@ -36,7 +37,7 @@ export const SocketProvider = ({ children }) => {
 
     // Setup Socket.IO client with custom reconnect parameters (Exponential Backoff)
     const newSocket = io(socketUrl, {
-      auth: { token },
+      auth: cb => cb({ token: localStorage.getItem('token') }),
       transports: ['websocket'],
       reconnection: true,
       reconnectionAttempts: Infinity,
@@ -71,6 +72,7 @@ export const SocketProvider = ({ children }) => {
 
     newSocket.on('reconnect_attempt', (attempt) => {
       setConnecting(true);
+      newSocket.auth.token = localStorage.getItem('token');
       console.log(`🔌 Socket reconnection attempt #${attempt}`);
     });
 

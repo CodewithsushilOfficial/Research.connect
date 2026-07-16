@@ -314,7 +314,7 @@ const HomeFeed = () => {
 
     const points = citations.map(c => {
       const x = padding + ((c.year - minYear) / yearRange) * chartWidth;
-      const y = height - padding - (c.citations / maxCitations) * chartHeight;
+      const y = height - padding - ((c.citations || 0) / maxCitations) * chartHeight;
       return `${x},${y}`;
     }).join(' ');
 
@@ -332,7 +332,7 @@ const HomeFeed = () => {
         <polyline fill="none" stroke="currentColor" strokeWidth="2" points={points} strokeLinecap="round" strokeLinejoin="round" />
         {citations.map((c, idx) => {
           const x = padding + ((c.year - minYear) / yearRange) * chartWidth;
-          const y = height - padding - (c.citations / maxCitations) * chartHeight;
+          const y = height - padding - ((c.citations || 0) / maxCitations) * chartHeight;
           return (
             <g key={idx} className="group">
               <circle cx={x} cy={y} r="3" className="fill-white stroke-indigo-600 dark:stroke-indigo-400 stroke-2 cursor-pointer hover:r-4 transition-all" />
@@ -982,8 +982,8 @@ const HomeFeed = () => {
                 {user?.emailVerified ? <Check className="w-3.5 h-3.5 shrink-0" /> : <PlusCircle className="w-3.5 h-3.5 shrink-0 opacity-60" />}
                 Verified Email Address
               </div>
-              <div className={`flex items-center gap-2 ${!!(profile?.socialLinks?.orcid || profile?.socialLinks?.googleScholar) ? 'text-[#22C55E]' : 'text-slate-450'}`}>
-                {!!(profile?.socialLinks?.orcid || profile?.socialLinks?.googleScholar) ? <Check className="w-3.5 h-3.5 shrink-0" /> : <PlusCircle className="w-3.5 h-3.5 shrink-0 opacity-60" />}
+              <div className={`flex items-center gap-2 ${(profile?.socialLinks?.orcid || profile?.socialLinks?.googleScholar) ? 'text-[#22C55E]' : 'text-slate-450'}`}>
+                {(profile?.socialLinks?.orcid || profile?.socialLinks?.googleScholar) ? <Check className="w-3.5 h-3.5 shrink-0" /> : <PlusCircle className="w-3.5 h-3.5 shrink-0 opacity-60" />}
                 Academic Identifier Connected
               </div>
               <div 

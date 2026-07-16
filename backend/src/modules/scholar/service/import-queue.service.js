@@ -34,11 +34,38 @@ class ImportQueueService {
   }
 
   /**
+   * Find active import job for a user, with stale job timeout check
+   */
+  async findActiveImportByUserId(userId, provider = 'google_scholar') {
+    const activeJob = await importRepository.model.findOne({
+      userId,
+      provider,
+      status: { $in: ['pending', 'running'] }
+    }).sort({ createdAt: -1 });
+
+    if (!activeJob) return null;
+
+    // If job has been pending or running for more than 5 minutes, mark it failed so a new one can start
+    const maxWaitMs = 5 * 60 * 1000;
+    const elapsed = Date.now() - new Date(activeJob.updatedAt || activeJob.createdAt).getTime();
+    if (elapsed > maxWaitMs) {
+      logger.warn(`[ImportQueue] Stale job ${activeJob._id} found (${Math.round(elapsed/1000)}s old). Resetting to allow new sync.`);
+      await importRepository.model.updateOne(
+        { _id: activeJob._id },
+        { $set: { status: 'failed', error: { message: 'Timed out - replaced by new sync' } } }
+      );
+      return null;
+    }
+
+    return activeJob;
+  }
+
+  /**
    * Enqueue a new import job
    */
   async enqueue(userId, provider = 'google_scholar', metadata = {}) {
     // If there is already an active job (pending or running), return it
-    const activeJob = await importRepository.findActiveImportByUserId(userId, provider);
+    const activeJob = await this.findActiveImportByUserId(userId, provider);
     if (activeJob) {
       logger.info(`Job already active for user ${userId}, provider ${provider}`);
       return activeJob;
@@ -96,9 +123,14 @@ class ImportQueueService {
           this.scholarService = require('./scholar.service');
         }
 
-        // Run the actual import logic
-        await this.scholarService.syncScholarData(job._id, job.userId, job.metadata.authorId);
-
+        // Run the actual import logic with a 10-minute total timeout
+        const SYNC_TIMEOUT_MS = 10 * 60 * 1000;
+        await Promise.race([
+          this.scholarService.syncScholarData(job._id, job.userId, job.metadata?.authorId),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Sync timed out after " + SYNC_TIMEOUT_MS/1000 + "s")), SYNC_TIMEOUT_MS)
+          )
+        ]);
         // Update job to completed
         job.status = 'completed';
         job.progress = 100;
@@ -185,8 +217,6 @@ class ImportQueueService {
 
           // Run the actual import logic
           await this.scholarService.syncScholarData(job._id, userId, authorId);
-
-          // Update job to completed
           job.status = 'completed';
           job.progress = 100;
           job.completedAt = new Date();

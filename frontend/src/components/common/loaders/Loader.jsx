@@ -1,5 +1,3 @@
-import React from 'react';
-
 const Loader = ({
   size = 'md', // 'sm', 'md', 'lg'
   color = 'primary', // 'primary', 'white'
@@ -37,10 +35,6 @@ const Loader = ({
     );
   }
 
-  return <div className="flex items-center justify-center">{loaderElement}</div>;
-};
-
-export default Loader;
   return <div className="flex items-center justify-center">{loaderElement}</div>;
 };
 

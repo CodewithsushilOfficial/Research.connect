@@ -778,7 +778,7 @@ const ProfileOverview = () => {
                 { label: 'Downloads', value: profile?.metrics?.downloadsCount ?? 0, icon: Download, cardBg: 'bg-cyan-50 border-cyan-100 hover:shadow-[0_8px_30px_rgb(236,254,255,0.5)]', textColor: 'text-cyan-600', labelColor: 'text-[#475569]', iconColor: 'text-cyan-600', iconBg: 'bg-white' },
                 { label: 'Views', value: profile?.metrics?.viewsCount ?? 0, icon: Eye, cardBg: 'bg-emerald-50 border-emerald-100 hover:shadow-[0_8px_30px_rgb(236,253,245,0.5)]', textColor: 'text-emerald-700', labelColor: 'text-[#475569]', iconColor: 'text-emerald-700', iconBg: 'bg-white' },
                 { label: 'Research Score', value: profile?.metrics?.researchScore ?? 0, icon: Activity, cardBg: 'bg-gradient-to-br from-[#EDE9FE] to-[#DBEAFE] border-[#EDE9FE] hover:shadow-[0_8px_30px_rgb(237,233,254,0.7)]', textColor: 'text-[#4F46E5]', labelColor: 'text-[#475569]', iconColor: 'text-[#4F46E5]', iconBg: 'bg-white' }
-              ].filter(item => Number(item.value) !== 0);
+              ];
 
               if (activeMetrics.length === 0) {
                 return (

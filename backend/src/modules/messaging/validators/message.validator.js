@@ -18,6 +18,10 @@ const validateSendMessage = [
     .optional()
     .isMongoId()
     .withMessage('receiverId must be a valid MongoDB ObjectId'),
+  body('text')
+    .optional({ values: 'falsy' })
+    .isString()
+    .withMessage('text must be a string'),
   body('type')
     .optional()
     .isIn([
@@ -36,10 +40,6 @@ const validateSendMessage = [
       'system'
     ])
     .withMessage('Invalid message type'),
-  body('text')
-    .optional()
-    .isString()
-    .withMessage('text must be a string'),
   body('attachmentId')
     .optional()
     .isMongoId()
@@ -48,6 +48,13 @@ const validateSendMessage = [
     .optional()
     .isMongoId()
     .withMessage('replyTo must be a valid MongoDB ObjectId'),
+  // Custom validator: require at least conversationId or receiverId
+  body().custom((value, { req }) => {
+    if (!req.body.conversationId && !req.body.receiverId) {
+      throw new Error('Either conversationId or receiverId must be supplied.');
+    }
+    return true;
+  }),
   validate
 ];
 

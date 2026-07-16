@@ -39,7 +39,7 @@ module.exports = {
   },
 
   redis: {
-    uri: process.env.REDIS_URI || 'redis://localhost:6379'
+    uri: process.env.REDIS_URL || 'redis://localhost:6379'
   },
 
   r2: {

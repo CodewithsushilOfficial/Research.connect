@@ -37,8 +37,8 @@ const InfiniteFeed = ({
 
   // Deduplicate by _id
   const seen = new Set();
-  const dedupedEvents = events.filter(ev => {
-    const id = String(ev._id || ev.id || Math.random());
+  const dedupedEvents = events.filter((ev, idx) => {
+    const id = String(ev._id || ev.id || idx);
     if (seen.has(id)) return false;
     seen.add(id);
     return true;

@@ -10,15 +10,6 @@ const InvitationCard = ({ request, type = 'received', currentUserId }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const otherUser = type === 'received' ? request.user : request.user; 
-  const profile = type === 'received' ? request.profile : request.profile;
-
-  if (!otherUser) return null;
-
-  const handleCardClick = () => {
-    navigate(`/profile/${otherUser.profileSlug || otherUser.username}`);
-  };
-
   // Accept mutation
   const acceptMutation = useMutation({
     mutationFn: async () => {
@@ -60,6 +51,15 @@ const InvitationCard = ({ request, type = 'received', currentUserId }) => {
       }
     }
   });
+
+  const otherUser = type === 'received' ? request.user : request.user;
+  const profile = type === 'received' ? request.profile : request.profile;
+
+  if (!otherUser) return null;
+
+  const handleCardClick = () => {
+    navigate(`/profile/${otherUser.profileSlug || otherUser.username}`);
+  };
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between gap-4 text-left">

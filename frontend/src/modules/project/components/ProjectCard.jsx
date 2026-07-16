@@ -44,7 +44,7 @@ export default function ProjectCard({
     } catch {
       toast.error("Could not copy the project link");
     }
-    setMenuOpen(false);
+    setIsDropdownOpen(false);
   }
 
   return (

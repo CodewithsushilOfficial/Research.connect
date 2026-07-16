@@ -16,6 +16,7 @@ const SidebarConferences = ({ conferences = [] }) => {
       <div className="space-y-3">
         {conferences.slice(0, 4).map((conf, idx) => {
           const deadline = conf.deadline ? new Date(conf.deadline) : null;
+          // eslint-disable-next-line react-hooks/purity
           const daysLeft = deadline ? Math.ceil((deadline - Date.now()) / (1000 * 60 * 60 * 24)) : null;
           const name = conf.name || conf.title || conf.metadata?.title || 'Conference';
           const location = conf.location || conf.metadata?.location || '';

@@ -142,7 +142,7 @@ const CallOverlay = () => {
 
               {/* Remote Audio tag for voice-only call */}
               {status === 'active' && type === 'voice' && (
-                <audio ref={remoteVideoRef} autoPlay playsInline className="hidden" />
+                <audio ref={remoteVideoRef} autoPlay controls className="hidden" />
               )}
             </div>
           )}
