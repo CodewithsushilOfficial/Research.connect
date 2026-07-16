@@ -33,15 +33,21 @@ const getDateGroup = (dateStr) => {
 
 // ── Backend → UI type normalizer ──────────────────────────────────────────────
 const TYPE_MAP = {
-  follow:      'system',
-  connection:  'system',
+  follow:      'follow',
+  follower:    'follow',
+  connection:  'collab',
+  collab:      'collab',
+  collaboration: 'collab',
   publication: 'citation',
+  citation:    'citation',
   mention:     'mention',
   comment:     'mention',
   review:      'review',
   peer:        'review',
   system:      'system',
-  citation:    'citation',
+  message:     'message',
+  chat:        'message',
+  project:     'project',
 };
 
 export const normalizeType = (type) => {
@@ -54,6 +60,10 @@ const ACTION_CONFIG = {
   citation: { primary: 'View Citation',   secondary: null },
   mention:  { primary: 'Reply Now',       secondary: 'View Thread' },
   review:   { primary: 'View Review',     secondary: 'Edit Submission' },
+  follow:   { primary: 'View Profile',    secondary: null },
+  message:  { primary: 'Reply',           secondary: null },
+  collab:   { primary: 'Review Request',  secondary: null },
+  project:  { primary: 'View Project',    secondary: null },
   system:   { primary: 'Learn More',      secondary: null },
 };
 
@@ -171,6 +181,10 @@ export const useNotifications = () => {
     const mentions  = notifications.filter((n) => n.type === 'mention').length;
     const reviews   = notifications.filter((n) => n.type === 'review').length;
     const system    = notifications.filter((n) => n.type === 'system').length;
+    const follows   = notifications.filter((n) => n.type === 'follow').length;
+    const collabs   = notifications.filter((n) => n.type === 'collab').length;
+    const messages  = notifications.filter((n) => n.type === 'message').length;
+    const projects  = notifications.filter((n) => n.type === 'project').length;
     const readRatio = total > 0 ? Math.round(((total - unreadRaw) / total) * 100) : 0;
 
     // Weekly bars — last 7 days
@@ -200,7 +214,7 @@ export const useNotifications = () => {
       unreadCountQuery.data?.data?.count  ??
       unreadRaw;
 
-    return { total, unread: liveUnread, citations, mentions, reviews, system, readRatio, weeklyBars, weeklyReads, weeklyCitations };
+    return { total, unread: liveUnread, citations, mentions, reviews, system, follows, collabs, messages, projects, readRatio, weeklyBars, weeklyReads, weeklyCitations };
   }, [notifications, unreadCountQuery.data]);
 
   // ── Date-grouped list ──────────────────────────────────────────────────────

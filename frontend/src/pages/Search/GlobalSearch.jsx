@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { 
-  Search, Filter, BookOpen, Award, Eye, Download, ChevronLeft, 
-  ChevronRight, Calendar, Sparkles, Building2, HelpCircle, Loader2 
+import {
+  Search, Filter, BookOpen, Award, Eye, Download, ChevronLeft,
+  ChevronRight, Calendar, Sparkles, Building2, HelpCircle, Loader2
 } from 'lucide-react';
-import { useSearchPublications } from '../../hooks/publication.hooks.js';
+import { useQuery } from '@tanstack/react-query';
+import searchService from '../../services/search.service';
 
 const GlobalSearch = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  
+
   const query = searchParams.get('q') || '';
   const page = parseInt(searchParams.get('page') || '1', 10);
   const sort = searchParams.get('sort') || 'latest';
@@ -18,15 +19,23 @@ const GlobalSearch = () => {
 
   const [searchVal, setSearchVal] = useState(query);
 
-  const { data, isLoading } = useSearchPublications({
+  const queryParams = {
     q: query,
     page,
     sort,
-    publicationType: type === 'All' ? undefined : type,
-    filter: filter || undefined,
-    year: year || undefined,
     limit: 10,
+  };
+  if (type !== 'All') queryParams.publicationType = type;
+  if (filter) queryParams.filter = filter;
+  if (year) queryParams.year = year;
+
+  const { data: rawData, isLoading } = useQuery({
+    queryKey: ['global-search', queryParams],
+    queryFn: () => searchService.searchPublications(queryParams),
+    enabled: !!query,
   });
+  
+  const data = rawData?.data || rawData || {};
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -43,7 +52,7 @@ const GlobalSearch = () => {
       year,
     };
     newParams[key] = value;
-    
+
     // Clean up empty params
     Object.keys(newParams).forEach(k => {
       if (!newParams[k]) delete newParams[k];
@@ -58,7 +67,7 @@ const GlobalSearch = () => {
   return (
     <div className="min-h-screen bg-[#F8FAFC] py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        
+
         {/* Search Header */}
         <div className="bg-white p-8 rounded-3xl border border-[#E2E8F0] shadow-sm space-y-6">
           <div>
@@ -71,7 +80,7 @@ const GlobalSearch = () => {
           <form onSubmit={handleSearchSubmit} className="flex gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#475569] w-5 h-5" />
-              <input 
+              <input
                 type="text"
                 value={searchVal}
                 onChange={(e) => setSearchVal(e.target.value)}
@@ -79,7 +88,7 @@ const GlobalSearch = () => {
                 className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-[#E2E8F0] focus:ring-2 focus:ring-[#2563EB] outline-none text-sm transition"
               />
             </div>
-            <button 
+            <button
               type="submit"
               className="px-8 py-3.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold rounded-2xl shadow-md transition text-sm"
             >
@@ -90,7 +99,7 @@ const GlobalSearch = () => {
 
         {/* Main Content Split */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          
+
           {/* Sidebar Filters */}
           <div className="bg-white p-6 rounded-3xl border border-[#E2E8F0] shadow-sm space-y-6 self-start">
             <div className="flex items-center gap-2 border-b border-[#E2E8F0] pb-3">
@@ -101,7 +110,7 @@ const GlobalSearch = () => {
             {/* Document Type */}
             <div className="space-y-2">
               <label className="block text-xs font-bold text-[#475569] uppercase">Document Type</label>
-              <select 
+              <select
                 value={type}
                 onChange={(e) => handleFilterChange('type', e.target.value)}
                 className="w-full px-3 py-2 border border-[#E2E8F0] rounded-xl text-xs font-semibold outline-none bg-white text-[#475569]"
@@ -119,7 +128,7 @@ const GlobalSearch = () => {
             {/* Publication Year */}
             <div className="space-y-2">
               <label className="block text-xs font-bold text-[#475569] uppercase">Publication Year</label>
-              <input 
+              <input
                 type="number"
                 value={year}
                 onChange={(e) => handleFilterChange('year', e.target.value)}
@@ -131,7 +140,7 @@ const GlobalSearch = () => {
             {/* Sorting */}
             <div className="space-y-2">
               <label className="block text-xs font-bold text-[#475569] uppercase">Sort By</label>
-              <select 
+              <select
                 value={sort}
                 onChange={(e) => handleFilterChange('sort', e.target.value)}
                 className="w-full px-3 py-2 border border-[#E2E8F0] rounded-xl text-xs font-semibold outline-none bg-white text-[#475569]"
@@ -145,7 +154,7 @@ const GlobalSearch = () => {
             {/* Open Access Toggle */}
             <div className="flex items-center justify-between pt-2">
               <span className="text-xs font-bold text-[#475569] uppercase">Open Access Only</span>
-              <input 
+              <input
                 type="checkbox"
                 checked={filter === 'openAccess'}
                 onChange={(e) => handleFilterChange('filter', e.target.checked ? 'openAccess' : '')}
@@ -157,7 +166,7 @@ const GlobalSearch = () => {
 
           {/* Results List */}
           <div className="lg:col-span-3 space-y-6">
-            
+
             {isLoading ? (
               <div className="bg-white p-12 rounded-3xl border border-[#E2E8F0] shadow-sm flex flex-col items-center justify-center min-h-[300px]">
                 <Loader2 className="w-8 h-8 animate-spin text-[#2563EB] mb-2" />
@@ -168,7 +177,7 @@ const GlobalSearch = () => {
                 <div className="space-y-4">
                   {results.map((pub) => (
                     <div key={pub._id} className="bg-white p-6 rounded-3xl border border-[#E2E8F0] shadow-sm hover:border-[#2563EB] transition duration-200 space-y-3">
-                      
+
                       {/* Meta information */}
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-[#2563EB] bg-[#DBEAFE] px-2.5 py-0.5 rounded-full">{pub.publicationType}</span>
@@ -215,7 +224,7 @@ const GlobalSearch = () => {
                 {/* Pagination Controls */}
                 {totalPages > 1 && (
                   <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-[#E2E8F0] shadow-sm text-sm font-bold text-[#475569]">
-                    <button 
+                    <button
                       disabled={page <= 1}
                       onClick={() => handleFilterChange('page', page - 1)}
                       className="flex items-center gap-1 px-4 py-2 border border-[#E2E8F0] hover:bg-[#F8FAFC] disabled:opacity-50 rounded-xl transition"
@@ -223,7 +232,7 @@ const GlobalSearch = () => {
                       <ChevronLeft className="w-4 h-4" /> Previous
                     </button>
                     <span>Page {page} of {totalPages}</span>
-                    <button 
+                    <button
                       disabled={page >= totalPages}
                       onClick={() => handleFilterChange('page', page + 1)}
                       className="flex items-center gap-1 px-4 py-2 border border-[#E2E8F0] hover:bg-[#F8FAFC] disabled:opacity-50 rounded-xl transition"
