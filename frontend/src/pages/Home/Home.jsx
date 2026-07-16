@@ -146,7 +146,7 @@ const Home = () => {
         }`}>
         <nav className="max-w-[1200px] mx-auto px-4 md:px-6 flex items-center justify-between">
           {/* Logo & Company Name */}
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/home')}>
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#2563EB] to-[#4F46E5] flex items-center justify-center shadow-lg shadow-blue-500/30">
               <GraduationCap className="w-6 h-6 text-white" />
             </div>

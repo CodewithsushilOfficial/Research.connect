@@ -3,6 +3,12 @@ require('dotenv').config({ path: path.resolve(__dirname, '../../../.env') });
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const logger = require('../../common/logger/winston');
+
+if (!process.env.MONGO_URI) {
+  process.env.MONGO_URI = 'mongodb://127.0.0.1:27017/research_connect';
+  logger.warn('MONGO_URI was not set; falling back to local MongoDB at mongodb://127.0.0.1:27017/research_connect for seeding.');
+}
+
 const { connectDB } = require('./connection');
 
 // Import Models

@@ -5,9 +5,15 @@ const dns = require('dns');
 const fs = require('fs');
 const path = require('path');
 
-const MONGO_URI = process.env.MONGO_URI;
+let MONGO_URI = process.env.MONGO_URI;
 if (!MONGO_URI) {
-  throw new Error('MONGO_URI environment variable is required');
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('MONGO_URI environment variable is required');
+  }
+
+  MONGO_URI = 'mongodb://127.0.0.1:27017/research_connect';
+  process.env.MONGO_URI = MONGO_URI;
+  logger.warn('MONGO_URI was not set; using local MongoDB at mongodb://127.0.0.1:27017/research_connect for development.');
 }
 
 const options = {

@@ -174,7 +174,7 @@ const AuthenticatedNavbar = ({ onMenuClick, isMobileMenuOpen }) => {
                 {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
             )}
-            <Link to="/" className="flex items-center gap-0.5 sm:gap-1.5">
+            <Link to="/home" className="flex items-center gap-0.5 sm:gap-1.5">
               <span className="flex p-1 sm:p-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white items-center justify-center shrink-0">
                 <Share2 className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
               </span>
