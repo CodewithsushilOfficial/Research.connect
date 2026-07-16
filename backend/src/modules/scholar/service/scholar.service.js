@@ -693,6 +693,28 @@ class ScholarService {
         await profileService.calculateAndSaveResearchMetrics(userId);
       } catch (err) {
         logger.error('Error in post-sync metric calculations: ' + err.message);
+        // Fallback: directly update Profile.metrics from GoogleScholarProfile data
+        // so the user sees correct h-index/i10-index even if full recalculation fails
+        try {
+          const GoogleScholarProfile = require('../../../models/GoogleScholarProfile');
+          const Profile = require('../../../models/Profile');
+          const scholarProfile = await GoogleScholarProfile.findOne({ userId }).lean();
+          if (scholarProfile) {
+            await Profile.findOneAndUpdate(
+              { userId },
+              {
+                $set: {
+                  'metrics.totalCitations': scholarProfile.totalCitations || 0,
+                  'metrics.hIndex': scholarProfile.hIndex || 0,
+                  'metrics.i10Index': scholarProfile.i10Index || 0
+                }
+              }
+            );
+            logger.info(`[ScholarSync] Fallback metrics update succeeded for user ${userId}`);
+          }
+        } catch (fallbackErr) {
+          logger.error('Fallback metrics update also failed: ' + fallbackErr.message);
+        }
       }
 
       // Record Sync History
