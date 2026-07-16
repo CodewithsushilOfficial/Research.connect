@@ -67,25 +67,8 @@ const PublicationsLibraryPage = () => {
   const [scholarNoteText, setScholarNoteText] = useState('');
   const [isSavingNote, setIsSavingNote] = useState(false);
 
-  // Listen for Google Scholar sync completion via Socket.IO for real-time updates
+  // Socket instance (listener attached further below, after `refetch` is defined)
   const { socket } = useSocket();
-  useEffect(() => {
-    if (!socket) return;
-
-    const handleScholarSyncComplete = () => {
-      refetch();
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
-      queryClient.invalidateQueries({ queryKey: ['publications-portfolio'] });
-    };
-
-    socket.on('scholarSyncCompleted', handleScholarSyncComplete);
-    socket.on('profileUpdated', handleScholarSyncComplete);
-
-    return () => {
-      socket.off('scholarSyncCompleted', handleScholarSyncComplete);
-      socket.off('profileUpdated', handleScholarSyncComplete);
-    };
-  }, [socket, refetch, queryClient]);
 
   // Sync tab state with URL path for /publications sub-routes
   useEffect(() => {
@@ -174,6 +157,28 @@ const PublicationsLibraryPage = () => {
     },
     enabled: !!profileSlug
   });
+
+  // Listen for Google Scholar sync completion via Socket.IO for real-time updates.
+  // Placed here (after the `refetch` above is declared) — it previously sat near the
+  // top of the component and referenced `refetch` before its `const` declaration,
+  // which threw "Cannot access 'refetch' before initialization" on every render.
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleScholarSyncComplete = () => {
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      queryClient.invalidateQueries({ queryKey: ['publications-portfolio'] });
+    };
+
+    socket.on('scholarSyncCompleted', handleScholarSyncComplete);
+    socket.on('profileUpdated', handleScholarSyncComplete);
+
+    return () => {
+      socket.off('scholarSyncCompleted', handleScholarSyncComplete);
+      socket.off('profileUpdated', handleScholarSyncComplete);
+    };
+  }, [socket, refetch, queryClient]);
 
   const rawPublications = pubsRes?.success ? pubsRes.data.docs : [];
   const totalPubs = pubsRes?.success ? pubsRes.data.total : 0;
