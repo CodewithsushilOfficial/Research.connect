@@ -28,9 +28,13 @@ const ForgotPasswordPage = () => {
     try {
       const response = await authService.forgotPassword(data.email);
       if (response.success) {
-        toast.success('Password reset OTP sent to your email.');
-        dispatch(setOtpEmail(data.email));
-        navigate('/reset-password');
+        if (response.data?.emailExists) {
+          toast.success('Password reset OTP sent to your email.');
+          dispatch(setOtpEmail(data.email));
+          navigate('/reset-password');
+        } else {
+          toast.error('This email is not registered with us.');
+        }
       }
     } catch (error) {
       console.error('Forgot password request failed:', error);

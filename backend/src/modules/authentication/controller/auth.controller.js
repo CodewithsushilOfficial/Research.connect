@@ -88,7 +88,7 @@ class AuthController {
   forgotPassword = asyncHandler(async (req, res) => {
     const clientInfo = getClientInfo(req);
     const result = await authService.forgotPassword(req.body.email, clientInfo);
-    return res.success(result.message || 'If registered, password reset OTP has been sent.', { email: req.body.email });
+    return res.success(result.message || 'If registered, password reset OTP has been sent.', { email: req.body.email, emailExists: result.emailExists });
   });
 
   // Reset Password

@@ -59,7 +59,7 @@ const DiscoverResearchersPage = () => {
         className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-blue-600 transition-colors cursor-pointer"
       >
         <ArrowLeft className="w-3.5 h-3.5" />
-        Back to Network
+        Back to Network Dashboard
       </button>
 
       {/* Header Banner */}
@@ -70,7 +70,7 @@ const DiscoverResearchersPage = () => {
         <div className="space-y-2 relative z-10 max-w-xl">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-[10px] font-black uppercase tracking-wider">
             <Sparkles className="w-3.5 h-3.5 fill-white/10" />
-            <span>AI Recommendations</span>
+            <span>Recommendations</span>
           </span>
           <h2 className="text-xl md:text-2xl font-black tracking-tight leading-none">Discover Suggested Researchers</h2>
           <p className="text-xs text-blue-100 leading-relaxed font-semibold">
