@@ -520,7 +520,7 @@ class AuthService {
     if (!user) {
       // Don't throw error to avoid account enumeration attack, return success message anyway
       logger.info(`Forgot password requested for unregistered email: ${email}`);
-      return { success: true, message: 'If this email is registered, a password reset link/OTP has been sent.' };
+      return { success: true, message: 'If this email is registered, a password reset link/OTP has been sent.', emailExists: false };
     }
 
     await this._checkOtpCooldown(email, 'forgot_password');
@@ -547,7 +547,7 @@ class AuthService {
     await emailHelper.sendForgotPasswordOtp(user.email, otpCode);
     await this._logSecurityEvent(user._id, email, 'FORGOT_PASSWORD_REQUEST', 'Forgot password request initialized. Reset OTP sent.', clientInfo);
 
-    return { success: true };
+    return { success: true, emailExists: true };
   }
 
   // Reset Password
