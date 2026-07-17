@@ -243,6 +243,7 @@ Refer to [.agents/AGENTS.md](file:///c:/Users/codew/Downloads/Research.connect/.
      }
      ```
 3. **Mongoose Collections**: Must support audit logging (`createdAt`, `updatedAt`), soft-delete properties (`isDeleted`, `deletedAt`), and normalized `ObjectId` references.
+4. **React 18 Strict Mode & Request Cancellation**: Frontend components must use an `isCurrent` boolean flag in `useEffect` fetches. This prevents state updates on unmounted components and avoids false-positive error screens caused by aborted/cancelled duplicate requests in development mode.
 
 ---
 
