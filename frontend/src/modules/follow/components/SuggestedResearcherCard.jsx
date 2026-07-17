@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, GraduationCap, BookOpen, Users, HelpCircle, ArrowRight, Check } from 'lucide-react';
+import { Sparkles, GraduationCap, BookOpen, Users, HelpCircle, ArrowRight, Check, Mail } from 'lucide-react';
 import FollowButton from './FollowButton';
 import ConnectButton from '../../connections/components/ConnectButton';
+import connectionsService from '../../connections/services/connections.service';
 import MutualFollowers from './MutualFollowers';
 import UserAvatar from '../../../components/ui/Avatar';
 
@@ -11,6 +13,20 @@ const SuggestedResearcherCard = ({ suggestion, currentUserId }) => {
   const navigate = useNavigate();
   const [showReasons, setShowReasons] = useState(false);
   const { user, profile, mutualFollowers, reasons = [], matchPercentage = 50 } = suggestion;
+
+  // Same query ConnectButton uses internally — read here too so this card can
+  // swap in the "People You May Know" amber Pending badge (Network page
+  // style) instead of ConnectButton's own Pending look, without touching
+  // ConnectButton itself (it's shared with ProfileHeader/ConnectionCard).
+  const { data: statusData } = useQuery({
+    queryKey: ['connectionStatus', user?._id],
+    queryFn: async () => {
+      const res = await connectionsService.getConnectionStatus(user._id);
+      return res.data;
+    },
+    enabled: !!user?._id
+  });
+  const connectionStatus = statusData?.status || 'none';
 
   if (!user) return null;
 
@@ -160,11 +176,18 @@ const SuggestedResearcherCard = ({ suggestion, currentUserId }) => {
           {!isSelf && (
             <div className="flex-1 flex gap-2">
               <div className="flex-1 shrink-0">
-                <ConnectButton 
-                  targetUserId={user._id} 
-                  username={user.profileSlug || user.username} 
-                  className="w-full justify-center text-[10px] font-black uppercase py-2 bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl shadow-xs transition-all flex items-center gap-1 active:scale-97 cursor-pointer"
-                />
+                {connectionStatus === 'pending_sent' ? (
+                  <span className="w-full py-2 bg-amber-50 text-amber-600 text-[10px] font-black uppercase rounded-xl border border-amber-200 flex items-center justify-center gap-1.5 cursor-default">
+                    <Mail className="w-3.5 h-3.5" />
+                    Pending
+                  </span>
+                ) : (
+                  <ConnectButton 
+                    targetUserId={user._id} 
+                    username={user.profileSlug || user.username} 
+                    className="w-full justify-center text-[10px] font-black uppercase py-2 rounded-xl transition-all flex items-center gap-1 active:scale-97 cursor-pointer"
+                  />
+                )}
               </div>
               <div className="shrink-0">
                 <FollowButton 
