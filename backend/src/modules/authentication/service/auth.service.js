@@ -339,7 +339,7 @@ class AuthService {
     const user = await User.findOne({ email: email.toLowerCase(), isDeleted: { $ne: true } }).select('+password');
     
     if (!user) {
-      throw new UnauthorizedError('Invalid email or password.');
+      throw new UnauthorizedError('This email is not registered with us. Please sign up to create an account.');
     }
 
     if (user.isBlocked) {
@@ -362,7 +362,7 @@ class AuthService {
       
       await user.save();
       await this._logSecurityEvent(user._id, email, 'LOGIN_FAILED', 'Failed password attempt.', clientInfo);
-      throw new UnauthorizedError('Invalid email or password.');
+      throw new UnauthorizedError('Incorrect password. Please try again.');
     }
 
     // Accounts under pending registration are redirected to register verify flow
