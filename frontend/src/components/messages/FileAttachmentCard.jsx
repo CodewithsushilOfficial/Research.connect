@@ -1,4 +1,5 @@
-import { Download, FileText, TableProperties, FileArchive, File } from 'lucide-react';
+import React, { useState } from 'react';
+import { Download, FileText, TableProperties, FileArchive, File, Share2, Check } from 'lucide-react';
 import { formatFileSize } from '../../data/mockData';
 
 const FILE_CONFIG = {
@@ -33,6 +34,7 @@ function getConfig(fileType) {
 export default function FileAttachmentCard({ attachment }) {
   const { fileName, fileSizeBytes, fileType, cdnUrl } = attachment;
   const { bg, Icon, iconColor, label } = getConfig(fileType);
+  const [copied, setCopied] = useState(false);
 
   const handleDownload = (e) => {
     e.stopPropagation();
@@ -43,6 +45,16 @@ export default function FileAttachmentCard({ attachment }) {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+    }
+  };
+
+  const handleShare = (e) => {
+    e.stopPropagation();
+    if (cdnUrl && cdnUrl !== '#') {
+      navigator.clipboard.writeText(cdnUrl).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      });
     }
   };
 
@@ -66,11 +78,20 @@ export default function FileAttachmentCard({ attachment }) {
         </p>
       </div>
 
-      <Download
-        size={18}
-        className="dl-icon text-[#94A3B8] group-hover:text-[#2563EB] transition-colors flex-shrink-0"
-      />
-    </div>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={handleShare}
+          className="p-1 hover:bg-[#F1F5F9] rounded-md transition-colors text-[#94A3B8] hover:text-[#475569]"
+          title="Copy link to clipboard"
+        >
+          {copied ? <Check size={18} className="text-green-500" /> : <Share2 size={18} />}
+        </button>
 
+        <Download
+          size={18}
+          className="dl-icon text-[#94A3B8] group-hover:text-[#2563EB] transition-colors flex-shrink-0"
+        />
+      </div>
+    </div>
   );
 }
