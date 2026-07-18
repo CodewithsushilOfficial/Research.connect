@@ -63,7 +63,7 @@ const GrievanceForm = ({ defaultUser }) => {
   };
 
   return (
-    <Card className="w-full">
+    <Card className="w-full rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border-border/80">
       <h3 className="text-lg font-bold text-text-primary tracking-tight mb-2 flex items-center gap-2">
         <ShieldAlert className="w-5 h-5 text-accent-red" />
         Report a Problem / Grievance
@@ -80,6 +80,7 @@ const GrievanceForm = ({ defaultUser }) => {
             placeholder="John Doe"
             required
             error={errors.name?.message}
+            className="focus:ring-primary/20 focus:border-primary transition-all duration-200"
             {...register('name', { required: 'Name is required' })}
           />
           <Input
@@ -89,6 +90,7 @@ const GrievanceForm = ({ defaultUser }) => {
             placeholder="john.doe@institution.edu"
             required
             error={errors.email?.message}
+            className="focus:ring-primary/20 focus:border-primary transition-all duration-200"
             {...register('email', {
               required: 'Email is required',
               pattern: {
@@ -106,6 +108,7 @@ const GrievanceForm = ({ defaultUser }) => {
           required
           options={categories}
           error={errors.category?.message}
+          className="focus:ring-primary/20 focus:border-primary transition-all duration-200"
           {...register('category', { required: 'Please select a category' })}
         />
 
@@ -114,6 +117,7 @@ const GrievanceForm = ({ defaultUser }) => {
           name="paperUrl"
           placeholder="https://researchconnect.org/publications/some-paper"
           error={errors.paperUrl?.message}
+          className="focus:ring-primary/20 focus:border-primary transition-all duration-200"
           {...register('paperUrl', {
             pattern: {
               value: /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/,
@@ -131,9 +135,9 @@ const GrievanceForm = ({ defaultUser }) => {
             name="description"
             rows="6"
             placeholder="Provide a detailed description of the grievance..."
-            className={`w-full px-4 py-2 text-sm bg-bg-card border ${
-              errors.description ? 'border-accent-red focus:ring-accent-red' : 'border-border focus:ring-primary'
-            } rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-opacity-40 transition-colors`}
+            className={`w-full px-4 py-2.5 text-sm bg-bg-card border ${
+              errors.description ? 'border-accent-red focus:ring-accent-red/20 focus:border-accent-red' : 'border-border focus:ring-primary/20 focus:border-primary'
+            } rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-opacity-40 transition-all duration-200`}
             {...register('description', {
               required: 'Description is required',
               minLength: { value: 10, message: 'Description must be at least 10 characters' },
@@ -152,6 +156,7 @@ const GrievanceForm = ({ defaultUser }) => {
           name="attachment"
           placeholder="https://example.com/dmca_document.pdf"
           error={errors.attachment?.message}
+          className="focus:ring-primary/20 focus:border-primary transition-all duration-200"
           {...register('attachment')}
         />
 
@@ -161,7 +166,7 @@ const GrievanceForm = ({ defaultUser }) => {
             variant="danger"
             loading={submitting}
             icon={<Send className="w-4 h-4" />}
-            className="w-full md:w-auto"
+            className="w-full md:w-auto hover:shadow-md transition-shadow duration-200"
           >
             Submit Grievance
           </Button>

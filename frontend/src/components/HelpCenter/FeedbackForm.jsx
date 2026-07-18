@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { Star, Send } from 'lucide-react';
+import { motion } from 'framer-motion';
 import Input from '../common/inputs/Input';
 import Select from '../common/inputs/Select';
 import Button from '../common/buttons/Button';
@@ -61,7 +62,7 @@ const FeedbackForm = ({ defaultUser }) => {
   };
 
   return (
-    <Card className="w-full">
+    <Card className="w-full rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border-border/80">
       <h3 className="text-lg font-bold text-text-primary tracking-tight mb-2">Share Feedback</h3>
       <p className="text-sm text-text-secondary mb-6">
         Let us know how we can make Research Connect better for you.
@@ -74,6 +75,7 @@ const FeedbackForm = ({ defaultUser }) => {
             name="name"
             placeholder="John Doe"
             error={errors.name?.message}
+            className="focus:ring-primary/20 focus:border-primary transition-all duration-200"
             {...register('name')}
           />
           <Input
@@ -82,6 +84,7 @@ const FeedbackForm = ({ defaultUser }) => {
             type="email"
             placeholder="john.doe@institution.edu"
             error={errors.email?.message}
+            className="focus:ring-primary/20 focus:border-primary transition-all duration-200"
             {...register('email', {
               pattern: {
                 value: /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
@@ -109,19 +112,25 @@ const FeedbackForm = ({ defaultUser }) => {
                     onClick={() => onChange(star)}
                     onMouseEnter={() => setHoverRating(star)}
                     onMouseLeave={() => setHoverRating(0)}
-                    className="p-1 focus:outline-none transition-colors"
+                    className="p-1 focus:outline-none"
                   >
-                    <Star
-                      className={`w-8 h-8 ${
-                        star <= (hoverRating || value)
-                          ? 'fill-amber-400 text-amber-400'
-                          : 'text-border fill-transparent'
-                      } transition-all`}
-                    />
+                    <motion.div
+                      whileHover={{ scale: 1.25, rotate: 12 }}
+                      whileTap={{ scale: 0.85 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                    >
+                      <Star
+                        className={`w-7 h-7 cursor-pointer ${
+                          star <= (hoverRating || value)
+                            ? 'fill-amber-400 text-amber-400 filter drop-shadow-[0_0_2px_rgba(251,191,36,0.2)]'
+                            : 'text-border fill-transparent hover:text-amber-400'
+                        } transition-colors duration-200`}
+                      />
+                    </motion.div>
                   </button>
                 ))}
-                <span className="ml-3 text-sm font-semibold text-text-secondary">
-                  {hoverRating || value} Star{ (hoverRating || value) !== 1 ? 's' : ''}
+                <span className="ml-3 text-sm font-semibold text-text-secondary select-none">
+                  {hoverRating || value} Star{(hoverRating || value) !== 1 ? 's' : ''}
                 </span>
               </div>
             )}
@@ -140,6 +149,7 @@ const FeedbackForm = ({ defaultUser }) => {
           required
           options={categories}
           error={errors.category?.message}
+          className="focus:ring-primary/20 focus:border-primary transition-all duration-200"
           {...register('category', { required: 'Please select a category' })}
         />
 
@@ -153,8 +163,8 @@ const FeedbackForm = ({ defaultUser }) => {
             rows="5"
             placeholder="Share your thoughts, suggestions, or ideas..."
             className={`w-full px-4 py-2 text-sm bg-bg-card border ${
-              errors.comment ? 'border-accent-red focus:ring-accent-red' : 'border-border focus:ring-primary'
-            } rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-opacity-40 transition-colors`}
+              errors.comment ? 'border-accent-red focus:ring-accent-red' : 'border-border focus:ring-primary/20 focus:border-primary'
+            } rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-opacity-40 transition-all duration-200`}
             {...register('comment', {
               required: 'Comment is required',
               minLength: { value: 3, message: 'Comment must be at least 3 characters' },
@@ -174,7 +184,7 @@ const FeedbackForm = ({ defaultUser }) => {
             variant="primary"
             loading={submitting}
             icon={<Send className="w-4 h-4" />}
-            className="w-full md:w-auto"
+            className="w-full md:w-auto hover:shadow-md transition-shadow duration-200"
           >
             Submit Feedback
           </Button>

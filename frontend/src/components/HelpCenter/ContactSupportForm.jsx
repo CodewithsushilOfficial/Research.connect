@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
-import { Send, Upload } from 'lucide-react';
+import { Send } from 'lucide-react';
 import Input from '../common/inputs/Input';
 import Select from '../common/inputs/Select';
 import Button from '../common/buttons/Button';
@@ -60,7 +60,7 @@ const ContactSupportForm = ({ defaultUser }) => {
   };
 
   return (
-    <Card className="w-full">
+    <Card className="w-full rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border-border/80">
       <h3 className="text-lg font-bold text-text-primary tracking-tight mb-2">Contact Support</h3>
       <p className="text-sm text-text-secondary mb-6">
         Fill out the form below and our support team will get back to you shortly.
@@ -74,6 +74,7 @@ const ContactSupportForm = ({ defaultUser }) => {
             placeholder="John Doe"
             required
             error={errors.name?.message}
+            className="focus:ring-primary/20 focus:border-primary transition-all duration-200"
             {...register('name', { required: 'Name is required' })}
           />
           <Input
@@ -83,6 +84,7 @@ const ContactSupportForm = ({ defaultUser }) => {
             placeholder="john.doe@institution.edu"
             required
             error={errors.email?.message}
+            className="focus:ring-primary/20 focus:border-primary transition-all duration-200"
             {...register('email', {
               required: 'Email is required',
               pattern: {
@@ -100,6 +102,7 @@ const ContactSupportForm = ({ defaultUser }) => {
           required
           options={categories}
           error={errors.category?.message}
+          className="focus:ring-primary/20 focus:border-primary transition-all duration-200"
           {...register('category', { required: 'Please select a category' })}
         />
 
@@ -109,6 +112,7 @@ const ContactSupportForm = ({ defaultUser }) => {
           placeholder="Brief summary of the issue"
           required
           error={errors.subject?.message}
+          className="focus:ring-primary/20 focus:border-primary transition-all duration-200"
           {...register('subject', {
             required: 'Subject is required',
             minLength: { value: 3, message: 'Subject must be at least 3 characters' },
@@ -125,9 +129,9 @@ const ContactSupportForm = ({ defaultUser }) => {
             name="message"
             rows="6"
             placeholder="Describe your issue in detail..."
-            className={`w-full px-4 py-2 text-sm bg-bg-card border ${
-              errors.message ? 'border-accent-red focus:ring-accent-red' : 'border-border focus:ring-primary'
-            } rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-opacity-40 transition-colors`}
+            className={`w-full px-4 py-2.5 text-sm bg-bg-card border ${
+              errors.message ? 'border-accent-red focus:ring-accent-red/20 focus:border-accent-red' : 'border-border focus:ring-primary/20 focus:border-primary'
+            } rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-opacity-40 transition-all duration-200`}
             {...register('message', {
               required: 'Message is required',
               minLength: { value: 10, message: 'Message must be at least 10 characters' },
@@ -146,6 +150,7 @@ const ContactSupportForm = ({ defaultUser }) => {
           name="attachment"
           placeholder="https://example.com/screenshot.png"
           error={errors.attachment?.message}
+          className="focus:ring-primary/20 focus:border-primary transition-all duration-200"
           {...register('attachment')}
         />
 
@@ -155,7 +160,7 @@ const ContactSupportForm = ({ defaultUser }) => {
             variant="primary"
             loading={submitting}
             icon={<Send className="w-4 h-4" />}
-            className="w-full md:w-auto"
+            className="w-full md:w-auto hover:shadow-md transition-shadow duration-200"
           >
             Submit Request
           </Button>
