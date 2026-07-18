@@ -140,17 +140,21 @@ const AuthenticatedNavbar = ({ onMenuClick, isMobileMenuOpen }) => {
         {mobileSearchOpen ? (
           <div className="flex items-center h-16 gap-2 md:hidden">
             <form onSubmit={handleSearchSubmit} className="flex-grow relative">
-              <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-slate-400">
-                <Search className="w-4 h-4" />
-              </div>
               <input
                 autoFocus
                 type="text"
                 placeholder="Search researchers, papers..."
                 value={searchState.query}
                 onChange={handleSearchChange}
-                className="w-full pl-11 pr-4 py-2.5 rounded-full border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent text-slate-950 placeholder-slate-400"
+                className="w-full pl-4 pr-11 py-2.5 rounded-full border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent text-slate-950 placeholder-slate-400"
               />
+              <button
+                type="submit"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
+                aria-label="Submit search"
+              >
+                <Search className="w-4 h-4" />
+              </button>
             </form>
             <button
               onClick={() => setMobileSearchOpen(false)}
@@ -187,17 +191,26 @@ const AuthenticatedNavbar = ({ onMenuClick, isMobileMenuOpen }) => {
           {/* Large Global Search with Autocomplete */}
           <div ref={searchContainerRef} className="flex-grow max-w-xl relative hidden md:block">
             <form onSubmit={handleSearchSubmit} className="relative w-full">
-              <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-slate-400">
-                <Search className="w-4 h-4" />
-              </div>
               <input
                 type="text"
                 placeholder="Search researchers, papers, patents, keywords..."
                 value={searchState.query}
                 onChange={handleSearchChange}
-                onFocus={() => setShowSuggestions(true)}
-                className="w-full pl-11 pr-4 py-2 rounded-full border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent text-slate-950 placeholder-slate-400 shadow-inner hover:bg-slate-100/50 focus:bg-white transition-all duration-200"
+                onFocus={() => {
+                  setShowSuggestions(true);
+                  if (window.location.pathname !== '/search') {
+                    navigate('/search' + (searchState.query ? `?q=${encodeURIComponent(searchState.query)}` : ''));
+                  }
+                }}
+                className="w-full pl-5 pr-12 py-2 rounded-full border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent text-slate-950 placeholder-slate-400 shadow-inner hover:bg-slate-100/50 focus:bg-white transition-all duration-200"
               />
+              <button
+                type="submit"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors cursor-pointer z-10"
+                aria-label="Submit search"
+              >
+                <Search className="w-4 h-4" />
+              </button>
             </form>
 
             {showSuggestions && (searchState.query.trim().length >= 2) && (
@@ -313,7 +326,12 @@ const AuthenticatedNavbar = ({ onMenuClick, isMobileMenuOpen }) => {
 
             {/* Mobile Search Trigger */}
             <button
-              onClick={() => setMobileSearchOpen(true)}
+              onClick={() => {
+                setMobileSearchOpen(true);
+                if (window.location.pathname !== '/search') {
+                  navigate('/search' + (searchState.query ? `?q=${encodeURIComponent(searchState.query)}` : ''));
+                }
+              }}
               className="p-1 sm:p-2 rounded-lg hover:bg-slate-100 text-slate-500 transition-all md:hidden shrink-0"
               aria-label="Search"
             >

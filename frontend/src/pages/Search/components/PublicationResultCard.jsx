@@ -41,10 +41,13 @@ const PublicationResultCard = ({ publication, index = 0 }) => {
     institution, language, readingTime, createdAt,
   } = publication;
 
+  const safeAuthorsList = Array.isArray(authorsList) ? authorsList : [];
+  const safeKeywords = Array.isArray(keywords) ? keywords : (typeof keywords === 'string' ? keywords.split(',') : []);
+
   const venue = journal || pubVenue || conference || '';
   const typeColor = TYPE_COLORS[publicationType] || 'bg-gray-100 text-gray-700';
-  const authorsDisplay = authorsList.length > 0
-    ? authorsList.slice(0, 3).map(a => a.name).join(', ') + (authorsList.length > 3 ? ` +${authorsList.length - 3}` : '')
+  const authorsDisplay = safeAuthorsList.length > 0
+    ? safeAuthorsList.slice(0, 3).map(a => a.name || a).join(', ') + (safeAuthorsList.length > 3 ? ` +${safeAuthorsList.length - 3}` : '')
     : (authors || '');
 
   const goToReader = () => navigate(`/publications/${slug}`);
@@ -97,10 +100,11 @@ const PublicationResultCard = ({ publication, index = 0 }) => {
       </button>
 
       {/* Authors */}
-      {authorsList.length > 0 ? (
+      {safeAuthorsList.length > 0 ? (
         <div className="text-sm text-gray-500 mb-2 flex flex-wrap gap-1 items-center">
-          {authorsList.slice(0, 3).map((author, idx) => {
+          {safeAuthorsList.slice(0, 3).map((author, idx) => {
             const isClickable = author.profileSlug || author.authorId;
+            const authorName = typeof author === 'string' ? author : author.name;
             return (
               <React.Fragment key={idx}>
                 {idx > 0 && <span className="text-gray-400">, </span>}
@@ -113,12 +117,12 @@ const PublicationResultCard = ({ publication, index = 0 }) => {
                   }}
                   className={isClickable ? "hover:text-blue-600 hover:underline cursor-pointer font-medium transition-colors" : ""}
                 >
-                  {author.name}
+                  {authorName}
                 </span>
               </React.Fragment>
             );
           })}
-          {authorsList.length > 3 && <span className="text-gray-400"> +{authorsList.length - 3}</span>}
+          {safeAuthorsList.length > 3 && <span className="text-gray-400"> +{safeAuthorsList.length - 3}</span>}
           {institution && <span className="text-gray-400"> · {institution}</span>}
         </div>
       ) : authors && (
@@ -144,15 +148,15 @@ const PublicationResultCard = ({ publication, index = 0 }) => {
       )}
 
       {/* Keywords */}
-      {keywords.length > 0 && (
+      {safeKeywords.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-4">
-          {keywords.slice(0, 5).map((kw, i) => (
+          {safeKeywords.slice(0, 5).map((kw, i) => (
             <span key={i} className="px-2 py-0.5 bg-gray-100 hover:bg-blue-100 hover:text-blue-700 text-gray-600 rounded-full text-xs transition-colors cursor-default">
               {kw}
             </span>
           ))}
-          {keywords.length > 5 && (
-            <span className="px-2 py-0.5 text-gray-400 text-xs">+{keywords.length - 5} more</span>
+          {safeKeywords.length > 5 && (
+            <span className="px-2 py-0.5 text-gray-400 text-xs">+{safeKeywords.length - 5} more</span>
           )}
         </div>
       )}

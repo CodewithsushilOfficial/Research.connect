@@ -38,7 +38,7 @@ const ResearcherResultCard = ({ researcher, index = 0 }) => {
           src={profileImage}
           name={displayName}
           size="xl"
-          shape="rounded-2xl"
+          shape="rounded-full"
           showBorder
         />
       </div>
