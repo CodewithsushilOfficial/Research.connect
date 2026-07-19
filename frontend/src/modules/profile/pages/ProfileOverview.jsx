@@ -207,6 +207,10 @@ const ProfileOverview = () => {
         refetch();
       }
     } catch (err) {
+      if (err?.isCanceled) {
+          // A newer identical request superseded this one — not a real failure.
+          return;
+        }
       console.error(err);
       toast.error(err.message || 'Failed to update profile');
     } finally {
