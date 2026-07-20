@@ -47,25 +47,25 @@ const Hero = ({ children }) => {
   }, [text, isDeleting, phraseIndex, reduce]);
 
   return (
-    <div className="pt-6 pb-2 max-w-[1400px] mx-auto">
-      <div className="flex flex-col gap-2 sm:gap-4">
+    <div className="pt-4 pb-0 max-w-[1400px] mx-auto">
+      <div className="flex flex-col lg:flex-row lg:flex-wrap lg:items-center gap-2 sm:gap-3 xl:gap-4">
         <motion.div
           variants={fadeIn(reduce, 0.1)}
           initial="hidden"
           animate="show"
           className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-2 sm:gap-4 text-slate-900"
         >
-          <div className="flex items-center gap-2 sm:gap-4">
-            <motion.div 
+          <div className="flex items-center gap-2 sm:gap-3">
+            <motion.div
               animate={{ rotate: [-4, 4, -4] }}
               transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
             >
-              <div className="bg-blue-600 p-2 sm:p-4 rounded-lg sm:rounded-2xl text-white shadow-lg shadow-blue-600/20">
-                <Search className="w-5 h-5 sm:w-8 sm:h-8" />
+              <div className="bg-blue-600 p-2 sm:p-3 xl:p-4 rounded-lg sm:rounded-2xl text-white shadow-lg shadow-blue-600/20">
+                <Search className="w-5 h-5 sm:w-6 sm:h-6 xl:w-8 xl:h-8" />
               </div>
             </motion.div>
-            
-            <h1 className="text-[22px] leading-none sm:text-4xl md:text-5xl lg:text-7xl font-black text-slate-900 tracking-tight flex-1">
+
+            <h1 className="text-[22px] leading-none sm:text-3xl md:text-4xl lg:text-3xl xl:text-4xl 2xl:text-5xl font-black text-slate-900 tracking-tight flex-1">
               DISCOVER
             </h1>
           </div>
@@ -75,12 +75,12 @@ const Hero = ({ children }) => {
           variants={fadeIn(reduce, 0.2)}
           initial="hidden"
           animate="show"
-          className="h-[1.75rem] sm:h-[4rem] md:h-[5rem] lg:h-[6rem] flex items-center"
+          className="h-6 sm:h-9 md:h-10 lg:h-9 xl:h-10 2xl:h-[48px] flex items-center"
         >
-          <h2 className="text-[18px] sm:text-4xl md:text-5xl lg:text-7xl font-black tracking-tight leading-tight text-blue-600 uppercase relative" aria-live="polite">
+          <h2 className="text-[16px] sm:text-3xl md:text-4xl lg:text-3xl xl:text-4xl 2xl:text-5xl font-black tracking-tight leading-tight text-blue-600 uppercase relative whitespace-nowrap" aria-live="polite">
             {text}
             <span
-              className="absolute -right-2 sm:-right-3 top-0.5 sm:top-2 bottom-0.5 sm:bottom-2 w-[2px] sm:w-[5px] bg-blue-600 rounded-full"
+              className="absolute -right-2 sm:-right-3 top-0.5 sm:top-1.5 bottom-0.5 sm:bottom-1.5 w-[2px] sm:w-[3px] xl:w-[4px] bg-blue-600 rounded-full"
               style={{ animation: 'gs-blink 1s step-start infinite' }}
               aria-hidden="true"
             />
@@ -88,7 +88,7 @@ const Hero = ({ children }) => {
         </motion.div>
       </div>
 
-      <div className="mt-4 sm:mt-8">{children}</div>
+      <div className="mt-4 sm:mt-6">{children}</div>
     </div>
   );
 };

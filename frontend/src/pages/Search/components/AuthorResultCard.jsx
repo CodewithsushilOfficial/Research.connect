@@ -19,7 +19,7 @@ const AuthorResultCard = ({ author, index = 0 }) => {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, delay: index * 0.04 }}
-      className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 p-3.5 sm:p-5 hover:border-blue-300 hover:shadow-md transition-all duration-200 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-5"
+      className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 p-3 sm:p-4 2xl:p-6 hover:border-blue-300 hover:shadow-md transition-all duration-200 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 2xl:gap-5"
     >
       {/* Avatar */}
       <div 
@@ -39,13 +39,13 @@ const AuthorResultCard = ({ author, index = 0 }) => {
       <div className="flex-1 min-w-0">
         <h3 
           onClick={() => (profileSlug || userId) && navigate(`/profile/${profileSlug || userId}`)}
-          className={`text-sm sm:text-base font-bold text-gray-900 truncate ${profileSlug || userId ? 'cursor-pointer hover:text-blue-600 transition-colors' : ''}`}
+          className={`text-[13px] sm:text-[14px] 2xl:text-lg font-bold text-gray-900 truncate ${profileSlug || userId ? 'cursor-pointer hover:text-blue-600 transition-colors' : ''}`}
         >
           {name}
         </h3>
         {institution && (
-          <p className="text-[11px] sm:text-sm text-gray-500 truncate flex items-center gap-1 mt-0.5">
-            <GraduationCap className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+          <p className="text-[11px] sm:text-xs 2xl:text-sm text-gray-500 truncate flex items-center gap-1 mt-0.5 2xl:mt-1">
+            <GraduationCap className="w-3 h-3 sm:w-3.5 sm:h-3.5 2xl:w-4 2xl:h-4 flex-shrink-0" />
             {institution}
           </p>
         )}

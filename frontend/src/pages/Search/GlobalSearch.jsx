@@ -122,7 +122,7 @@ const GlobalSearch = () => {
   const activeCount = [type !== 'All', filter, year, minCitations].filter(Boolean).length;
 
   return (
-    <div className="h-[calc(100vh-64px)] flex flex-col bg-[#F8FAFC] font-sans selection:bg-[#2563EB] selection:text-white overflow-hidden">
+    <div className="h-[calc(100vh-112px)] md:h-[calc(100vh-128px)] flex flex-col bg-[#F8FAFC] font-sans selection:bg-[#2563EB] selection:text-white overflow-hidden">
       {/* Inject Keyframes for Skeletons */}
       <style>{SKELETON_KEYFRAMES}</style>
 
@@ -135,10 +135,10 @@ const GlobalSearch = () => {
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 relative z-20 mt-2 mb-4">
           <GlassPanel className="px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl w-full flex items-center justify-between">
             <div>
-              <h2 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight">
+              <h2 className="text-xl sm:text-xl font-black text-slate-800 tracking-tight">
                 {query ? `Search results for "${query}"` : (activeTab === 'All' ? 'Explore Everything' : `Explore ${activeTab}`)}
               </h2>
-              <p className="text-slate-500 text-[11px] sm:text-sm mt-0.5 sm:mt-1 font-medium">
+              <p className="text-slate-500 text-[11px] sm:text-xs mt-0.5 sm:mt-1 font-medium">
                 {activeTab === 'Researchers' && 'Find top researchers and authors around the world.'}
                 {activeTab === 'Publications' && 'Discover peer-reviewed papers, articles, and datasets.'}
                 {activeTab === 'Projects' && 'Explore innovative research projects and collaborations.'}
@@ -156,34 +156,8 @@ const GlobalSearch = () => {
       <div className="flex-1 overflow-hidden">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 h-full">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 xl:gap-8 h-full">
-            {/* Desktop Sidebar */}
-            <div className="hidden lg:block lg:col-span-3 xl:col-span-3 h-full overflow-y-auto pb-8 hide-scrollbar">
-              <FilterSidebar
-                activeTab={activeTab}
-                setActiveTab={handleTabChange}
-                year={year}
-                minCitations={minCitations}
-                sort={sort}
-                onFilterChange={handleFilterChange}
-                onReset={resetFilters}
-              />
-            </div>
-
-            {/* Mobile Drawer */}
-            <FilterDrawer
-              open={drawerOpen}
-              onClose={() => setDrawerOpen(false)}
-              activeTab={activeTab}
-              setActiveTab={handleTabChange}
-              year={year}
-              minCitations={minCitations}
-              sort={sort}
-              onFilterChange={handleFilterChange}
-              onReset={resetFilters}
-            />
-
             {/* Results Area */}
-            <div id="results-scroll-area" className="lg:col-span-9 xl:col-span-9 h-full overflow-y-auto pb-8 pr-2">
+            <div id="results-scroll-area" className="lg:col-span-8 xl:col-span-9 h-full overflow-y-auto pb-8 lg:pr-2">
               {isLoading ? (
                 <ResultsSkeletonList count={5} />
               ) : results.length === 0 ? (
@@ -198,7 +172,7 @@ const GlobalSearch = () => {
                 />
               ) : (
                 <>
-                  <div className="space-y-3 sm:space-y-5">
+                  <div className="space-y-3 sm:space-y-3.5 2xl:space-y-5">
                     {results.map((item, index) => {
                       const key = item._id || index;
                       const cardType = item.resultType || activeTab;
@@ -208,13 +182,13 @@ const GlobalSearch = () => {
                       if (cardType === 'Organization' || cardType === 'Organizations') return <InstitutionResultCard key={key} institution={item} index={index} />;
                       if (cardType === 'Project' || cardType === 'Projects') {
                         return (
-                          <div key={key} className="p-4 sm:p-6 bg-white border border-slate-200 rounded-xl sm:rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                          <div key={key} className="p-3 sm:p-4 2xl:p-6 bg-white border border-slate-200 rounded-xl sm:rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
                             <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
                             {item.resultType && (
-                               <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full mb-2 sm:mb-3 inline-block">Project</span>
+                               <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-2 py-0.5 sm:px-2.5 sm:py-0.5 2xl:py-1 rounded-full mb-1.5 sm:mb-2 2xl:mb-3 inline-block">Project</span>
                             )}
-                            <h3 className="font-bold text-base sm:text-lg text-slate-900 group-hover:text-indigo-600 transition-colors">{item.title || 'Project'}</h3>
-                            <p className="text-[11px] sm:text-sm text-slate-500 mt-1.5 sm:mt-2 leading-relaxed">{item.description || 'Project details coming soon'}</p>
+                            <h3 className="font-bold text-sm sm:text-[15px] 2xl:text-lg text-slate-900 group-hover:text-indigo-600 transition-colors">{item.title || 'Project'}</h3>
+                            <p className="text-[11px] sm:text-[12px] 2xl:text-sm text-slate-500 mt-1 sm:mt-1.5 2xl:mt-2 leading-relaxed">{item.description || 'Project details coming soon'}</p>
                           </div>
                         );
                       }
@@ -257,6 +231,32 @@ const GlobalSearch = () => {
                 </>
               )}
             </div>
+
+            {/* Desktop Sidebar */}
+            <div className="hidden lg:block lg:col-span-4 xl:col-span-3 h-full overflow-y-auto pb-8 hide-scrollbar lg:pl-2">
+              <FilterSidebar
+                activeTab={activeTab}
+                setActiveTab={handleTabChange}
+                year={year}
+                minCitations={minCitations}
+                sort={sort}
+                onFilterChange={handleFilterChange}
+                onReset={resetFilters}
+              />
+            </div>
+
+            {/* Mobile Drawer */}
+            <FilterDrawer
+              open={drawerOpen}
+              onClose={() => setDrawerOpen(false)}
+              activeTab={activeTab}
+              setActiveTab={handleTabChange}
+              year={year}
+              minCitations={minCitations}
+              sort={sort}
+              onFilterChange={handleFilterChange}
+              onReset={resetFilters}
+            />
           </div>
         </div>
       </div>
