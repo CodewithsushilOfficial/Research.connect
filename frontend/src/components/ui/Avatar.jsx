@@ -81,12 +81,14 @@ const UserAvatar = memo(({
     resolvedSrc = resolvedSrc.url || resolvedSrc.thumbnail || null;
   }
 
+  // Prefer live firstName/lastName over user.fullName — fullName can be a
+  // stale snapshot from an older session and shouldn't override a fresh edit.
   const resolvedName =
     name ??
-    user?.fullName ??
     (user?.firstName || user?.lastName
       ? `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim()
       : null) ??
+    user?.fullName ??
     user?.username ??
     'User';
   const resolvedOnline = (isOnline ?? showStatus ?? user?.isOnline ?? user?.online ?? false);

@@ -50,6 +50,15 @@ const authSlice = createSlice({
         localStorage.setItem('profile', JSON.stringify(profile));
       }
     },
+    hydrateSession(state, action) {
+      const { user, profile } = action.payload;
+      state.user = user;
+      state.profile = profile;
+      localStorage.setItem('user', JSON.stringify(user));
+      if (profile) {
+        localStorage.setItem('profile', JSON.stringify(profile));
+      }
+    },
     updateProfileState(state, action) {
       state.profile = action.payload;
       localStorage.setItem('profile', JSON.stringify(action.payload));
@@ -109,6 +118,7 @@ const authSlice = createSlice({
 export const {
   setLoading,
   setCredentials,
+  hydrateSession,
   updateProfileState,
   updateUserState,
   setOtpEmail,
