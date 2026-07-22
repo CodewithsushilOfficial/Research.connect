@@ -126,7 +126,7 @@ const ConnectionsPage = () => {
               <ConnectionCard
                 key={connection._id}
                 connection={connection}
-                currentUserId={currentUser?._id}
+                currentUserId={currentUser?.userId}
               />
             ))}
           </div>
