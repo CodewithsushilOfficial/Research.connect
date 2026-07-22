@@ -10,6 +10,8 @@ const ConnectionCard = ({ connection, currentUserId }) => {
 
   if (!user) return null;
 
+  const isSelf = currentUserId && user._id === currentUserId;
+
   const handleCardClick = () => {
     navigate(`/profile/${user.profileSlug || user.username}`);
   };
@@ -77,17 +79,19 @@ const ConnectionCard = ({ connection, currentUserId }) => {
           <span>Profile</span>
         </button>
 
-        <div className="flex gap-2">
-          <button
-            onClick={handleMessageClick}
-            className="flex items-center gap-1 px-3 py-2 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer border border-blue-200 hover:border-blue-600"
-          >
-            <MessageSquare className="w-3.5 h-3.5" />
-            <span>Message</span>
-          </button>
-          
-          <ConnectButton targetUserId={user._id} username={user.profileSlug || user.username} />
-        </div>
+        {!isSelf && (
+          <div className="flex gap-2">
+            <button
+              onClick={handleMessageClick}
+              className="flex items-center gap-1 px-3 py-2 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer border border-blue-200 hover:border-blue-600"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>Message</span>
+            </button>
+
+            <ConnectButton targetUserId={user._id} username={user.profileSlug || user.username} />
+          </div>
+        )}
       </div>
     </div>
   );
