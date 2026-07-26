@@ -23,7 +23,7 @@ class SearchService {
 
   async searchProjects(params) {
     const { q = '', status, domain, tags, owner, page = 1, limit = 20, sort = 'relevance', currentUserId } = params;
-    const pageNum = Math.max(1, parseInt(page, 10)); const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10)));
+    const pageNum = Math.max(1, parseInt(page, 10) || 1); const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 20));
     const skip = (pageNum - 1) * limitNum;
 
     // ── Intelligent Profile Matching for Empty Queries ──
@@ -143,8 +143,8 @@ class SearchService {
       booleanMode,         // AND | OR | NOT
     } = params;
 
-    const pageNum = Math.max(1, parseInt(page, 10));
-    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10)));
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 20));
     const skip = (pageNum - 1) * limitNum;
 
     // Meilisearch Integration
@@ -371,8 +371,8 @@ class SearchService {
   // ─── Author Search ───────────────────────────────────────────────────────────
   async searchAuthors(params) {
     const { q = '', page = 1, limit = 20 } = params;
-    const pageNum = Math.max(1, parseInt(page, 10));
-    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10)));
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 20));
     const skip = (pageNum - 1) * limitNum;
 
     if (!q.trim()) return { results: [], total: 0, page: pageNum, limit: limitNum, totalPages: 0 };
@@ -432,8 +432,8 @@ class SearchService {
   // ─── Researcher Search ────────────────────────────────────────────────────────
   async searchResearchers(params) {
     const { q = '', page = 1, limit = 20, country, institution, researchArea, currentUserId, minCitations } = params;
-    const pageNum = Math.max(1, parseInt(page, 10));
-    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10)));
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 20));
     const skip = (pageNum - 1) * limitNum;
 
     // ── Intelligent Profile Matching for Empty Queries ──
@@ -650,8 +650,8 @@ class SearchService {
   // ─── Journal / Conference Search ─────────────────────────────────────────────
   async searchJournals(params) {
     const { q = '', page = 1, limit = 20 } = params;
-    const pageNum = Math.max(1, parseInt(page, 10));
-    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10)));
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 20));
     const skip = (pageNum - 1) * limitNum;
 
     const matchStage = {
@@ -700,8 +700,8 @@ class SearchService {
 
   async searchConferences(params) {
     const { q = '', page = 1, limit = 20 } = params;
-    const pageNum = Math.max(1, parseInt(page, 10));
-    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10)));
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 20));
     const skip = (pageNum - 1) * limitNum;
 
     const matchStage = {
@@ -970,8 +970,8 @@ class SearchService {
 
   async searchKeywords(params) {
     const { q = '', page = 1, limit = 20 } = params;
-    const pageNum = Math.max(1, parseInt(page, 10));
-    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10)));
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 20));
     const skip = (pageNum - 1) * limitNum;
 
     if (!q.trim()) return { results: [], total: 0, page: pageNum, limit: limitNum, totalPages: 0 };
@@ -1008,8 +1008,8 @@ class SearchService {
 
   async searchInstitutions(params) {
     const { q = '', page = 1, limit = 20 } = params;
-    const pageNum = Math.max(1, parseInt(page, 10));
-    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10)));
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 20));
     const skip = (pageNum - 1) * limitNum;
 
     const queryFilter = { isActive: true };
