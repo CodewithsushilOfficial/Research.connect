@@ -58,4 +58,25 @@ router.get('/readiness', async (req, res) => {
   }
 });
 
+/**
+ * Redis Health Probe: verifies Railway Redis status and measures ping latency.
+ */
+router.get('/redis', async (req, res) => {
+  const isConnected = redisClient && redisClient.isOpen && redisClient.isReady;
+  const latency = isConnected ? (await redisClient.getLatency() || 'N/A') : 'N/A';
+
+  const responsePayload = {
+    status: isConnected ? 'healthy' : 'unhealthy',
+    provider: 'Railway Redis',
+    latency,
+    connected: Boolean(isConnected)
+  };
+
+  if (isConnected) {
+    res.status(200).json(responsePayload);
+  } else {
+    res.status(503).json(responsePayload);
+  }
+});
+
 module.exports = router;

@@ -101,7 +101,7 @@ const clientProxy = new Proxy(redisClient, {
           return (async () => {
             try {
               const res = await value.apply(target, args);
-              // Run a test command to verify if Upstash is over quota or timing out
+              // Run a test command to verify Railway Redis connectivity
               try {
                 await Promise.race([
                   target.get('__test_rate_limit__'),
@@ -110,14 +110,14 @@ const clientProxy = new Proxy(redisClient, {
               } catch (pingErr) {
                 if (isRedisConnError(pingErr)) {
                   isLimitExceeded = true;
-                  logger.warn('[REDIS] Redis rate limit or timeout during connection test. Falling back to in-memory mode.');
+                  logger.warn('[REDIS] Railway Redis connection test timeout. Falling back to in-memory mode.');
                 }
               }
               return res;
             } catch (err) {
               if (isRedisConnError(err)) {
                 isLimitExceeded = true;
-                logger.warn('[REDIS] Redis rate limit or timeout during connect. Falling back to in-memory mode.');
+                logger.warn('[REDIS] Railway Redis connection failed. Falling back to in-memory mode.');
               }
               throw err;
             }
@@ -131,9 +131,9 @@ const clientProxy = new Proxy(redisClient, {
               if (isRedisConnError(err)) {
                 if (!isLimitExceeded) {
                   isLimitExceeded = true;
-                  logger.warn('[REDIS] Redis rate limit or timeout detected. Falling back to in-memory mode.');
+                  logger.warn('[REDIS] Railway Redis connection error. Falling back to in-memory mode.');
                 }
-                throw new Error('Redis client is offline due to rate limit exhaustion');
+                throw new Error('Redis client is offline due to connectivity error');
               }
               throw err;
             });
@@ -143,9 +143,9 @@ const clientProxy = new Proxy(redisClient, {
           if (isRedisConnError(err)) {
             if (!isLimitExceeded) {
               isLimitExceeded = true;
-              logger.warn('[REDIS] Redis rate limit or timeout detected. Falling back to in-memory mode.');
+              logger.warn('[REDIS] Railway Redis connection error. Falling back to in-memory mode.');
             }
-            throw new Error('Redis client is offline due to rate limit exhaustion');
+            throw new Error('Redis client is offline due to connectivity error');
           }
           throw err;
         }
@@ -155,5 +155,19 @@ const clientProxy = new Proxy(redisClient, {
     return value;
   }
 });
+
+// Helper function to measure Redis latency for health checks
+clientProxy.getLatency = async () => {
+  if (!clientProxy.isOpen || !clientProxy.isReady) {
+    return null;
+  }
+  const start = Date.now();
+  try {
+    await clientProxy.ping();
+    return `${Date.now() - start}ms`;
+  } catch (err) {
+    return null;
+  }
+};
 
 module.exports = clientProxy;
