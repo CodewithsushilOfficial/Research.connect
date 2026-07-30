@@ -28,8 +28,8 @@ if (process.env.NODE_ENV === 'production') {
 module.exports = {
   port: parseInt(process.env.PORT, 10) || 5000,
   nodeEnv: process.env.NODE_ENV || 'development',
-  clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
-  serverUrl: process.env.SERVER_URL || 'http://localhost:5000',
+  clientUrl: process.env.FRONTEND_URL || process.env.CLIENT_URL || 'https://research-connect-pink.vercel.app',
+  serverUrl: process.env.BACKEND_URL || process.env.SERVER_URL || 'http://localhost:5000',
   logLevel: process.env.LOG_LEVEL || 'info',
 
   mongo: {

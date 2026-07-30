@@ -40,6 +40,9 @@ const helpModule = require("./modules/help");
 
 const app = express();
 
+// Trust Railway load balancer reverse proxy headers
+app.set("trust proxy", 1);
+
 // Disable X-Powered-By
 app.disable("x-powered-by");
 
