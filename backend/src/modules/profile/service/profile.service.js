@@ -633,13 +633,22 @@ class ProfileService {
 
   async getMetricsBySlug(profileSlug, currentUserId) {
     let targetUserId = currentUserId;
-    if (profileSlug && profileSlug !== 'me') {
+    if (profileSlug && profileSlug !== 'me' && profileSlug !== 'undefined') {
       const targetUser = await this.resolveUserBySlug(profileSlug);
       if (!targetUser) throw new NotFoundError(`Profile not found for slug: ${profileSlug}`);
       targetUserId = targetUser._id;
     }
 
     if (!targetUserId) return null;
+
+    const { MetricsCache } = require('../../../cache/cache.service');
+    const cacheKey = targetUserId.toString();
+
+    // Check Redis cache first
+    try {
+      const cached = await MetricsCache.get(cacheKey);
+      if (cached) return cached;
+    } catch (e) { /* ignore cache error */ }
 
     let metricsDoc = await ResearchMetric.findOne({ userId: targetUserId, isDeleted: { $ne: true } }).lean();
     if (!metricsDoc) {
@@ -678,18 +687,32 @@ class ProfileService {
       experienceYears: metricsDoc?.experienceYears || 0
     };
 
+    // Save to Redis cache for 5 minutes
+    try {
+      await MetricsCache.set(cacheKey, finalMetrics, 300);
+    } catch (e) { /* ignore cache error */ }
+
     return finalMetrics;
   }
 
   async getCoAuthorsBySlug(profileSlug, currentUserId, limit = null) {
     let targetUserId = currentUserId;
-    if (profileSlug && profileSlug !== 'me') {
+    if (profileSlug && profileSlug !== 'me' && profileSlug !== 'undefined') {
       const targetUser = await this.resolveUserBySlug(profileSlug);
       if (!targetUser) throw new NotFoundError(`Profile not found for slug: ${profileSlug}`);
       targetUserId = targetUser._id;
     }
 
     if (!targetUserId) return [];
+
+    const { CoAuthorCache } = require('../../../cache/cache.service');
+    const cacheKey = `${targetUserId.toString()}:${limit || 'all'}`;
+
+    // Check Redis cache first
+    try {
+      const cached = await CoAuthorCache.get(cacheKey);
+      if (cached) return cached;
+    } catch (e) { /* ignore cache error */ }
 
     const rawCoAuthors = await CoAuthor.find({ userId: targetUserId, isDeleted: { $ne: true } }).lean();
 
@@ -810,11 +833,13 @@ class ProfileService {
 
     result.sort((a, b) => b.sharedPublicationsCount - a.sharedPublicationsCount);
 
-    if (limit && typeof limit === 'number' && limit > 0) {
-      return result.slice(0, limit);
-    }
+    const finalCoAuthors = (limit && typeof limit === 'number' && limit > 0) ? result.slice(0, limit) : result;
 
-    return result;
+    try {
+      await CoAuthorCache.set(cacheKey, finalCoAuthors, 300);
+    } catch (e) { /* ignore cache error */ }
+
+    return finalCoAuthors;
   }
 }
 

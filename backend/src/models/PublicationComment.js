@@ -44,8 +44,9 @@ const PublicationCommentSchema = new Schema(
   {
     timestamps: true,
     collection: 'publicationComments'
-  }
-);
+// Compound Indexes for Instant Threaded Comments Retrieval
+PublicationCommentSchema.index({ publicationId: 1, createdAt: 1 });
+PublicationCommentSchema.index({ publicationId: 1, parentId: 1 });
 
 const PublicationComment = mongoose.model('PublicationComment', PublicationCommentSchema);
 

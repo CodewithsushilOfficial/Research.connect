@@ -379,6 +379,14 @@ PublicationSchema.index({ isDeleted: 1, status: 1, visibility: 1, citations: -1 
 PublicationSchema.index({ isDeleted: 1, status: 1, visibility: 1, views: -1 });
 
 
+// Compound Indexes for High-Performance Queries
+PublicationSchema.index({ status: 1, isDeleted: 1, createdAt: -1 });
+PublicationSchema.index({ userId: 1, isDeleted: 1, status: 1 });
+PublicationSchema.index({ slug: 1, isDeleted: 1 });
+PublicationSchema.index({ keywords: 1 });
+PublicationSchema.index({ researchAreas: 1 });
+PublicationSchema.index({ citations: -1, views: -1 });
+
 // Sync hooks for Meilisearch
 PublicationSchema.post('save', function (doc) {
   try {
