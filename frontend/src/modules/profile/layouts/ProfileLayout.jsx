@@ -17,26 +17,37 @@ const ProfileLayout = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
+  // Normalize target username (resolves 'me', undefined, or empty params to currentUser profile identifier)
+  const targetUsername = (!username || username === 'me' || username === 'undefined')
+    ? (currentUser?.profileSlug || currentUser?.username || 'me')
+    : username;
+
   // Determine if viewing own profile
-  const isOwnProfile = currentUser && (
-    currentUser.slug === username ||
-    currentUser.profileSlug === username ||
-    currentUser.username === username
-  );
+  const isOwnProfile = !username || username === 'me' || username === 'undefined' || (currentUser && (
+    currentUser.slug === targetUsername ||
+    currentUser.profileSlug === targetUsername ||
+    currentUser.username === targetUsername
+  ));
 
   // Query to fetch profile details (hydrated from all collections)
-  const { data: profileData, isLoading, error, refetch } = useQuery({
-    queryKey: ['profile', username],
+  const { data: profileData, isLoading, isRefetching, error, refetch } = useQuery({
+    queryKey: ['profile', targetUsername],
     queryFn: async () => {
-      return await profileService.getPublicProfile(username);
+      return await profileService.getPublicProfile(targetUsername);
     },
-    staleTime: 1000 * 30, // 30 seconds — keeps profile fresh after scholar sync
-    refetchOnWindowFocus: true
+    staleTime: 1000 * 60, // 1 minute stale time
+    enabled: !!targetUsername && targetUsername !== 'undefined',
+    refetchOnWindowFocus: false,
+    retry: (failureCount, err) => {
+      if (err?.status === 404 || err?.statusCode === 404) return false;
+      return failureCount < 2;
+    }
   });
 
   const profile = profileData?.data;
 
-  if (isLoading) {
+  // Show spinner only on initial load without cached data
+  if (isLoading && !profile) {
     return (
       <div className="flex flex-col min-h-screen bg-bg-page">
         <AuthenticatedNavbar />
@@ -48,7 +59,8 @@ const ProfileLayout = () => {
     );
   }
 
-  if (error) {
+  // Display error page ONLY if error is genuinely a non-existent or suspended profile (and not an aborted request)
+  if (error && !error.isCanceled && !profile && !isRefetching) {
     return (
       <div className="flex flex-col min-h-screen bg-bg-page">
         <AuthenticatedNavbar />

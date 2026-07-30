@@ -25,6 +25,10 @@ const getRequestKey = (config) => {
 };
 
 const addPendingRequest = (config) => {
+  // Do not cancel GET read requests to allow concurrent queries and fast navigation transitions
+  if (config.method && config.method.toUpperCase() === 'GET') {
+    return;
+  }
   const requestKey = getRequestKey(config);
   if (pendingRequests.has(requestKey)) {
     const controller = pendingRequests.get(requestKey);
