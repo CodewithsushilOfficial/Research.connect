@@ -19,6 +19,14 @@ const startServer = async () => {
       logger.error('Failed to connect to Redis on startup. Proceeding in fallback mode:', redisErr.message);
     }
 
+    // 1.8 Verify SMTP Infrastructure Connection
+    try {
+      const { verifySMTP } = require('./modules/authentication/helper/email.helper');
+      await verifySMTP();
+    } catch (smtpErr) {
+      logger.error('Failed to verify SMTP connection on startup:', smtpErr.message);
+    }
+
     // 2. Express + Register Routes (loaded dynamically after DB connection)
     const app = require('./app');
 
