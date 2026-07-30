@@ -106,23 +106,52 @@ const allowPublicOrMember = async (req, res, next) => {
     req.project = project;
 
     const userId = req.user?._id || req.user?.id;
+    const isOwner = userId ? project.owner.toString() === userId.toString() : false;
 
+    req.isProjectOwner = isOwner;
+
+    // Public projects are viewable by anyone
     if (project.visibility === 'public' || project.visibility === 'hidden') {
       req.isPublicAccess = true;
-      req.projectPermissions = {};
+      req.projectPermissions = isOwner ? Object.fromEntries(
+        ['canEditProject', 'canManageMembers', 'canManageApplications', 'canManageTasks', 'canManageFiles', 'canManageMilestones', 'canManageAnnouncements', 'canSendMessages', 'canViewAnalytics', 'canDeleteProject'].map(k => [k, true])
+      ) : {};
       return next();
     }
 
-    if (!userId) throw new ForbiddenError('This project is private. Please log in.');
+    if (!userId) throw new ForbiddenError('This project is restricted. Please log in to view.');
 
-    // Check membership for private projects
-    const isOwner = project.owner.toString() === userId.toString();
-    if (!isOwner) {
-      const member = await projectMemberRepository.isMember(project._id, userId);
-      if (!member) throw new ForbiddenError('This project is private.');
+    // Owner always has full access regardless of visibility
+    if (isOwner) {
+      req.isPublicAccess = false;
+      req.projectPermissions = Object.fromEntries(
+        ['canEditProject', 'canManageMembers', 'canManageApplications', 'canManageTasks', 'canManageFiles', 'canManageMilestones', 'canManageAnnouncements', 'canSendMessages', 'canViewAnalytics', 'canDeleteProject'].map(k => [k, true])
+      );
+      return next();
+    }
+
+    // Check membership
+    const member = await projectMemberRepository.findByProjectAndUser(project._id, userId);
+    const isMember = member && member.status === 'active';
+
+    if (project.visibility === 'institution-only') {
+      // Allow if same institution or project member
+      const userInst = (req.user?.institution || '').toLowerCase().trim();
+      const projectInst = (project.institution || '').toLowerCase().trim();
+      const sameInstitution = userInst && projectInst && userInst === projectInst;
+
+      if (!isMember && !sameInstitution) {
+        throw new ForbiddenError('This project is restricted to members of ' + (project.institution || 'the host institution') + '.');
+      }
+    } else if (project.visibility === 'private') {
+      if (!isMember) {
+        throw new ForbiddenError('This project is private and accessible only to invited project members.');
+      }
     }
 
     req.isPublicAccess = false;
+    req.projectMember = member;
+    req.projectPermissions = member ? member.getEffectivePermissions() : {};
     next();
   } catch (err) {
     next(err);

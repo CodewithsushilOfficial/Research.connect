@@ -16,6 +16,7 @@ const BookmarkCtrl = require('../controller/projectBookmark.controller');
 
 // Middleware
 const { authenticate } = require('../../../common/middleware/auth.middleware');
+const { optionalAuth } = require('../../../common/middlewares/auth.middleware');
 const {
   requireProjectPermission,
   requireProjectMember,
@@ -42,14 +43,15 @@ const upload = multer({
 // ═══════════════════════════════════════════════════════════════════
 // PUBLIC / DISCOVERY
 // ═══════════════════════════════════════════════════════════════════
-router.get('/', listProjectsRules, validate, ProjectCtrl.list);
-router.get('/trending', ProjectCtrl.trending);
+router.get('/', optionalAuth, listProjectsRules, validate, ProjectCtrl.list);
+router.get('/trending', optionalAuth, ProjectCtrl.trending);
 
 // ═══════════════════════════════════════════════════════════════════
 // AUTHENTICATED GENERAL
 // ═══════════════════════════════════════════════════════════════════
 router.get('/recommended', authenticate, ProjectCtrl.recommended);
 router.get('/my', authenticate, ProjectCtrl.myProjects);
+router.get('/me', authenticate, ProjectCtrl.myProjects);
 router.get('/stats/owner', authenticate, ProjectCtrl.ownerStats);
 router.get('/analytics/owner', authenticate, AnalyticsCtrl.ownerAnalytics);
 router.get('/bookmarks', authenticate, BookmarkCtrl.myBookmarks);
@@ -66,10 +68,12 @@ router.patch('/invitations/:invitationId/reject', authenticate, InvitationCtrl.r
 router.post('/', authenticate, createProjectRules, validate, ProjectCtrl.create);
 
 // ═══════════════════════════════════════════════════════════════════
-// SINGLE PROJECT — PUBLIC DETAIL
+// SINGLE PROJECT — PUBLIC / MEMBER DETAIL
 // ═══════════════════════════════════════════════════════════════════
-router.get('/:id', allowPublicOrMember, ProjectCtrl.getOne);
+router.get('/:id', optionalAuth, allowPublicOrMember, ProjectCtrl.getOne);
 router.patch('/:id/bookmark', authenticate, BookmarkCtrl.toggle);
+router.post('/:id/bookmark', authenticate, BookmarkCtrl.toggle);
+router.post('/:id/follow', authenticate, ProjectCtrl.toggleFollow);
 router.get('/:id/bookmark-status', authenticate, BookmarkCtrl.checkStatus);
 
 // ═══════════════════════════════════════════════════════════════════

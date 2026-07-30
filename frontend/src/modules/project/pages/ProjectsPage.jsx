@@ -42,13 +42,13 @@ export default function ProjectsPage() {
   }, []);
 
   const getErrorMessage = (err) => {
-    if (!isOnline || err?.isOffline) return 'No internet connection.';
+    if (!isOnline || err?.isOffline) return 'No internet connection. Please check your network.';
     if (err?.isTimeout || err?.status === 408) return 'Server is taking longer than expected.';
     const status = err?.status || err?.error?.status || err?.response?.status;
-    if (status === 401) return 'Session expired. Please login again.';
-    if (status === 403) return "You don't have permission.";
+    if (status === 401) return 'Session expired. Please login again to view your projects.';
+    if (status === 403) return 'Access restricted. Please log in or verify membership to view private projects.';
     if (status === 404) return 'Projects not found.';
-    if (status === 500) return 'Internal server error.';
+    if (status === 500) return 'Internal server error. Please try refreshing.';
     if (status === 503) return 'Service temporarily unavailable.';
     return err?.message || err?.error?.message || 'Something went wrong. Please try again.';
   };
