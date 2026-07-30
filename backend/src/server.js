@@ -51,6 +51,15 @@ const startServer = async () => {
           logger.info('Database index syncing skipped (SYNC_INDEXES is not set to true).');
         }
 
+        // Always ensure performance compound indexes exist
+        try {
+          const { ensurePerformanceIndexes } = require('./config/database/performance_indexes');
+          await ensurePerformanceIndexes();
+        } catch (err) {
+          logger.error('Failed to ensure performance indexes:', err);
+        }
+
+
         // Run self-healing schema migrations in background
         try {
           const migrateLegacyToR2 = require('./config/database/migrate_legacy_to_r2');

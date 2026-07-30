@@ -548,12 +548,12 @@ const ProfileOverview = () => {
           onClick={() => setPubTypeFilter(c)}
           className={`flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full border transition-colors ${
             isActive
-              ? 'bg-[#2563EB] border-[#2563EB] text-white'
-              : 'bg-white border-slate-200 text-[#475569] hover:border-slate-300 hover:bg-slate-50'
+              ? 'bg-primary border-primary text-white'
+              : 'bg-bg-card border-border text-text-secondary hover:border-primary/40 hover:bg-bg-page'
           }`}
         >
           {c}
-          <span className={`px-1.5 rounded-full text-[9px] ${isActive ? 'bg-white/20' : 'bg-slate-100 text-slate-500'}`}>
+          <span className={`px-1.5 rounded-full text-[9px] ${isActive ? 'bg-white/20' : 'bg-bg-surface text-text-muted'}`}>
             {count}
           </span>
         </button>
@@ -579,61 +579,59 @@ const ProfileOverview = () => {
           const hasPDF = !!pub.pdfUrl;
 
           return (
-            <div key={id} className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col md:flex-row md:items-start justify-between gap-4">
+            <div key={id} className="p-5 bg-bg-card border border-border rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col md:flex-row md:items-start justify-between gap-4">
               <div className="space-y-1.5 flex-grow text-left">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[9px] font-black bg-blue-50 text-[#2563EB] px-2.5 py-0.5 rounded-md uppercase tracking-wider">
+                  <span className="text-[9px] font-black bg-light-blue text-primary px-2.5 py-0.5 rounded-md uppercase tracking-wider">
                     {getPublicationCategory(pub)}
                   </span>
                   {isScholarImport && (
-                    <span className="text-[8px] font-black bg-emerald-50 text-emerald-600 border border-emerald-100 px-2 py-0.5 rounded-md">Scholar</span>
+                    <span className="text-[8px] font-black bg-light-green text-accent-green border border-light-green px-2 py-0.5 rounded-md">Scholar</span>
                   )}
                   {hasPDF && (
-                    <span className="text-[8px] font-black bg-blue-50 text-blue-600 border border-blue-100 px-2 py-0.5 rounded-md">PDF</span>
+                    <span className="text-[8px] font-black bg-light-blue text-primary border border-light-blue px-2 py-0.5 rounded-md">PDF</span>
                   )}
-                  {/* Prominent Year Display */}
                   {pub.year && (
-                    <span className="text-[10px] font-black bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-md border border-slate-200">
+                    <span className="text-[10px] font-black bg-bg-surface text-text-secondary px-2.5 py-0.5 rounded-md border border-border">
                       {pub.year}
                     </span>
                   )}
                 </div>
 
                 <h4 
-                  className="text-sm font-extrabold text-[#0F172A] leading-snug hover:text-[#2563EB] cursor-pointer transition-colors"
+                  className="text-sm font-extrabold text-text-primary leading-snug hover:text-primary cursor-pointer transition-colors"
                   onClick={() => navigate(`/publication/${pub.slug || pub._id}`)}
                 >
                   {pub.title}
                 </h4>
 
-                <p className="text-[11px] text-[#475569] font-semibold">
+                <p className="text-[11px] text-text-secondary font-semibold">
                   By {pub.authors}
                 </p>
 
-                {/* Journal/Conference info */}
                 {(pub.publication || pub.journal || pub.conference) && (
-                  <p className="text-[10px] text-slate-400 font-medium italic">
+                  <p className="text-[10px] text-text-muted font-medium italic">
                     {pub.publication || pub.journal || pub.conference}
                   </p>
                 )}
 
                 {pub.doi && (
-                  <span className="text-[9px] bg-slate-50 border border-slate-150 text-slate-500 font-bold px-2 py-0.5 rounded inline-block">
+                  <span className="text-[9px] bg-bg-page border border-border text-text-secondary font-bold px-2 py-0.5 rounded inline-block">
                     DOI: {pub.doi}
                   </span>
                 )}
               </div>
 
               {/* Stats & Actions */}
-              <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-3 border-t md:border-t-0 border-slate-100 pt-3 md:pt-0 shrink-0">
-                <div className="flex items-center gap-2.5 text-[10px] font-bold text-[#475569]">
-                  <span className="flex items-center gap-0.5"><Eye className="w-3.5 h-3.5 text-slate-400" /> {pub.views || 0} Reads</span>
-                  <span className="flex items-center gap-0.5"><Download className="w-3.5 h-3.5 text-slate-400" /> {pub.downloads || 0} Downloads</span>
-                  {pub.citations > 0 && <span className="flex items-center gap-0.5"><Award className="w-3.5 h-3.5 text-amber-500" /> {pub.citations} Citations</span>}
+              <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-3 border-t md:border-t-0 border-border pt-3 md:pt-0 shrink-0">
+                <div className="flex items-center gap-2.5 text-[10px] font-bold text-text-secondary">
+                  <span className="flex items-center gap-0.5"><Eye className="w-3.5 h-3.5 text-text-muted" /> {pub.views || 0} Reads</span>
+                  <span className="flex items-center gap-0.5"><Download className="w-3.5 h-3.5 text-text-muted" /> {pub.downloads || 0} Downloads</span>
+                  {pub.citations > 0 && <span className="flex items-center gap-0.5"><Award className="w-3.5 h-3.5 text-accent-orange" /> {pub.citations} Citations</span>}
                 </div>
                 <button
                   onClick={() => navigate(`/publication/${pub.slug || pub._id}`)}
-                  className="text-xs font-bold text-[#2563EB] bg-[#DBEAFE] hover:bg-[#DBEAFE]/80 px-4 py-2 rounded-xl transition-all active:scale-95 shadow-sm"
+                  className="text-xs font-bold text-primary bg-light-blue hover:bg-primary hover:text-white px-4 py-2 rounded-xl transition-all active:scale-95 shadow-sm"
                 >
                   Read Output
                 </button>
@@ -646,16 +644,16 @@ const ProfileOverview = () => {
           <button
             onClick={() => setPubsPage((prev) => prev + 1)}
             disabled={loadingPubs}
-            className="w-full text-center py-2.5 border border-slate-200 bg-slate-50 hover:bg-[#EDE9FE]/40 text-xs font-black text-[#475569] hover:text-[#4F46E5] uppercase tracking-wider rounded-xl transition-all duration-200 active:scale-[0.98] mt-4 flex items-center justify-center gap-1.5"
+            className="w-full text-center py-2.5 border border-border bg-bg-page hover:bg-light-purple/40 text-xs font-black text-text-secondary hover:text-primary uppercase tracking-wider rounded-xl transition-all duration-200 active:scale-[0.98] mt-4 flex items-center justify-center gap-1.5"
           >
             {loadingPubs ? 'Loading...' : 'Load More Publications'}
           </button>
         )}
       </div>
     ) : (
-      <div className="text-center py-12 bg-[#F8FAFC] border border-slate-200 rounded-2xl shadow-sm">
-        <FileText className="w-8 h-8 text-slate-400 mx-auto mb-2 opacity-50" />
-        <p className="text-xs font-bold text-slate-500 uppercase">
+      <div className="text-center py-12 bg-bg-page border border-border rounded-2xl shadow-sm">
+        <FileText className="w-8 h-8 text-text-muted mx-auto mb-2 opacity-50" />
+        <p className="text-xs font-bold text-text-secondary uppercase">
           {pubTypeFilter === 'All' ? 'No publications published yet' : `No ${pubTypeFilter} found`}
         </p>
       </div>
@@ -666,51 +664,51 @@ const ProfileOverview = () => {
                 )}
 
                 {activeTab === 'timeline' && (
-                  <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 space-y-6 shadow-sm">
+                  <div className="bg-bg-card border border-border rounded-3xl p-6 md:p-8 space-y-6 shadow-sm">
                     <div className="space-y-4">
-                      <h3 className="text-base font-black text-slate-900 tracking-tight">Education History</h3>
+                      <h3 className="text-base font-black text-text-primary tracking-tight">Education History</h3>
                       <EducationTimeline education={profile?.education} />
                     </div>
 
-                    <div className="space-y-4 pt-6 border-t border-slate-200">
-                      <h3 className="text-base font-black text-slate-900 tracking-tight">Professional Work Experience</h3>
+                    <div className="space-y-4 pt-6 border-t border-border">
+                      <h3 className="text-base font-black text-text-primary tracking-tight">Professional Work Experience</h3>
                       <ExperienceTimeline experience={profile?.experience} />
                     </div>
                   </div>
                 )}
 
                 {activeTab === 'skills' && (
-                  <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 space-y-4 shadow-sm">
-                    <h3 className="text-base font-black text-slate-900 tracking-tight">Skills & Expertise</h3>
+                  <div className="bg-bg-card border border-border rounded-3xl p-6 md:p-8 space-y-4 shadow-sm">
+                    <h3 className="text-base font-black text-text-primary tracking-tight">Skills &amp; Expertise</h3>
                     <SkillsList skills={profile?.skills} />
                   </div>
                 )}
 
                 {activeTab === 'patents' && (
-                  <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 space-y-4 shadow-sm">
-                    <h3 className="text-base font-black text-slate-900 tracking-tight">Patents Portfolio</h3>
+                  <div className="bg-bg-card border border-border rounded-3xl p-6 md:p-8 space-y-4 shadow-sm">
+                    <h3 className="text-base font-black text-text-primary tracking-tight">Patents Portfolio</h3>
                     {profile?.patents && profile.patents.length > 0 ? (
                       <div className="grid grid-cols-1 gap-4">
                         {profile.patents.map((pat, i) => (
-                          <div key={i} className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                          <div key={i} className="p-5 bg-bg-page border border-border rounded-2xl space-y-2">
                             <div className="flex justify-between items-start gap-4">
-                              <h4 className="text-sm font-extrabold text-slate-900">{pat.title}</h4>
+                              <h4 className="text-sm font-extrabold text-text-primary">{pat.title}</h4>
                               {pat.patentNumber && (
-                                <span className="text-[10px] bg-slate-100 text-slate-800 font-bold px-2 py-0.5 rounded-lg border border-slate-200">
+                                <span className="text-[10px] bg-bg-surface text-text-secondary font-bold px-2 py-0.5 rounded-lg border border-border">
                                   No: {pat.patentNumber}
                                 </span>
                               )}
                             </div>
                             {pat.inventors && (
-                              <p className="text-xs text-indigo-600 font-bold">Inventors: {pat.inventors}</p>
+                              <p className="text-xs text-primary font-bold">Inventors: {pat.inventors}</p>
                             )}
                             {pat.description && (
-                              <p className="text-xs text-slate-500 leading-relaxed font-semibold">{pat.description}</p>
+                              <p className="text-xs text-text-secondary leading-relaxed font-semibold">{pat.description}</p>
                             )}
                             <div className="flex items-center justify-between pt-1">
-                              <span className="text-[10px] text-slate-400 font-medium">Issued: {pat.issueDate || 'N/A'}</span>
+                              <span className="text-[10px] text-text-muted font-medium">Issued: {pat.issueDate || 'N/A'}</span>
                               {pat.url && (
-                                <a href={pat.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-indigo-600 font-bold hover:underline">
+                                <a href={pat.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary font-bold hover:underline">
                                   View Patent Document &rarr;
                                 </a>
                               )}
@@ -720,34 +718,34 @@ const ProfileOverview = () => {
                       </div>
                     ) : (
                       <div className="text-center py-12">
-                        <FileText className="w-8 h-8 text-slate-400 mx-auto mb-2 opacity-50" />
-                        <p className="text-xs font-bold text-slate-400">No patents registered yet</p>
+                        <FileText className="w-8 h-8 text-text-muted mx-auto mb-2 opacity-50" />
+                        <p className="text-xs font-bold text-text-muted">No patents registered yet</p>
                       </div>
                     )}
                   </div>
                 )}
 
                 {activeTab === 'books' && (
-                  <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 space-y-4 shadow-sm">
-                    <h3 className="text-base font-black text-slate-900 tracking-tight">Published Books & Chapters</h3>
+                  <div className="bg-bg-card border border-border rounded-3xl p-6 md:p-8 space-y-4 shadow-sm">
+                    <h3 className="text-base font-black text-text-primary tracking-tight">Published Books &amp; Chapters</h3>
                     {profile?.books && profile.books.length > 0 ? (
                       <div className="grid grid-cols-1 gap-4">
                         {profile.books.map((bk, i) => (
-                          <div key={i} className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-                            <h4 className="text-sm font-extrabold text-slate-900">{bk.title}</h4>
+                          <div key={i} className="p-5 bg-bg-page border border-border rounded-2xl space-y-2">
+                            <h4 className="text-sm font-extrabold text-text-primary">{bk.title}</h4>
                             {bk.authors && (
-                              <p className="text-xs text-slate-500 font-semibold">By: {bk.authors}</p>
+                              <p className="text-xs text-text-secondary font-semibold">By: {bk.authors}</p>
                             )}
                             {bk.publisher && (
-                              <p className="text-xs text-indigo-600 font-bold">Publisher: {bk.publisher} ({bk.year || 'N/A'})</p>
+                              <p className="text-xs text-primary font-bold">Publisher: {bk.publisher} ({bk.year || 'N/A'})</p>
                             )}
                             {bk.description && (
-                              <p className="text-xs text-slate-500 leading-relaxed font-medium">{bk.description}</p>
+                              <p className="text-xs text-text-secondary leading-relaxed font-medium">{bk.description}</p>
                             )}
                             <div className="flex items-center justify-between pt-1">
-                              <span className="text-[10px] text-slate-400 font-medium">ISBN: {bk.isbn || 'N/A'}</span>
+                              <span className="text-[10px] text-text-muted font-medium">ISBN: {bk.isbn || 'N/A'}</span>
                               {bk.url && (
-                                <a href={bk.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-indigo-600 font-bold hover:underline">
+                                <a href={bk.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary font-bold hover:underline">
                                   Publisher Link &rarr;
                                 </a>
                               )}
@@ -757,8 +755,8 @@ const ProfileOverview = () => {
                       </div>
                     ) : (
                       <div className="text-center py-12">
-                        <Bookmark className="w-8 h-8 text-slate-400 mx-auto mb-2 opacity-50" />
-                        <p className="text-xs font-bold text-slate-400">No books added yet</p>
+                        <Bookmark className="w-8 h-8 text-text-muted mx-auto mb-2 opacity-50" />
+                        <p className="text-xs font-bold text-text-muted">No books added yet</p>
                       </div>
                     )}
                   </div>
@@ -770,31 +768,31 @@ const ProfileOverview = () => {
         {/* Right Sidebar Column */}
         <div className="space-y-6">
           {/* Research Analytics & Metrics Sidebar Widget */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-[0_4px_20px_rgba(15,23,42,0.02)] space-y-4">
+          <div className="bg-bg-card rounded-2xl border border-border p-5 shadow-sm space-y-4">
             <div>
-              <h4 className="text-xs font-black text-[#0F172A] tracking-tight uppercase">Research Analytics & Metrics</h4>
-              <p className="text-[10px] text-[#475569] mt-0.5 font-bold uppercase tracking-wider">Academic Performance Indicators</p>
+              <h4 className="text-xs font-black text-text-primary tracking-tight uppercase">Research Analytics &amp; Metrics</h4>
+              <p className="text-[10px] text-text-secondary mt-0.5 font-bold uppercase tracking-wider">Academic Performance Indicators</p>
             </div>
             
             {(() => {
               const activeMetrics = [
-                { label: 'Publications', value: profile?.metrics?.publicationsCount ?? 0, icon: FileText, cardBg: 'bg-[#DBEAFE] border-[#DBEAFE] hover:shadow-[0_8px_30px_rgb(219,234,254,0.5)]', textColor: 'text-[#2563EB]', labelColor: 'text-[#475569]', iconColor: 'text-[#2563EB]', iconBg: 'bg-white' },
-                { label: 'Citations', value: profile?.metrics?.citationsCount ?? profile?.metrics?.totalCitations ?? 0, icon: TrendingUp, cardBg: 'bg-[#DCFCE7] border-[#DCFCE7] hover:shadow-[0_8px_30px_rgb(220,252,231,0.5)]', textColor: 'text-[#22C55E]', labelColor: 'text-[#475569]', iconColor: 'text-[#22C55E]', iconBg: 'bg-white' },
-                { label: 'h-index', value: profile?.metrics?.hIndex ?? 0, icon: Award, cardBg: 'bg-[#EDE9FE] border-[#EDE9FE] hover:shadow-[0_8px_30px_rgb(237,233,254,0.5)]', textColor: 'text-[#4F46E5]', labelColor: 'text-[#475569]', iconColor: 'text-[#4F46E5]', iconBg: 'bg-white' },
-                { label: 'i10-index', value: profile?.metrics?.i10Index ?? 0, icon: BarChart2, cardBg: 'bg-[#FEF3C7] border-[#FEF3C7] hover:shadow-[0_8px_30px_rgb(254,243,199,0.5)]', textColor: 'text-[#F59E0B]', labelColor: 'text-[#475569]', iconColor: 'text-[#F59E0B]', iconBg: 'bg-white' },
-                { label: 'Experience (Y)', value: profile?.metrics?.experienceYears ?? profile?.metrics?.researchExperience ?? 0, icon: Calendar, cardBg: 'bg-slate-50 border-slate-200 hover:shadow-[0_8px_30px_rgb(241,245,249,0.5)]', textColor: 'text-slate-800', labelColor: 'text-[#475569]', iconColor: 'text-slate-600', iconBg: 'bg-white' },
-                { label: 'Projects', value: profile?.metrics?.projectsCount ?? 0, icon: BookMarked, cardBg: 'bg-pink-50 border-pink-100 hover:shadow-[0_8px_30px_rgb(253,242,248,0.5)]', textColor: 'text-pink-600', labelColor: 'text-[#475569]', iconColor: 'text-pink-600', iconBg: 'bg-white' },
-                { label: 'Patents', value: profile?.metrics?.patentsCount ?? 0, icon: ShieldCheck, cardBg: 'bg-teal-50 border-teal-100 hover:shadow-[0_8px_30px_rgb(240,253,250,0.5)]', textColor: 'text-teal-600', labelColor: 'text-[#475569]', iconColor: 'text-teal-600', iconBg: 'bg-white' },
-                { label: 'Books', value: profile?.metrics?.booksCount ?? 0, icon: BookOpen, cardBg: 'bg-rose-50 border-rose-100 hover:shadow-[0_8px_30px_rgb(255,241,242,0.5)]', textColor: 'text-rose-600', labelColor: 'text-[#475569]', iconColor: 'text-rose-600', iconBg: 'bg-white' },
-                { label: 'Datasets', value: profile?.metrics?.datasetsCount ?? 0, icon: Database, cardBg: 'bg-amber-50 border-amber-100 hover:shadow-[0_8px_30px_rgb(254,243,199,0.5)]', textColor: 'text-amber-700', labelColor: 'text-[#475569]', iconColor: 'text-amber-700', iconBg: 'bg-white' },
-                { label: 'Downloads', value: profile?.metrics?.downloadsCount ?? 0, icon: Download, cardBg: 'bg-cyan-50 border-cyan-100 hover:shadow-[0_8px_30px_rgb(236,254,255,0.5)]', textColor: 'text-cyan-600', labelColor: 'text-[#475569]', iconColor: 'text-cyan-600', iconBg: 'bg-white' },
-                { label: 'Views', value: profile?.metrics?.viewsCount ?? 0, icon: Eye, cardBg: 'bg-emerald-50 border-emerald-100 hover:shadow-[0_8px_30px_rgb(236,253,245,0.5)]', textColor: 'text-emerald-700', labelColor: 'text-[#475569]', iconColor: 'text-emerald-700', iconBg: 'bg-white' },
-                { label: 'Research Score', value: profile?.metrics?.researchScore ?? 0, icon: Activity, cardBg: 'bg-gradient-to-br from-[#EDE9FE] to-[#DBEAFE] border-[#EDE9FE] hover:shadow-[0_8px_30px_rgb(237,233,254,0.7)]', textColor: 'text-[#4F46E5]', labelColor: 'text-[#475569]', iconColor: 'text-[#4F46E5]', iconBg: 'bg-white' }
+                { label: 'Publications', value: profile?.metrics?.publicationsCount ?? 0, icon: FileText, cardBg: 'bg-light-blue border-light-blue', textColor: 'text-primary', labelColor: 'text-text-secondary', iconColor: 'text-primary', iconBg: 'bg-bg-card' },
+                { label: 'Citations', value: profile?.metrics?.citationsCount ?? profile?.metrics?.totalCitations ?? 0, icon: TrendingUp, cardBg: 'bg-light-green border-light-green', textColor: 'text-accent-green', labelColor: 'text-text-secondary', iconColor: 'text-accent-green', iconBg: 'bg-bg-card' },
+                { label: 'h-index', value: profile?.metrics?.hIndex ?? 0, icon: Award, cardBg: 'bg-light-purple border-light-purple', textColor: 'text-accent-indigo', labelColor: 'text-text-secondary', iconColor: 'text-accent-indigo', iconBg: 'bg-bg-card' },
+                { label: 'i10-index', value: profile?.metrics?.i10Index ?? 0, icon: BarChart2, cardBg: 'bg-light-orange border-light-orange', textColor: 'text-accent-orange', labelColor: 'text-text-secondary', iconColor: 'text-accent-orange', iconBg: 'bg-bg-card' },
+                { label: 'Experience (Y)', value: profile?.metrics?.experienceYears ?? profile?.metrics?.researchExperience ?? 0, icon: Calendar, cardBg: 'bg-bg-page border-border', textColor: 'text-text-primary', labelColor: 'text-text-secondary', iconColor: 'text-text-secondary', iconBg: 'bg-bg-card' },
+                { label: 'Projects', value: profile?.metrics?.projectsCount ?? 0, icon: BookMarked, cardBg: 'bg-pink-50 border-pink-100', textColor: 'text-pink-600', labelColor: 'text-text-secondary', iconColor: 'text-pink-600', iconBg: 'bg-bg-card' },
+                { label: 'Patents', value: profile?.metrics?.patentsCount ?? 0, icon: ShieldCheck, cardBg: 'bg-teal-50 border-teal-100', textColor: 'text-teal-600', labelColor: 'text-text-secondary', iconColor: 'text-teal-600', iconBg: 'bg-bg-card' },
+                { label: 'Books', value: profile?.metrics?.booksCount ?? 0, icon: BookOpen, cardBg: 'bg-rose-50 border-rose-100', textColor: 'text-rose-600', labelColor: 'text-text-secondary', iconColor: 'text-rose-600', iconBg: 'bg-bg-card' },
+                { label: 'Datasets', value: profile?.metrics?.datasetsCount ?? 0, icon: Database, cardBg: 'bg-amber-50 border-amber-100', textColor: 'text-amber-700', labelColor: 'text-text-secondary', iconColor: 'text-amber-700', iconBg: 'bg-bg-card' },
+                { label: 'Downloads', value: profile?.metrics?.downloadsCount ?? 0, icon: Download, cardBg: 'bg-cyan-50 border-cyan-100', textColor: 'text-cyan-600', labelColor: 'text-text-secondary', iconColor: 'text-cyan-600', iconBg: 'bg-bg-card' },
+                { label: 'Views', value: profile?.metrics?.viewsCount ?? 0, icon: Eye, cardBg: 'bg-emerald-50 border-emerald-100', textColor: 'text-emerald-700', labelColor: 'text-text-secondary', iconColor: 'text-emerald-700', iconBg: 'bg-bg-card' },
+                { label: 'Research Score', value: profile?.metrics?.researchScore ?? 0, icon: Activity, cardBg: 'bg-gradient-to-br from-light-purple to-light-blue border-light-purple', textColor: 'text-accent-indigo', labelColor: 'text-text-secondary', iconColor: 'text-accent-indigo', iconBg: 'bg-bg-card' }
               ];
 
               if (activeMetrics.length === 0) {
                 return (
-                  <p className="text-[11px] text-slate-400 italic text-center py-2">
+                  <p className="text-[11px] text-text-muted italic text-center py-2">
                     No active academic metrics synced.
                   </p>
                 );
@@ -807,7 +805,7 @@ const ProfileOverview = () => {
                     return (
                       <div
                         key={item.label}
-                        className={`p-3.5 rounded-2xl border transition-all duration-350 flex flex-col justify-between hover:-translate-y-0.5 shadow-[0_2px_4px_rgba(15,23,42,0.01)] ${item.cardBg}`}
+                        className={`p-3.5 rounded-2xl border transition-all duration-350 flex flex-col justify-between hover:-translate-y-0.5 shadow-sm ${item.cardBg}`}
                       >
                         <div className="flex items-center justify-between gap-1.5">
                           <span className={`text-[9px] uppercase font-extrabold tracking-wider truncate ${item.labelColor}`}>
@@ -834,19 +832,19 @@ const ProfileOverview = () => {
           <ProfileCompletion profile={profile} user={profile} />
 
           {/* Research Areas / Tags */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-[0_4px_20px_rgba(15,23,42,0.02)] space-y-3.5">
+          <div className="bg-bg-card border border-border rounded-2xl p-5 shadow-sm space-y-3.5">
             <div>
-              <h4 className="text-xs font-black text-[#0F172A] tracking-tight uppercase">Research Areas</h4>
-              <p className="text-[9px] text-[#475569] mt-0.5 font-bold uppercase tracking-wider">Primary Research Interests</p>
+              <h4 className="text-xs font-black text-text-primary tracking-tight uppercase">Research Areas</h4>
+              <p className="text-[9px] text-text-secondary mt-0.5 font-bold uppercase tracking-wider">Primary Research Interests</p>
             </div>
             <div className="flex flex-wrap gap-2">
               {profile?.researchAreas && profile.researchAreas.length > 0 ? (
                 (() => {
                   const tagColors = [
-                    { bg: 'bg-[#DBEAFE]/80', text: 'text-[#2563EB]', border: 'border-[#DBEAFE]' },
-                    { bg: 'bg-[#DCFCE7]/85', text: 'text-[#22C55E]', border: 'border-[#DCFCE7]' },
-                    { bg: 'bg-[#EDE9FE]/85', text: 'text-[#4F46E5]', border: 'border-[#EDE9FE]' },
-                    { bg: 'bg-[#FEF3C7]/80', text: 'text-[#F59E0B]', border: 'border-[#FEF3C7]' },
+                    { bg: 'bg-light-blue/80', text: 'text-primary', border: 'border-light-blue' },
+                    { bg: 'bg-light-green/85', text: 'text-accent-green', border: 'border-light-green' },
+                    { bg: 'bg-light-purple/85', text: 'text-accent-indigo', border: 'border-light-purple' },
+                    { bg: 'bg-light-orange/80', text: 'text-accent-orange', border: 'border-light-orange' },
                     { bg: 'bg-pink-50', text: 'text-pink-600', border: 'border-pink-100' },
                     { bg: 'bg-teal-50', text: 'text-teal-600', border: 'border-teal-100' }
                   ];
@@ -863,22 +861,22 @@ const ProfileOverview = () => {
                   });
                 })()
               ) : (
-                <p className="text-[11px] text-slate-400 italic">No research areas defined</p>
+                <p className="text-[11px] text-text-muted italic">No research areas defined</p>
               )}
             </div>
           </div>
 
           {/* Keywords / Chips */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-[0_4px_20px_rgba(15,23,42,0.02)] space-y-3">
-            <h4 className="text-xs font-black text-[#0F172A] tracking-tight uppercase">Top Keywords</h4>
+          <div className="bg-bg-card border border-border rounded-2xl p-5 shadow-sm space-y-3">
+            <h4 className="text-xs font-black text-text-primary tracking-tight uppercase">Top Keywords</h4>
             <div className="flex flex-wrap gap-1.5">
               {profile?.keywords && profile.keywords.length > 0 ? (
                 (() => {
                   const tagColors = [
-                    { bg: 'bg-[#DBEAFE]/50', text: 'text-[#2563EB]', border: 'border-blue-100/40', countBg: 'bg-[#2563EB]/10' },
-                    { bg: 'bg-[#DCFCE7]/55', text: 'text-[#22C55E]', border: 'border-green-100/40', countBg: 'bg-[#22C55E]/10' },
-                    { bg: 'bg-[#EDE9FE]/55', text: 'text-[#4F46E5]', border: 'border-purple-100/40', countBg: 'bg-[#4F46E5]/10' },
-                    { bg: 'bg-[#FEF3C7]/50', text: 'text-[#F59E0B]', border: 'border-amber-100/40', countBg: 'bg-[#F59E0B]/10' }
+                    { bg: 'bg-light-blue/50', text: 'text-primary', border: 'border-light-blue/40', countBg: 'bg-primary/10' },
+                    { bg: 'bg-light-green/55', text: 'text-accent-green', border: 'border-light-green/40', countBg: 'bg-accent-green/10' },
+                    { bg: 'bg-light-purple/55', text: 'text-accent-indigo', border: 'border-light-purple/40', countBg: 'bg-accent-indigo/10' },
+                    { bg: 'bg-light-orange/50', text: 'text-accent-orange', border: 'border-light-orange/40', countBg: 'bg-accent-orange/10' }
                   ];
                   return profile.keywords.slice(0, 15).map((key, idx) => {
                     const color = tagColors[idx % tagColors.length];
@@ -896,16 +894,16 @@ const ProfileOverview = () => {
                   });
                 })()
               ) : (
-                <p className="text-[11px] text-slate-400 italic">No keywords synced</p>
+                <p className="text-[11px] text-text-muted italic">No keywords synced</p>
               )}
             </div>
           </div>
 
           {/* Co-Authors Network Sidebar Widget */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-[0_4px_20px_rgba(15,23,42,0.02)] space-y-4">
+          <div className="bg-bg-card border border-border rounded-2xl p-5 shadow-sm space-y-4">
             <div>
-              <h4 className="text-xs font-black text-[#0F172A] tracking-tight uppercase">Co-Authors</h4>
-              <p className="text-[10px] text-[#475569] mt-0.5 font-bold uppercase tracking-wider">Academic Collaboration Network</p>
+              <h4 className="text-xs font-black text-text-primary tracking-tight uppercase">Co-Authors</h4>
+              <p className="text-[10px] text-text-secondary mt-0.5 font-bold uppercase tracking-wider">Academic Collaboration Network</p>
             </div>
             
             {profile?.coAuthors && profile.coAuthors.length > 0 ? (
@@ -913,10 +911,10 @@ const ProfileOverview = () => {
                 <div className="grid grid-cols-1 gap-2.5">
                   {(showAllCoAuthors ? profile.coAuthors : profile.coAuthors.slice(0, 5)).map((co, idx) => {
                     const borderColors = [
-                      'border-blue-100 hover:border-blue-300 bg-blue-50/10',
-                      'border-green-100 hover:border-green-300 bg-green-50/10',
-                      'border-purple-100 hover:border-purple-300 bg-purple-50/10',
-                      'border-amber-100 hover:border-amber-300 bg-amber-50/10'
+                      'border-light-blue hover:border-primary/30 bg-light-blue/10',
+                      'border-light-green hover:border-accent-green/30 bg-light-green/10',
+                      'border-light-purple hover:border-accent-indigo/30 bg-light-purple/10',
+                      'border-light-orange hover:border-accent-orange/30 bg-light-orange/10'
                     ];
                     const selectedBorder = borderColors[idx % borderColors.length];
                     return (
@@ -928,10 +926,10 @@ const ProfileOverview = () => {
                           showBorder
                         />
                         <div className="min-w-0 flex-grow">
-                          <h5 className="text-xs font-black text-[#0F172A] truncate">{co.name}</h5>
-                          <p className="text-[9px] text-[#475569] truncate font-bold uppercase tracking-wide">{co.affiliation || 'Academic Researcher'}</p>
+                          <h5 className="text-xs font-black text-text-primary truncate">{co.name}</h5>
+                          <p className="text-[9px] text-text-secondary truncate font-bold uppercase tracking-wide">{co.affiliation || 'Academic Researcher'}</p>
                           {co.profileURL && (
-                            <a href={co.profileURL} target="_blank" rel="noopener noreferrer" className="text-[9px] text-[#2563EB] font-black hover:text-[#1D4ED8] hover:underline block mt-1 transition-colors">
+                            <a href={co.profileURL} target="_blank" rel="noopener noreferrer" className="text-[9px] text-primary font-black hover:text-primary/80 hover:underline block mt-1 transition-colors">
                               Scholar Profile &rarr;
                             </a>
                           )}
@@ -943,14 +941,14 @@ const ProfileOverview = () => {
                 {profile.coAuthors.length > 5 && (
                   <button
                     onClick={() => setShowAllCoAuthors(!showAllCoAuthors)}
-                    className="w-full text-center py-2.5 border border-slate-200 bg-slate-50 hover:bg-[#EDE9FE]/40 text-[10px] font-black text-[#475569] hover:text-[#4F46E5] uppercase tracking-wider rounded-xl transition-all duration-200 active:scale-[0.98]"
+                    className="w-full text-center py-2.5 border border-border bg-bg-page hover:bg-light-purple/40 text-[10px] font-black text-text-secondary hover:text-primary uppercase tracking-wider rounded-xl transition-all duration-200 active:scale-[0.98]"
                   >
                     {showAllCoAuthors ? 'Show Less' : `View All (${profile.coAuthors.length})`}
                   </button>
                 )}
               </div>
             ) : (
-              <p className="text-xs text-slate-400 italic">No co-authors indexed yet.</p>
+              <p className="text-xs text-text-muted italic">No co-authors indexed yet.</p>
             )}
           </div>
         </div>

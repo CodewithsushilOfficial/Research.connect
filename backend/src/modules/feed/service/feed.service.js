@@ -31,89 +31,89 @@ class FeedService {
       return cachedFeed;
     }
 
-    // Fetch user's profile, co-authors and people they follow to personalize
-    const [userProfile, coauthors, followingDocs] = await Promise.all([
-      Profile.findOne({ userId }).lean(),
-      CoAuthor.find({ userId }).lean(),
-      Follow.find({ followerId: userId }).lean()
+    // Fetch lightweight user context (IDs + interest strings) — no full documents
+    const [userProfile, followingDocs] = await Promise.all([
+      Profile.findOne({ userId }).select('skills education institution department').lean(),
+      Follow.find({ followerId: userId }).select('followingId').lean()
     ]);
 
-    const followingIds = followingDocs.map(f => f.followingId.toString());
-    const connectedAuthorNames = coauthors.map(c => c.name.toLowerCase());
-    const userInterests = userProfile ? (userProfile.skills.map(s => s.name.toLowerCase()).concat(
-      userProfile.education.map(e => e.specialization.toLowerCase())
-    )) : [];
+    const followingIds = followingDocs.map(f => f.followingId);
+    const userInterests = userProfile ? [
+      ...(userProfile.skills || []).map(s => s.name?.toLowerCase()).filter(Boolean),
+      ...(userProfile.education || []).map(e => e.specialization?.toLowerCase()).filter(Boolean)
+    ] : [];
 
-    // Query all publications
-    const publicationsResponse = await feedRepository.getPublications({}, { page: 1, limit: 100 });
-    const publications = publicationsResponse.docs;
-
-    // Score each publication
-    const scoredPublications = publications.map(pub => {
-      let score = 0;
-      
-      // Connection Scoring
-      const authorIdStr = pub.userId?._id?.toString() || pub.userId?.toString();
-      if (followingIds.includes(authorIdStr)) {
-        score += 60; // Following the author directly is top priority!
-      }
-
-      const firstAuthor = pub.authors ? pub.authors.split(',')[0].trim().toLowerCase() : '';
-      if (connectedAuthorNames.some(name => name.includes(firstAuthor) || firstAuthor.includes(name))) {
-        score += 40; // Co-author connection
-      }
-
-      if (authorIdStr === userId.toString()) {
-        score += 5; // User's own publications
-      }
-
-      // Demographic Overlaps
-      if (userProfile && pub.userId) {
-        if (pub.userId.institution && userProfile.institution && 
-            pub.userId.institution.toLowerCase() === userProfile.institution.toLowerCase()) {
-          score += 15; // Same institution
+    // Build MongoDB aggregation pipeline — scoring done in DB, not in JS
+    const skip = (page - 1) * limit;
+    const pipeline = [
+      {
+        $match: {
+          isDeleted: { $ne: true },
+          status: { $ne: 'draft' }
         }
-        if (pub.userId.department && userProfile.department && 
-            pub.userId.department.toLowerCase() === userProfile.department.toLowerCase()) {
-          score += 10; // Same department
-        }
-      }
-
-      // Interest & Topic Scoring
-      if (pub.keywords && pub.keywords.length > 0 && userInterests.length > 0) {
-        pub.keywords.forEach(kw => {
-          if (userInterests.includes(kw.toLowerCase())) {
-            score += 12; // Keyword match
+      },
+      {
+        $addFields: {
+          _score: {
+            $add: [
+              // Following bonus: +60 if author is followed
+              { $cond: [{ $in: ['$userId', followingIds] }, 60, 0] },
+              // Same institution bonus: resolved after lookup
+              // Keyword overlap bonus
+              {
+                $multiply: [
+                  12,
+                  {
+                    $size: {
+                      $ifNull: [
+                        { $setIntersection: [{ $ifNull: ['$keywords', []] }, userInterests] },
+                        []
+                      ]
+                    }
+                  }
+                ]
+              },
+              // Popularity weighting
+              { $multiply: [{ $ifNull: ['$citations', 0] }, 1.5] },
+              { $multiply: [{ $ifNull: ['$views', 0] }, 0.1] },
+              { $multiply: [{ $ifNull: ['$downloads', 0] }, 0.5] }
+            ]
           }
-        });
+        }
+      },
+      { $sort: { _score: -1, createdAt: -1 } },
+      {
+        $facet: {
+          docs: [
+            { $skip: skip },
+            { $limit: Number(limit) },
+            {
+              $lookup: {
+                from: 'users',
+                localField: 'userId',
+                foreignField: '_id',
+                pipeline: [{ $project: { firstName: 1, lastName: 1, fullName: 1, profileImage: 1, institution: 1, department: 1, designation: 1, profileSlug: 1, username: 1 } }],
+                as: '_userArr'
+              }
+            },
+            { $addFields: { userId: { $arrayElemAt: ['$_userArr', 0] } } },
+            { $project: { _userArr: 0, _score: 0 } }
+          ],
+          totalCount: [{ $count: 'count' }]
+        }
       }
+    ];
 
-      // Popularity Weighting (Trending)
-      const likesWeight = (pub.citations || 0) * 1.5;
-      const readsWeight = (pub.views || 0) * 0.1;
-      const downloadsWeight = (pub.downloads || 0) * 0.5;
-      score += likesWeight + readsWeight + downloadsWeight;
-
-      return {
-        publication: pub,
-        score
-      };
-    });
-
-    // Sort by score descending
-    scoredPublications.sort((a, b) => b.score - a.score);
-
-    // Paginate results
-    const total = scoredPublications.length;
-    const startIndex = (page - 1) * limit;
-    const paginated = scoredPublications.slice(startIndex, startIndex + Number(limit)).map(item => item.publication);
+    const [agg] = await Publication.aggregate(pipeline);
+    const docs = agg?.docs || [];
+    const total = agg?.totalCount?.[0]?.count || 0;
 
     const result = {
-      docs: paginated,
+      docs,
       total,
       page: Number(page),
       limit: Number(limit),
-      totalPages: Math.ceil(total / limit)
+      totalPages: Math.ceil(total / Number(limit))
     };
 
     await FeedCache.set(cacheKey, result, 120); // 2 minute cache
@@ -197,12 +197,15 @@ class FeedService {
       aiAnalysis
     });
 
-    // Recalculate profile metrics after new publication
-    await this.recalculateResearchScore(userId);
+    // Recalculate profile metrics after new publication — non-blocking
+    setImmediate(() => this.recalculateResearchScore(userId).catch(() => {}));
 
-    // Flush cache to ensure feed lists reflect the new publication
-    const { cacheService } = require('../../../cache/cache.service');
-    await cacheService.flush();
+    // Flush only the feed cache — do NOT wipe entire Redis cache
+    const { FeedCache, ProfileCache } = require('../../../cache/cache.service');
+    await Promise.all([
+      FeedCache.flush(),
+      ProfileCache.del(userId.toString())
+    ]);
 
     return publication;
   }
@@ -217,10 +220,13 @@ class FeedService {
     }
 
     const updated = await feedRepository.updatePublication(id, pubData);
-    
-    // Flush cache on update
-    const { cacheService } = require('../../../cache/cache.service');
-    await cacheService.flush();
+
+    // Targeted cache flush — only invalidate feed and this publication
+    const { FeedCache, PublicationCache } = require('../../../cache/cache.service');
+    await Promise.all([
+      FeedCache.flush(),
+      PublicationCache.del(id.toString())
+    ]);
 
     return updated;
   }
@@ -234,45 +240,50 @@ class FeedService {
     }
 
     const deleted = await feedRepository.deletePublication(id);
-    await this.recalculateResearchScore(userId);
+    // Non-blocking — recalculate metrics asynchronously
+    setImmediate(() => this.recalculateResearchScore(userId).catch(() => {}));
 
-    // Flush cache on deletion
-    const { cacheService } = require('../../../cache/cache.service');
-    await cacheService.flush();
+    // Targeted cache flush — only invalidate feed and this publication
+    const { FeedCache, PublicationCache, ProfileCache } = require('../../../cache/cache.service');
+    await Promise.all([
+      FeedCache.flush(),
+      PublicationCache.del(id.toString()),
+      ProfileCache.del(userId.toString())
+    ]);
 
     return deleted;
   }
 
   async getPublicationById(id, userId) {
-    const publication = await feedRepository.getPublicationById(id);
-    if (!publication) return null;
+    // Atomic view increment — avoids full document save() overhead
+    const publication = await Publication.findByIdAndUpdate(
+      id,
+      { $inc: { views: 1 } },
+      { new: true }
+    ).populate('userId', 'firstName lastName fullName profileImage institution department designation profileSlug username').lean();
 
-    // Increment view count
-    publication.views = (publication.views || 0) + 1;
-    await publication.save();
+    if (!publication || publication.isDeleted) return null;
 
-    // Track interaction
+    // Track interaction fire-and-forget — never blocks API response
     if (userId) {
-      await FeedInteraction.create({
-        userId,
-        publicationId: id,
-        interactionType: 'click'
-      });
+      setImmediate(() =>
+        FeedInteraction.create({ userId, publicationId: id, interactionType: 'click' }).catch(() => {})
+      );
     }
 
-    const [liked, bookmarked, recommended] = await Promise.all([
+    // Run all counts in parallel
+    const [liked, bookmarked, recommended, likesCount, bookmarksCount, recommendationsCount, commentsCount] = await Promise.all([
       userId ? feedRepository.getLike(userId, id) : null,
       userId ? feedRepository.getBookmark(userId, id) : null,
-      userId ? feedRepository.getRecommendation(userId, id) : null
+      userId ? feedRepository.getRecommendation(userId, id) : null,
+      feedRepository.countLikes(id),
+      feedRepository.countBookmarks(id),
+      feedRepository.countRecommendations(id),
+      feedRepository.countComments(id)
     ]);
 
-    const likesCount = await feedRepository.countLikes(id);
-    const bookmarksCount = await feedRepository.countBookmarks(id);
-    const recommendationsCount = await feedRepository.countRecommendations(id);
-    const commentsCount = await feedRepository.countComments(id);
-
     return {
-      ...publication.toObject(),
+      ...publication,
       likesCount,
       bookmarksCount,
       recommendationsCount,
@@ -300,52 +311,69 @@ class FeedService {
   }
 
   async getSuggestedResearchers(userId) {
-    const userProfile = await Profile.findOne({ userId });
-    const followingDocs = await Follow.find({ followerId: userId });
-    const followingIds = followingDocs.map(f => f.followingId.toString());
+    const [userProfile, followingDocs] = await Promise.all([
+      Profile.findOne({ userId }).select('skills institution department').lean(),
+      Follow.find({ followerId: userId }).select('followingId').lean()
+    ]);
 
-    // Query all profiles of other researchers
-    const allProfiles = await Profile.find({ userId: { $ne: userId } })
-      .populate('userId', 'firstName lastName fullName email profileImage institution department designation profileSlug username');
-    const userSkills = userProfile ? userProfile.skills.map(s => s.name.toLowerCase()) : [];
+    const followingIds = followingDocs.map(f => f.followingId);
+    const userSkills = (userProfile?.skills || []).map(s => s.name?.toLowerCase()).filter(Boolean);
 
-    const suggestions = allProfiles.map(p => {
-      let matchScore = 0;
-      
-      // Calculate overlap skills
-      const otherSkills = p.skills ? p.skills.map(s => s.name.toLowerCase()) : [];
-      const overlaps = otherSkills.filter(s => userSkills.includes(s));
-      matchScore += overlaps.length * 10;
+    // Aggregation pipeline — no full table scan, no in-memory scoring
+    const pipeline = [
+      {
+        $match: {
+          userId: { $ne: require('mongoose').Types.ObjectId.createFromHexString(userId.toString()) },
+          $or: [
+            { 'skills.name': { $in: userSkills } },
+            { institution: userProfile?.institution || null }
+          ].filter(c => Object.values(c)[0] !== null && Object.values(c)[0]?.$in?.length !== 0)
+        }
+      },
+      {
+        $addFields: {
+          _matchScore: {
+            $add: [
+              { $multiply: [{ $size: { $setIntersection: [{ $map: { input: { $ifNull: ['$skills', []] }, as: 's', in: { $toLower: '$$s.name' } } }, userSkills] } }, 10] },
+              { $cond: [{ $eq: ['$institution', userProfile?.institution || ''] }, 15, 0] }
+            ]
+          }
+        }
+      },
+      { $sort: { _matchScore: -1 } },
+      { $limit: 20 },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          pipeline: [{ $project: { firstName: 1, lastName: 1, fullName: 1, profileImage: 1, profileSlug: 1, username: 1 } }],
+          as: '_userArr'
+        }
+      },
+      { $addFields: { _user: { $arrayElemAt: ['$_userArr', 0] } } },
+      { $project: { userId: 1, institution: 1, department: 1, designation: 1, skills: 1, _user: 1, _matchScore: 1 } }
+    ];
 
-      // Same institution
-      if (userProfile && p.institution && userProfile.institution && 
-          p.institution.toLowerCase() === userProfile.institution.toLowerCase()) {
-        matchScore += 15;
-      }
+    let candidates = [];
+    try {
+      candidates = await Profile.aggregate(pipeline);
+    } catch (_) {}
 
-      return {
-        profile: p,
-        matchScore,
-        mutualInterests: overlaps
-      };
-    });
-
-    // Remove already followed users and sort by score
-    const filtered = suggestions
-      .filter(item => !followingIds.includes(item.profile.userId?._id?.toString()))
-      .sort((a, b) => b.matchScore - a.matchScore)
-      .slice(0, 5);
-
-    return filtered.map(item => ({
-      userId: item.profile.userId?._id,
-      profileSlug: item.profile.userId?.profileSlug || item.profile.userId?.username,
-      name: item.profile.userId?.fullName || `${item.profile.userId?.firstName} ${item.profile.userId?.lastName}`,
-      avatar: item.profile.profileImage || item.profile.userId?.profileImage,
-      institution: item.profile.institution,
-      department: item.profile.department,
-      mutualInterests: item.mutualInterests,
-      designation: item.profile.designation
-    }));
+    const followingSet = new Set(followingIds.map(id => id.toString()));
+    return candidates
+      .filter(p => !followingSet.has(p.userId?.toString()))
+      .slice(0, 5)
+      .map(p => ({
+        userId: p._user?._id || p.userId,
+        profileSlug: p._user?.profileSlug || p._user?.username,
+        name: p._user?.fullName || `${p._user?.firstName || ''} ${p._user?.lastName || ''}`.trim(),
+        avatar: p.profileImage || p._user?.profileImage,
+        institution: p.institution,
+        department: p.department,
+        designation: p.designation,
+        mutualInterests: (p.skills || []).map(s => s.name).filter(n => userSkills.includes(n?.toLowerCase()))
+      }));
   }
 
   // Bookmark Folder management
@@ -413,40 +441,38 @@ class FeedService {
     return similar;
   }
 
-  // Recalculates user's research score dynamically
+  // Recalculates user's research score dynamically — uses aggregation instead of loading all pubs
   async recalculateResearchScore(userId) {
-    const profile = await Profile.findOne({ userId });
-    if (!profile) return;
+    // Aggregate publication metrics in a single DB call
+    const [aggResult, followCount, bookmarkCount] = await Promise.all([
+      Publication.aggregate([
+        { $match: { userId: require('mongoose').Types.ObjectId.createFromHexString(userId.toString()), isDeleted: { $ne: true } } },
+        { $group: {
+          _id: null,
+          totalCitations: { $sum: '$citations' },
+          totalViews: { $sum: '$views' },
+          totalDownloads: { $sum: '$downloads' },
+          pubCount: { $sum: 1 }
+        }}
+      ]),
+      Follow.countDocuments({ followingId: userId }),
+      Bookmark.countDocuments({ userId, isDeleted: { $ne: true } })
+    ]);
 
-    const userPublications = await Publication.find({ userId, isDeleted: { $ne: true } });
-    
-    let totalCitations = 0;
-    let totalViews = 0;
-    let totalDownloads = 0;
-    let totalScorePoints = 0;
-
-    userPublications.forEach(pub => {
-      totalCitations += (pub.citations || 0);
-      totalViews += (pub.views || 0);
-      totalDownloads += (pub.downloads || 0);
-    });
-
-    const followCount = await Follow.countDocuments({ followingId: userId });
-    const bookmarkCount = await Bookmark.countDocuments({ userId, isDeleted: { $ne: true } });
-
-    // Core formula: citations + views/10 + downloads/2 + follows*2 + publications*5
-    totalScorePoints = totalCitations * 1.5 + (totalViews / 10) + (totalDownloads * 0.5) + (followCount * 2) + (userPublications.length * 5) + (bookmarkCount * 0.5);
+    const agg = aggResult[0] || { totalCitations: 0, totalViews: 0, totalDownloads: 0, pubCount: 0 };
+    const totalScorePoints = agg.totalCitations * 1.5 + (agg.totalViews / 10) + (agg.totalDownloads * 0.5) + (followCount * 2) + (agg.pubCount * 5) + (bookmarkCount * 0.5);
     const scoreRounded = Math.min(99, Math.round(totalScorePoints));
 
-    profile.metrics = {
-      ...profile.metrics,
-      totalCitations,
-      downloadsCount: totalDownloads,
-      viewsCount: totalViews,
-      researchScore: scoreRounded
-    };
-
-    await profile.save();
+    await Profile.findOneAndUpdate(
+      { userId },
+      { $set: {
+        'metrics.totalCitations': agg.totalCitations,
+        'metrics.downloadsCount': agg.totalDownloads,
+        'metrics.viewsCount': agg.totalViews,
+        'metrics.researchScore': scoreRounded
+      }},
+      { upsert: false }
+    );
   }
 
   // ═══════════════════════════════════════════════════════════

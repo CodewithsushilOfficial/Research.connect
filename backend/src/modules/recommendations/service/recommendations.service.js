@@ -257,74 +257,84 @@ class RecommendationsService {
    * Retrieves recommended researchers for a user.
    */
   async getRecommendedResearchers(userId, queryOptions = {}) {
-    const dismissedIds = await recommendationsRepository.getInteractedTargetIds(userId, 'User', ['dismiss']);
-    const followingDocs = await Follow.find({ followerId: userId }).select('followingId').lean();
-    const followingIds = followingDocs.map(f => f.followingId.toString());
+    const [dismissedIds, followingDocs] = await Promise.all([
+      recommendationsRepository.getInteractedTargetIds(userId, 'User', ['dismiss']),
+      Follow.find({ followerId: userId }).select('followingId').lean()
+    ]);
+    const followingSet = new Set(followingDocs.map(f => f.followingId.toString()));
+    const dismissedSet = new Set(dismissedIds.map(id => id.toString()));
 
-    // Retrieve scores
     const result = await recommendationsRepository.getRecommendationScores(userId, 'User', queryOptions);
-    
-    // Filter out followed and dismissed researchers, then populate
-    const filteredDocs = [];
-    for (const scoreDoc of result.docs) {
-      const targetIdStr = scoreDoc.targetId.toString();
-      if (followingIds.includes(targetIdStr) || dismissedIds.includes(targetIdStr)) {
-        continue;
-      }
 
-      const user = await User.findById(scoreDoc.targetId).select('firstName lastName fullName profileImage profileSlug slug username').lean();
-      const profile = await Profile.findOne({ userId: scoreDoc.targetId }).select('institution department designation skills').lean();
+    // Filter first — avoid loading data for skipped users
+    const eligibleDocs = result.docs.filter(doc => {
+      const id = doc.targetId.toString();
+      return !followingSet.has(id) && !dismissedSet.has(id);
+    });
 
-      if (user) {
-        filteredDocs.push({
-          userId: user._id,
-          name: user.fullName || `${user.firstName} ${user.lastName}`,
-          avatar: user.profileImage?.url || user.profileImage || (profile ? (profile.profileImage?.url || profile.profileImage) : ''),
-          institution: profile?.institution || '',
-          department: profile?.department || '',
-          designation: profile?.designation || '',
-          matchPercentage: scoreDoc.score,
-          reasons: scoreDoc.reasons,
-          skills: profile?.skills || [],
-          profileSlug: user.slug || user.profileSlug || user.username
-        });
-      }
-    }
+    if (!eligibleDocs.length) return { docs: [], nextCursor: result.nextCursor };
 
-    return {
-      docs: filteredDocs,
-      nextCursor: result.nextCursor
-    };
+    // Batch fetch all users and profiles in 2 queries instead of N×2
+    const targetIds = eligibleDocs.map(doc => doc.targetId);
+    const [users, profiles] = await Promise.all([
+      User.find({ _id: { $in: targetIds } }).select('firstName lastName fullName profileImage profileSlug slug username').lean(),
+      Profile.find({ userId: { $in: targetIds } }).select('userId institution department designation skills profileImage').lean()
+    ]);
+
+    const userMap = new Map(users.map(u => [u._id.toString(), u]));
+    const profileMap = new Map(profiles.map(p => [p.userId.toString(), p]));
+
+    const filteredDocs = eligibleDocs.reduce((acc, scoreDoc) => {
+      const idStr = scoreDoc.targetId.toString();
+      const user = userMap.get(idStr);
+      if (!user) return acc;
+      const profile = profileMap.get(idStr);
+      acc.push({
+        userId: user._id,
+        name: user.fullName || `${user.firstName} ${user.lastName}`,
+        avatar: user.profileImage?.url || user.profileImage || profile?.profileImage?.url || profile?.profileImage || '',
+        institution: profile?.institution || '',
+        department: profile?.department || '',
+        designation: profile?.designation || '',
+        matchPercentage: scoreDoc.score,
+        reasons: scoreDoc.reasons,
+        skills: profile?.skills || [],
+        profileSlug: user.slug || user.profileSlug || user.username
+      });
+      return acc;
+    }, []);
+
+    return { docs: filteredDocs, nextCursor: result.nextCursor };
   }
 
   /**
    * Retrieves recommended publications.
    */
   async getRecommendedPublications(userId, queryOptions = {}) {
-    const dismissedIds = await recommendationsRepository.getInteractedTargetIds(userId, 'Publication', ['dismiss']);
-    const result = await recommendationsRepository.getRecommendationScores(userId, 'Publication', queryOptions);
+    const [dismissedIds, result] = await Promise.all([
+      recommendationsRepository.getInteractedTargetIds(userId, 'Publication', ['dismiss']),
+      recommendationsRepository.getRecommendationScores(userId, 'Publication', queryOptions)
+    ]);
 
-    const filteredDocs = [];
-    for (const scoreDoc of result.docs) {
-      if (dismissedIds.includes(scoreDoc.targetId.toString())) continue;
+    const dismissedSet = new Set(dismissedIds.map(id => id.toString()));
+    const eligibleDocs = result.docs.filter(doc => !dismissedSet.has(doc.targetId.toString()));
 
-      const pub = await Publication.findById(scoreDoc.targetId)
-        .populate('userId', 'firstName lastName fullName profileImage institution profileSlug slug username')
-        .lean();
+    if (!eligibleDocs.length) return { docs: [], nextCursor: result.nextCursor };
 
-      if (pub) {
-        filteredDocs.push({
-          ...pub,
-          matchPercentage: scoreDoc.score,
-          reasons: scoreDoc.reasons
-        });
-      }
-    }
+    // Batch fetch all publications in a single query instead of N sequential queries
+    const targetIds = eligibleDocs.map(doc => doc.targetId);
+    const pubs = await Publication.find({ _id: { $in: targetIds } })
+      .populate('userId', 'firstName lastName fullName profileImage institution profileSlug slug username')
+      .lean();
 
-    return {
-      docs: filteredDocs,
-      nextCursor: result.nextCursor
-    };
+    const pubMap = new Map(pubs.map(p => [p._id.toString(), p]));
+    const filteredDocs = eligibleDocs.reduce((acc, scoreDoc) => {
+      const pub = pubMap.get(scoreDoc.targetId.toString());
+      if (pub) acc.push({ ...pub, matchPercentage: scoreDoc.score, reasons: scoreDoc.reasons });
+      return acc;
+    }, []);
+
+    return { docs: filteredDocs, nextCursor: result.nextCursor };
   }
 
 

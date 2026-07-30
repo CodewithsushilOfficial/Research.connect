@@ -80,11 +80,17 @@ class ProfileService {
       ProfileCompletion.findOne({ userId }).lean(),
       ResearchArea.find({ userId }).lean(),
       Keyword.find({ userId }).sort({ count: -1 }).lean(),
-      Publication.find({ userId, isDeleted: { $ne: true } }).sort({ year: -1, createdAt: -1 }).lean(),
+      // Select only summary fields — avoids loading full abstract/content for all publications
+      Publication.find({ userId, isDeleted: { $ne: true } })
+        .select('_id publicationId slug title authors journal conference year publicationType status visibility citations views downloads keywords publicationCode coverImage createdAt updatedAt')
+        .sort({ year: -1, createdAt: -1 })
+        .limit(50)
+        .lean(),
       CoAuthor.find({ userId }).lean(),
       CitationGraph.find({ userId }).sort({ year: 1 }).lean(),
       DerivedAnalytics.findOne({ userId }).lean()
     ]);
+
 
     const socialLinks = socialLinksObj || profile.socialLinks || {
       orcid: '', googleScholar: '', researchGate: '', linkedin: '', website: '', scopus: ''

@@ -30,7 +30,7 @@ const HomeFeed = () => {
   const [syncing, setSyncing] = useState(false);
   const [showAllCoAuthorsModal, setShowAllCoAuthorsModal] = useState(false);
   const [isSticky, setIsSticky] = useState(false);
-  const profileCompletionRef = useRef(null);
+  const sidebarBottomRef = useRef(null);
   const tabRef = useRef(activeTab);
 
   // Infinite Scroll Feed States
@@ -202,7 +202,7 @@ const HomeFeed = () => {
       return true;
     };
 
-    const target = profileCompletionRef.current;
+    const target = sidebarBottomRef.current;
     if (!target) return;
 
     const observer = new IntersectionObserver(
@@ -671,48 +671,48 @@ const HomeFeed = () => {
     const strokeDash = `${impactPercentile}, 100`;
 
     return (
-      <div className="bg-white border border-slate-200 p-4 sm:p-6 rounded-[18px] shadow-sm space-y-5 text-left">
-        <div className="flex justify-between items-center pb-2 border-b border-slate-55">
-          <h3 className="font-bold text-xs text-slate-400 uppercase tracking-wider flex items-center gap-2">
-            <Network className="w-4 h-4 text-indigo-500" /> Google Scholar Analytics
+      <div className="bg-bg-card border border-border p-4 sm:p-6 rounded-[18px] shadow-sm space-y-5 text-left">
+        <div className="flex justify-between items-center pb-2 border-b border-border">
+          <h3 className="font-bold text-xs text-text-secondary uppercase tracking-wider flex items-center gap-2">
+            <Network className="w-4 h-4 text-primary" /> Google Scholar Analytics
           </h3>
           <button 
             onClick={handleSyncScholar}
             disabled={syncing}
-            className="p-1 rounded hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition-colors"
-            title="Sync Profile"
+            className="p-1 rounded hover:bg-bg-page text-text-muted hover:text-text-secondary transition-colors"
+            title="Sync Scholar Profile"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin text-blue-650' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin text-primary' : ''}`} />
           </button>
         </div>
 
         {/* 4 Stats Grid */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col items-start relative overflow-hidden group">
-            <span className="text-[10px] text-slate-450 block font-bold uppercase tracking-wider pr-7">Total Citations</span>
-            <span className="font-extrabold text-base sm:text-xl text-slate-900 mt-1 pr-7 w-full break-all">{citationsVal}</span>
-            <div className="absolute right-2 top-2 sm:right-3 sm:top-3 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+          <div className="p-3 bg-bg-page border border-border rounded-2xl flex flex-col items-start relative overflow-hidden group">
+            <span className="text-[10px] text-text-secondary block font-bold uppercase tracking-wider pr-7">Total Citations</span>
+            <span className="font-extrabold text-base sm:text-xl text-text-primary mt-1 pr-7 w-full break-all">{citationsVal}</span>
+            <div className="absolute right-2 top-2 sm:right-3 sm:top-3 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-light-blue flex items-center justify-center text-primary shrink-0">
               <Network className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col items-start relative overflow-hidden">
-            <span className="text-[10px] text-slate-450 block font-bold uppercase tracking-wider pr-7">Publication Count</span>
-            <span className="font-extrabold text-base sm:text-xl text-slate-900 mt-1 pr-7 w-full break-all">{publicationsCount}</span>
-            <div className="absolute right-2 top-2 sm:right-3 sm:top-3 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+          <div className="p-3 bg-bg-page border border-border rounded-2xl flex flex-col items-start relative overflow-hidden">
+            <span className="text-[10px] text-text-secondary block font-bold uppercase tracking-wider pr-7">Publication Count</span>
+            <span className="font-extrabold text-base sm:text-xl text-text-primary mt-1 pr-7 w-full break-all">{publicationsCount}</span>
+            <div className="absolute right-2 top-2 sm:right-3 sm:top-3 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-light-green flex items-center justify-center text-accent-green shrink-0">
               <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col items-start relative overflow-hidden">
-            <span className="text-[10px] text-slate-455 block font-bold uppercase tracking-wider pr-7">Citation Growth</span>
-            <span className="font-extrabold text-base sm:text-xl text-emerald-600 mt-1 pr-7 w-full break-all">{citationGrowth}</span>
-            <div className="absolute right-2 top-2 sm:right-3 sm:top-3 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 shrink-0">
+          <div className="p-3 bg-bg-page border border-border rounded-2xl flex flex-col items-start relative overflow-hidden">
+            <span className="text-[10px] text-text-secondary block font-bold uppercase tracking-wider pr-7">Citation Growth</span>
+            <span className="font-extrabold text-base sm:text-xl text-accent-green mt-1 pr-7 w-full break-all">{citationGrowth}</span>
+            <div className="absolute right-2 top-2 sm:right-3 sm:top-3 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-light-orange flex items-center justify-center text-accent-orange shrink-0">
               <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col items-start relative overflow-hidden">
-            <span className="text-[10px] text-slate-455 block font-bold uppercase tracking-wider pr-7">Research Score</span>
-            <span className="font-extrabold text-base sm:text-xl text-purple-600 mt-1 pr-7 w-full break-all">{researchScore}</span>
-            <div className="absolute right-2 top-2 sm:right-3 sm:top-3 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 shrink-0">
+          <div className="p-3 bg-bg-page border border-border rounded-2xl flex flex-col items-start relative overflow-hidden">
+            <span className="text-[10px] text-text-secondary block font-bold uppercase tracking-wider pr-7">Research Score</span>
+            <span className="font-extrabold text-base sm:text-xl text-accent-indigo mt-1 pr-7 w-full break-all">{researchScore}</span>
+            <div className="absolute right-2 top-2 sm:right-3 sm:top-3 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-light-purple flex items-center justify-center text-accent-indigo shrink-0">
               <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
@@ -722,26 +722,26 @@ const HomeFeed = () => {
         {renderGoogleScholarBarChart()}
 
         {/* Radial Progress and h-index/i10-index details */}
-        <div className="flex gap-4 items-center bg-slate-50 border border-slate-100 rounded-2xl p-4">
+        <div className="flex gap-4 items-center bg-bg-page border border-border rounded-2xl p-4">
           <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-              <path className="text-slate-200" strokeWidth="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-              <path className="text-orange-500" strokeDasharray={strokeDash} strokeWidth="3.5" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              <path className="text-bg-surface" strokeWidth="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              <path className="text-accent-orange" strokeDasharray={strokeDash} strokeWidth="3.5" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
             </svg>
-            <span className="absolute text-xs font-black text-slate-900">{impactPercentile}%</span>
+            <span className="absolute text-xs font-black text-text-primary">{impactPercentile}%</span>
           </div>
           <div className="text-left">
-            <h4 className="font-bold text-xs text-slate-900">Academic Standing Impact</h4>
-            <p className="text-[10px] text-slate-500 mt-0.5 leading-normal">
-              Based on h-index <span className="font-bold text-slate-700">{hIndexVal}</span> and i10-index <span className="font-bold text-slate-700">{i10IndexVal}</span>. Dynamic citation tracking synced securely with MongoDB.
+            <h4 className="font-bold text-xs text-text-primary">Academic Standing Impact</h4>
+            <p className="text-[10px] text-text-secondary mt-0.5 leading-normal">
+              Based on h-index <span className="font-bold text-text-primary">{hIndexVal}</span> and i10-index <span className="font-bold text-text-primary">{i10IndexVal}</span>. Dynamic citation tracking synced with MongoDB.
             </p>
           </div>
         </div>
 
         {/* Timeline Area/Line Chart */}
         {citations && citations.length > 0 && (
-          <div className="pt-3 border-t border-slate-100">
-            <span className="text-[10px] font-bold text-slate-450 block mb-2 uppercase tracking-wider">Citation Timeline</span>
+          <div className="pt-3 border-t border-border">
+            <span className="text-[10px] font-bold text-text-secondary block mb-2 uppercase tracking-wider">Citation Timeline</span>
             {renderCitationChart()}
           </div>
         )}
@@ -814,13 +814,13 @@ const HomeFeed = () => {
                   Explore Research
                 </button>
                 <button 
-                  onClick={() => toast.success('Upload Publication Modal')}
+                  onClick={() => navigate('/publications/create')}
                   className="bg-bg-card hover:bg-primary border border-border hover:border-primary text-text-secondary hover:text-white font-bold text-[11px] sm:text-xs px-2.5 py-2 sm:px-5 sm:py-2.5 rounded-lg sm:rounded-xl transition-all duration-200 transform active:scale-95 sm:hover:scale-[1.03] hover:shadow-md shadow-sm min-h-[38px] sm:min-h-[44px] flex items-center justify-center"
                 >
                   <span className="truncate">Create Publication</span>
                 </button>
                 <button 
-                  onClick={() => toast.success('Create Project Modal')}
+                  onClick={() => navigate('/projects/new')}
                   className="col-span-2 sm:col-span-1 bg-bg-card hover:bg-primary border border-border hover:border-primary text-text-secondary hover:text-white font-bold text-[11px] sm:text-xs px-2.5 py-2 sm:px-5 sm:py-2.5 rounded-lg sm:rounded-xl transition-all duration-200 transform active:scale-95 sm:hover:scale-[1.03] hover:shadow-md shadow-sm min-h-[38px] sm:min-h-[44px] flex items-center justify-center"
                 >
                   Create Project
@@ -830,7 +830,7 @@ const HomeFeed = () => {
           </div>
 
           {/* Feed Tabs Container */}
-          <div className="flex items-center justify-between sm:justify-start overflow-x-auto whitespace-nowrap border-b border-slate-200 text-xs sm:text-sm font-semibold text-slate-500 no-scrollbar -mx-3 px-3 sm:mx-0 sm:px-0">
+          <div className="flex items-center justify-between sm:justify-start overflow-x-auto whitespace-nowrap border-b border-border text-xs sm:text-sm font-semibold text-text-secondary no-scrollbar -mx-3 px-3 sm:mx-0 sm:px-0">
             {[
               { id: 'recommended', label: 'Recommended', icon: Sparkles },
               { id: 'trending', label: 'Trending', icon: Flame },
@@ -845,13 +845,13 @@ const HomeFeed = () => {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   title={tab.label}
-                  className={`flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-4 py-2.5 sm:py-3 border-b-2 transition-all font-semibold shrink-0 ${
+                  className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-4 py-2.5 sm:py-3 border-b-2 transition-all font-semibold shrink-0 min-h-[44px] ${
                     isActive 
-                      ? 'border-blue-600 text-blue-600' 
-                      : 'border-transparent text-slate-500 hover:text-slate-900'
+                      ? 'border-primary text-primary' 
+                      : 'border-transparent text-text-secondary hover:text-text-primary'
                   }`}
                 >
-                  <Icon className="w-4 h-4 sm:w-4 sm:h-4" />
+                  <Icon className="w-4 h-4" />
                   <span className="hidden sm:inline">{tab.label}</span>
                 </button>
               );
@@ -862,23 +862,23 @@ const HomeFeed = () => {
           <div className="space-y-6">
             {loading ? (
               [1, 2, 3].map(i => (
-                <div key={i} className="bg-white border border-slate-200 rounded-[18px] p-6 space-y-4 animate-pulse shadow-sm">
+                <div key={i} className="bg-bg-card border border-border rounded-[18px] p-6 space-y-4 animate-pulse shadow-sm">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-slate-100"></div>
+                    <div className="w-10 h-10 rounded-full bg-bg-surface"></div>
                     <div className="space-y-2 flex-1">
-                      <div className="h-4 bg-slate-100 rounded w-1/4"></div>
-                      <div className="h-3 bg-slate-100 rounded w-1/3"></div>
+                      <div className="h-4 bg-bg-surface rounded w-1/4"></div>
+                      <div className="h-3 bg-bg-surface rounded w-1/3"></div>
                     </div>
                   </div>
-                  <div className="h-4 bg-slate-100 rounded w-3/4"></div>
-                  <div className="h-20 bg-slate-100 rounded w-full"></div>
+                  <div className="h-4 bg-bg-surface rounded w-3/4"></div>
+                  <div className="h-20 bg-bg-surface rounded w-full"></div>
                 </div>
               ))
             ) : activeList.length === 0 ? (
-              <div className="bg-white border border-slate-200 rounded-[18px] p-12 text-center text-slate-500 shadow-sm">
-                <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                <p className="font-bold text-sm text-slate-900">No items found in this section.</p>
-                <p className="text-xs text-slate-500 mt-1">Try following other researchers or exploring trending papers.</p>
+              <div className="bg-bg-card border border-border rounded-[18px] p-12 text-center shadow-sm">
+                <BookOpen className="w-12 h-12 text-text-muted mx-auto mb-4" />
+                <p className="font-bold text-sm text-text-primary">No items found in this section.</p>
+                <p className="text-xs text-text-secondary mt-1">Try following other researchers or exploring trending papers.</p>
               </div>
             ) : (
               <AnimatePresence mode="popLayout">
@@ -886,15 +886,16 @@ const HomeFeed = () => {
                   activeList.map(proj => (
                     <motion.div 
                       key={proj._id}
-                      className="bg-white border border-slate-200 p-4 sm:p-6 rounded-[18px] shadow-sm text-left relative overflow-hidden transition-all hover:shadow-lg"
+                      className="bg-bg-card border border-border p-4 sm:p-6 rounded-[18px] shadow-sm text-left relative overflow-hidden transition-all hover:shadow-lg cursor-pointer"
                       whileHover={{ y: -2 }}
+                      onClick={() => navigate(`/projects/${proj._id}`)}
                     >
-                      <span className="absolute top-3 right-3 sm:top-4 sm:right-4 text-[10px] sm:text-xs font-bold bg-[#DBEAFE] text-blue-600 px-2 sm:px-2.5 py-0.5 rounded-full">
+                      <span className="absolute top-3 right-3 sm:top-4 sm:right-4 text-[10px] sm:text-xs font-bold bg-light-blue text-primary px-2 sm:px-2.5 py-0.5 rounded-full">
                         {proj.status}
                       </span>
-                      <h3 className="font-bold text-sm sm:text-base text-slate-900 leading-snug pr-16 sm:pr-20">{proj.title}</h3>
-                      <p className="text-xs text-slate-500 mt-1">Lead: {proj.userId?.fullName || 'Researcher'} • {proj.researchAreas?.join(', ')}</p>
-                      <p className="text-sm text-slate-600 mt-3 leading-relaxed font-normal">{proj.description}</p>
+                      <h3 className="font-bold text-sm sm:text-base text-text-primary leading-snug pr-16 sm:pr-20">{proj.title}</h3>
+                      <p className="text-xs text-text-secondary mt-1">Lead: {proj.userId?.fullName || 'Researcher'} • {proj.researchAreas?.join(', ')}</p>
+                      <p className="text-sm text-text-secondary mt-3 leading-relaxed font-normal">{proj.description}</p>
                     </motion.div>
                   ))
                 ) : (
@@ -911,13 +912,13 @@ const HomeFeed = () => {
             {/* Intersection Observer scroll target */}
             <div ref={observerTarget} className="h-12 flex items-center justify-center pt-4">
               {feedLoading && page > 1 && (
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-500 bg-white border border-slate-200 px-4 py-2 rounded-full shadow-sm">
-                  <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-                  <span>Loading more feeds...</span>
+                <div className="flex items-center gap-2 text-xs font-bold text-text-secondary bg-bg-card border border-border px-4 py-2 rounded-full shadow-sm">
+                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  <span>Loading more...</span>
                 </div>
               )}
               {!hasMore && accumulatedFeed.length > 0 && (
-                <span className="text-xs font-semibold text-slate-400">You've reached the bottom of your feed</span>
+                <span className="text-xs font-semibold text-text-muted">You've reached the bottom of your feed</span>
               )}
             </div>
           </div>
@@ -943,11 +944,11 @@ const HomeFeed = () => {
           {/* 4. Top Co-authors */}
           {renderTopCoAuthors()}
 
+          {/* 5. Google Scholar Analytics — only visible when Scholar is connected */}
+          {scholarProfile && renderGoogleScholarAnalytics()}
 
-
-          {/* 6. Google Scholar Analytics */}
-          {renderGoogleScholarAnalytics()}
-
+          {/* Sentinel for sticky sidebar IntersectionObserver */}
+          <div ref={sidebarBottomRef} className="h-1" />
 
       </div>
     </div>
