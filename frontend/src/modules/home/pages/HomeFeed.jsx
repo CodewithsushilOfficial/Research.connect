@@ -620,8 +620,7 @@ const HomeFeed = () => {
           {coAuthors.length === 0 ? (
             <div className="text-center py-4">
               <Users className="w-8 h-8 text-text-muted mx-auto mb-2" />
-              <p className="text-xs text-text-muted font-medium">No co-authors yet.</p>
-              <p className="text-[10px] text-text-muted mt-0.5">Sync your Google Scholar profile to discover co-authors.</p>
+              <p className="text-xs text-text-muted font-medium">No co-authors found yet.</p>
             </div>
           ) : (
             coAuthors.slice(0, 5).map((author, idx) => (
@@ -809,18 +808,10 @@ const HomeFeed = () => {
               {/* Quick Actions Buttons */}
               <div className="grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:gap-3 pt-0.5">
                 <button 
-                  onClick={() => navigate(user?.profileSlug ? `/profile/${user.profileSlug}` : '/profile')}
+                  onClick={() => navigate('/search')}
                   className="col-span-2 sm:col-span-1 bg-primary hover:bg-primary-hover text-white font-bold text-[11px] sm:text-xs px-3 py-2 sm:px-5 sm:py-2.5 rounded-lg sm:rounded-xl transition-all duration-200 transform active:scale-95 sm:hover:scale-[1.03] hover:shadow-md shadow-sm min-h-[38px] sm:min-h-[44px] flex items-center justify-center"
                 >
-                  Continue Profile
-                </button>
-                <button 
-                  onClick={handleSyncScholar}
-                  disabled={syncing}
-                  className="bg-bg-card hover:bg-primary border border-border hover:border-primary text-text-secondary hover:text-white font-bold text-[11px] sm:text-xs px-2.5 py-2 sm:px-5 sm:py-2.5 rounded-lg sm:rounded-xl transition-all duration-200 transform active:scale-95 sm:hover:scale-[1.03] hover:shadow-md shadow-sm flex items-center justify-center gap-1 sm:gap-1.5 min-h-[38px] sm:min-h-[44px] disabled:opacity-60"
-                >
-                  {syncing ? <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin shrink-0" /> : <RefreshCw className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />}
-                  <span className="truncate">Sync Scholar</span>
+                  Explore Research
                 </button>
                 <button 
                   onClick={() => toast.success('Upload Publication Modal')}
@@ -957,44 +948,7 @@ const HomeFeed = () => {
           {/* 6. Google Scholar Analytics */}
           {renderGoogleScholarAnalytics()}
 
-          {/* 10. Profile Completion */}
-          <div ref={profileCompletionRef} className="bg-[#FFFFFF] border border-[#E2E8F0] p-4 sm:p-6 rounded-[18px] shadow-sm space-y-4">
-            <h3 className="font-bold text-xs text-[#475569] uppercase tracking-wider flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 text-[#22C55E]" /> Profile Completion
-            </h3>
-            <div className="flex items-center gap-4">
-              <div className="relative w-14 h-14 flex items-center justify-center shrink-0">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                  <path className="text-slate-100" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                  <path className="text-[#22C55E]" strokeDasharray={`${profile?.profileCompletion || 0}, 100`} strokeWidth="3" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                </svg>
-                <span className="absolute text-xs font-black text-[#0F172A]">{profile?.profileCompletion || 0}%</span>
-              </div>
-              <div className="space-y-0.5">
-                <h4 className="font-bold text-xs text-[#0F172A] leading-tight">
-                  {profile?.profileCompletion >= 80 ? 'Almost complete!' : 'Keep going!'}
-                </h4>
-                <p className="text-[10px] text-[#475569]/80 leading-tight font-normal">Add remaining details to reach maximum visibility.</p>
-              </div>
-            </div>
-            <div className="pt-2 border-t border-[#E2E8F0] space-y-2 text-[11px] font-semibold text-[#475569]">
-              <div className={`flex items-center gap-2 ${user?.emailVerified ? 'text-[#22C55E]' : 'text-slate-450'}`}>
-                {user?.emailVerified ? <Check className="w-3.5 h-3.5 shrink-0" /> : <PlusCircle className="w-3.5 h-3.5 shrink-0 opacity-60" />}
-                Verified Email Address
-              </div>
-              <div className={`flex items-center gap-2 ${(profile?.socialLinks?.orcid || profile?.socialLinks?.googleScholar) ? 'text-[#22C55E]' : 'text-slate-450'}`}>
-                {(profile?.socialLinks?.orcid || profile?.socialLinks?.googleScholar) ? <Check className="w-3.5 h-3.5 shrink-0" /> : <PlusCircle className="w-3.5 h-3.5 shrink-0 opacity-60" />}
-                Academic Identifier Connected
-              </div>
-              <div 
-                className={`flex items-center gap-2 cursor-pointer transition-colors ${coAuthors.length > 0 ? 'text-[#22C55E]' : 'text-[#475569] hover:text-[#2563EB]'}`} 
-                onClick={() => navigate(user?.profileSlug ? `/profile/${user.profileSlug}` : '/profile')}
-              >
-                {coAuthors.length > 0 ? <Check className="w-3.5 h-3.5 shrink-0" /> : <PlusCircle className="w-3.5 h-3.5 text-[#475569]/60 shrink-0" />}
-                Add Co-Authors & Affiliations
-              </div>
-            </div>
-          </div>
+
       </div>
     </div>
   </div>
