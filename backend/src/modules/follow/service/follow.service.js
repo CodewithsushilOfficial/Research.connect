@@ -107,9 +107,13 @@ class FollowService {
   }
 
   /**
-   * Resolve a user by username OR profileSlug (handles both profile URL types)
+   * Resolve a user by username OR profileSlug (handles both profile URL types & 'me' alias)
    */
-  async _resolveUser(usernameOrSlug) {
+  async _resolveUser(usernameOrSlug, currentUserId = null) {
+    if ((!usernameOrSlug || usernameOrSlug === 'me') && currentUserId) {
+      const user = await User.findById(currentUserId).lean();
+      if (user) return user;
+    }
     const user = await User.findOne({
       $or: [
         { username: usernameOrSlug },
@@ -124,16 +128,16 @@ class FollowService {
   /**
    * Get followers of a researcher by username or profileSlug
    */
-  async getFollowers(usernameOrSlug, queryOptions) {
-    const user = await this._resolveUser(usernameOrSlug);
+  async getFollowers(usernameOrSlug, queryOptions, currentUserId = null) {
+    const user = await this._resolveUser(usernameOrSlug, currentUserId);
     return await followRepository.findFollowers(user._id, queryOptions);
   }
 
   /**
    * Get following list of a researcher by username or profileSlug
    */
-  async getFollowing(usernameOrSlug, queryOptions) {
-    const user = await this._resolveUser(usernameOrSlug);
+  async getFollowing(usernameOrSlug, queryOptions, currentUserId = null) {
+    const user = await this._resolveUser(usernameOrSlug, currentUserId);
     return await followRepository.findFollowing(user._id, queryOptions);
   }
 

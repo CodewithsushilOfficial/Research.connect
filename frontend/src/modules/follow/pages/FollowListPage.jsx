@@ -39,10 +39,17 @@ const CONFIG = {
 };
 
 const FollowListPage = ({ type }) => {
-  const { username, profile } = useOutletContext();
+  const context = useOutletContext() || {};
+  const username = context.username;
+  const profile = context.profile;
   const currentUser = useSelector((state) => state.auth.user);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Normalize target username if 'me' is passed in context or route
+  const targetUsername = (username === 'me'
+    ? (profile?.profileSlug || profile?.username || currentUser?.profileSlug || currentUser?.username)
+    : username) || username || 'me';
 
   // URL is the source of truth for which tab is active, so both direct
   // links (/followers, /following) and in-page switching stay in sync.
@@ -51,7 +58,8 @@ const FollowListPage = ({ type }) => {
 
   const switchTab = (nextTab) => {
     if (nextTab === activeTab) return;
-    navigate(`/profile/${username}/${nextTab}`, { replace: true });
+    const currentSlug = username || profile?.profileSlug || profile?.username || currentUser?.profileSlug || currentUser?.username || 'me';
+    navigate(`/profile/${currentSlug}/${nextTab}`, { replace: true });
   };
 
   const [search, setSearch] = useState('');
@@ -78,17 +86,17 @@ const FollowListPage = ({ type }) => {
     setHasNextPage(false);
   }, [activeTab]);
 
-  // Fetch initial list when username or search term changes
+  // Fetch initial list when targetUsername or search term changes
   const { data, isLoading, refetch } = useQuery({
-    queryKey: [cfg.queryKey, username, debouncedSearch],
+    queryKey: [cfg.queryKey, targetUsername, debouncedSearch],
     queryFn: async () => {
-      const res = await cfg.fetchFn(username, {
+      const res = await cfg.fetchFn(targetUsername, {
         limit: 12,
         search: debouncedSearch
       });
       return res.data;
     },
-    enabled: !!username
+    enabled: !!targetUsername
   });
 
   useEffect(() => {
@@ -103,7 +111,7 @@ const FollowListPage = ({ type }) => {
     if (!nextCursor || isFetchingMore) return;
     setIsFetchingMore(true);
     try {
-      const res = await cfg.fetchFn(username, {
+      const res = await cfg.fetchFn(targetUsername, {
         limit: 12,
         cursor: nextCursor,
         search: debouncedSearch

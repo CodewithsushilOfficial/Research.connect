@@ -24,7 +24,7 @@ class FollowController {
       limit: Number(limit), 
       cursor, 
       search 
-    });
+    }, req.user?._id);
     return res.success('Followers list retrieved successfully.', followers);
   });
 
@@ -36,7 +36,7 @@ class FollowController {
       limit: Number(limit), 
       cursor, 
       search 
-    });
+    }, req.user?._id);
     return res.success('Following list retrieved successfully.', following);
   });
 
