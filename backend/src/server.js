@@ -9,6 +9,10 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
+    // 0. Audit environment variables without exposing secrets
+    const { validateEnvironmentAudit } = require('./config/environment');
+    validateEnvironmentAudit(logger);
+
     // 1. Establish Database Connection
     await connectDB();
 

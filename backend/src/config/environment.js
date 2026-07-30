@@ -25,7 +25,35 @@ if (process.env.NODE_ENV === 'production') {
   );
 }
 
+const validateEnvironmentAudit = (logger) => {
+  const varsToAudit = [
+    { name: 'NODE_ENV', val: process.env.NODE_ENV },
+    { name: 'PORT', val: process.env.PORT },
+    { name: 'MONGODB_URI', val: process.env.MONGO_URI },
+    { name: 'REDIS_URL', val: process.env.REDIS_URL },
+    { name: 'JWT_SECRET', val: process.env.JWT_SECRET },
+    { name: 'JWT_REFRESH_SECRET', val: process.env.JWT_REFRESH_SECRET },
+    { name: 'SMTP_HOST / EMAIL_HOST', val: process.env.SMTP_HOST || process.env.EMAIL_HOST },
+    { name: 'SMTP_PORT / EMAIL_PORT', val: process.env.SMTP_PORT || process.env.EMAIL_PORT },
+    { name: 'SMTP_USER / EMAIL_USER', val: process.env.SMTP_USER || process.env.EMAIL_USER },
+    { name: 'SMTP_PASS / EMAIL_PASS', val: process.env.SMTP_PASS || process.env.EMAIL_PASS },
+    { name: 'FRONTEND_URL / CLIENT_URL', val: process.env.FRONTEND_URL || process.env.CLIENT_URL },
+    { name: 'BACKEND_URL / SERVER_URL', val: process.env.BACKEND_URL || process.env.SERVER_URL }
+  ];
+
+  const logFn = logger?.info || console.log;
+  logFn('=====================================================');
+  logFn('        STARTUP ENVIRONMENT AUDIT VALIDATION         ');
+  logFn('=====================================================');
+  varsToAudit.forEach(({ name, val }) => {
+    const isOk = Boolean(val && String(val).trim() !== '');
+    logFn(`  ${name.padEnd(28)} : [${isOk ? 'PRESENT ✓' : 'MISSING ✗'}]`);
+  });
+  logFn('=====================================================');
+};
+
 module.exports = {
+  validateEnvironmentAudit,
   port: parseInt(process.env.PORT, 10) || 5000,
   nodeEnv: process.env.NODE_ENV || 'development',
   clientUrl: process.env.FRONTEND_URL || process.env.CLIENT_URL || 'https://research-connect-pink.vercel.app',
