@@ -1,8 +1,9 @@
 const { createClient } = require('redis');
 const logger = require('../common/logger/winston');
 
-// Use REDIS_URL to fetch from .env, fallback to localhost if missing
-const REDIS_URI = process.env.REDIS_URL || 'redis://localhost:6379';
+// Use REDIS_URL or REDIS_URI from .env, fallback to localhost if missing
+const REDIS_URI = process.env.REDIS_URL || process.env.REDIS_URI || 'redis://localhost:6379';
+const isTls = REDIS_URI.startsWith('rediss://');
 
 const isRedisConnError = (err) => {
   if (!err) return false;
@@ -29,7 +30,7 @@ const isRedisConnError = (err) => {
   );
 };
 
-const redisClient = createClient({
+const redisClientOptions = {
   url: REDIS_URI,
   socket: {
     reconnectStrategy: (retries) => {
@@ -40,7 +41,14 @@ const redisClient = createClient({
       return 1000;
     }
   }
-});
+};
+
+if (isTls) {
+  redisClientOptions.socket.tls = true;
+  redisClientOptions.socket.rejectUnauthorized = false;
+}
+
+const redisClient = createClient(redisClientOptions);
 
 let isLimitExceeded = false;
 

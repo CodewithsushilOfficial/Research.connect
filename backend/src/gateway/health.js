@@ -4,6 +4,18 @@ const { checkHealth: checkDbHealth } = require('../config/database/connection');
 const redisClient = require('../config/redis');
 
 /**
+ * Base health probe: verifies system liveness.
+ */
+router.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'UP',
+    message: 'Research Connect API Gateway is healthy',
+    timestamp: new Date(),
+    uptime: process.uptime()
+  });
+});
+
+/**
  * Liveness probe: verifies if the Express gateway process is alive.
  */
 router.get('/liveness', (req, res) => {

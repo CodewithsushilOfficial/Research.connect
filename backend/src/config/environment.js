@@ -3,12 +3,12 @@ require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 
 // ─── Required variable definitions ───────────────────────────────────────────
 // These variables MUST exist in all environments. Missing any causes startup failure.
-const REQUIRED_VARS = ['MONGO_URI', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
+const REQUIRED_VARS = ['MONGO_URI', 'JWT_SECRET', 'JWT_REFRESH_SECRET', 'REDIS_URL'];
 
 // These are strongly recommended in production but allowed to fall back in dev.
-const RECOMMENDED_VARS = ['EMAIL_USER', 'EMAIL_PASS'];
+const RECOMMENDED_VARS = ['EMAIL_USER', 'EMAIL_PASS', 'R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY'];
 
-const missing = REQUIRED_VARS.filter(v => !process.env[v]);
+const missing = REQUIRED_VARS.filter(v => !process.env[v] && !process.env.REDIS_URI);
 if (missing.length > 0) {
   // In production: hard crash. In development: loud warning so devs notice.
   const msg = `[CONFIG ERROR] Missing required environment variables: ${missing.join(', ')}\nSet them in .env and restart.`;
@@ -39,7 +39,7 @@ module.exports = {
   },
 
   redis: {
-    uri: process.env.REDIS_URL || 'redis://localhost:6379'
+    uri: process.env.REDIS_URL || process.env.REDIS_URI || 'redis://localhost:6379'
   },
 
   r2: {

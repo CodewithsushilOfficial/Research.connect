@@ -72,38 +72,6 @@ app.use(loggerMiddleware);
 // Response formatter helper
 app.use(responseFormatterMiddleware);
 
-app.get('/test-coauthors', async (req, res) => {
-  try {
-    const mongoose = require('mongoose');
-    const CoAuthor = mongoose.model('CoAuthor');
-    const coauthors = await CoAuthor.find({});
-    res.json(coauthors);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/test-scholar-coauthors', async (req, res) => {
-  try {
-    const scholarService = require('./modules/scholar/service/scholar.service');
-    const scholarDTO = require('./modules/scholar/dto/scholar.dto');
-    const coauthors = await scholarService.getCoAuthors('6a5157caa2264d9f1e47e519');
-    res.json(scholarDTO.formatCoAuthors(coauthors));
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/test-scholar-profile', async (req, res) => {
-  try {
-    const scholarService = require('./modules/scholar/service/scholar.service');
-    const profile = await scholarService.getProfile('6a5157caa2264d9f1e47e519');
-    res.json(profile);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // Mount API Modules
 app.use("/api", landingModule.routes);
 app.use("/api/v1/auth", authModule.routes);
