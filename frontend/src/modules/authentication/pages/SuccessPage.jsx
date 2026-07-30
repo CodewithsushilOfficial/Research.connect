@@ -9,11 +9,11 @@ const SuccessPage = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useSelector((state) => state.auth);
 
-  // Auto redirect to research identity setup if verified and authenticated
+  // Auto redirect to home feed if verified and authenticated
   useEffect(() => {
     if (isAuthenticated) {
       const timer = setTimeout(() => {
-        navigate('/research-identity', { replace: true });
+        navigate('/home', { replace: true });
       }, 3000);
       return () => clearTimeout(timer);
     }
@@ -48,9 +48,9 @@ const SuccessPage = () => {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
-                Redirecting to research identity setup...
+                Redirecting to research home feed...
               </div>
-              <Link to="/research-identity" className="text-xs font-bold text-primary hover:underline mt-2">
+              <Link to="/home" className="text-xs font-bold text-primary hover:underline mt-2">
                 Click here if you are not redirected
               </Link>
             </div>
