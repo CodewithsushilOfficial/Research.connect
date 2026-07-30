@@ -601,25 +601,220 @@ class ProfileService {
     return await this.getFullProfile(userId, false);
   }
 
-  async deleteProfile(userId, deletedBy = null) {
-    const profile = await Profile.findOne({ userId });
-    if (!profile) throw new NotFoundError('Profile not found.');
+  async resolveUserBySlug(profileSlug) {
+    if (!profileSlug || profileSlug === 'me') return null;
+    const query = { isDeleted: { $ne: true } };
+    const orConditions = [
+      { profileSlug: profileSlug },
+      { username: profileSlug }
+    ];
+    if (mongoose.Types.ObjectId.isValid(profileSlug)) {
+      orConditions.push({ _id: profileSlug });
+    }
+    if (profileSlug.includes('@')) {
+      orConditions.push({ email: profileSlug.toLowerCase().trim() });
+    }
+    query.$or = orConditions;
+    let user = await User.findOne(query).select('_id firstName lastName fullName profileImage profileSlug').lean();
+    if (!user) {
+      const profile = await Profile.findOne({
+        isDeleted: { $ne: true },
+        $or: [
+          { 'socialLinks.googleScholar': profileSlug },
+          { 'socialLinks.orcid': profileSlug }
+        ]
+      }).select('userId').lean();
+      if (profile && profile.userId) {
+        user = await User.findOne({ _id: profile.userId, isDeleted: { $ne: true } }).select('_id firstName lastName fullName profileImage profileSlug').lean();
+      }
+    }
+    return user;
+  }
 
-    const user = await User.findById(userId).select('+password');
-    if (!user) throw new NotFoundError('User not found.');
+  async getMetricsBySlug(profileSlug, currentUserId) {
+    let targetUserId = currentUserId;
+    if (profileSlug && profileSlug !== 'me') {
+      const targetUser = await this.resolveUserBySlug(profileSlug);
+      if (!targetUser) throw new NotFoundError(`Profile not found for slug: ${profileSlug}`);
+      targetUserId = targetUser._id;
+    }
 
-    await profileRepository.softDelete(profile._id, deletedBy || userId);
-    user.isDeleted = true;
-    user.deletedAt = new Date();
-    user.deletedBy = deletedBy || userId;
-    user.status = 'suspended';
-    user.isActive = false;
-    await user.save();
+    if (!targetUserId) return null;
 
-    const { ProfileCache: ProfileCacheInvalidate } = require('../../../cache/cache.service');
-    await ProfileCacheInvalidate.del(userId.toString());
+    let metricsDoc = await ResearchMetric.findOne({ userId: targetUserId, isDeleted: { $ne: true } }).lean();
+    if (!metricsDoc) {
+      metricsDoc = await this.calculateAndSaveResearchMetrics(targetUserId);
+      if (metricsDoc && typeof metricsDoc.toObject === 'function') {
+        metricsDoc = metricsDoc.toObject();
+      }
+    }
 
-    return { success: true };
+    const [pubCount, dbPubs] = await Promise.all([
+      Publication.countDocuments({ userId: targetUserId, isDeleted: { $ne: true } }),
+      Publication.find({ userId: targetUserId, isDeleted: { $ne: true } }).select('citations').lean()
+    ]);
+
+    const dbCitations = dbPubs.reduce((sum, p) => sum + (p.citations || 0), 0);
+    const citArray = dbPubs.map(p => p.citations || 0).sort((a, b) => b - a);
+    let dbH = 0;
+    for (let i = 0; i < citArray.length; i++) {
+      if (citArray[i] >= i + 1) dbH = i + 1;
+      else break;
+    }
+    const dbI10 = citArray.filter(c => c >= 10).length;
+
+    const finalMetrics = {
+      publicationsCount: Math.max(pubCount, metricsDoc?.publicationsCount || 0),
+      citationsCount: Math.max(dbCitations, metricsDoc?.citationsCount || 0),
+      hIndex: Math.max(dbH, metricsDoc?.hIndex || 0),
+      i10Index: Math.max(dbI10, metricsDoc?.i10Index || 0),
+      projectsCount: metricsDoc?.projectsCount || 0,
+      patentsCount: metricsDoc?.patentsCount || 0,
+      booksCount: metricsDoc?.booksCount || 0,
+      datasetsCount: metricsDoc?.datasetsCount || 0,
+      downloadsCount: metricsDoc?.downloadsCount || 0,
+      viewsCount: metricsDoc?.viewsCount || 0,
+      researchScore: metricsDoc?.researchScore || 0,
+      experienceYears: metricsDoc?.experienceYears || 0
+    };
+
+    return finalMetrics;
+  }
+
+  async getCoAuthorsBySlug(profileSlug, currentUserId, limit = null) {
+    let targetUserId = currentUserId;
+    if (profileSlug && profileSlug !== 'me') {
+      const targetUser = await this.resolveUserBySlug(profileSlug);
+      if (!targetUser) throw new NotFoundError(`Profile not found for slug: ${profileSlug}`);
+      targetUserId = targetUser._id;
+    }
+
+    if (!targetUserId) return [];
+
+    const rawCoAuthors = await CoAuthor.find({ userId: targetUserId, isDeleted: { $ne: true } }).lean();
+
+    const userPubs = await Publication.find({ userId: targetUserId, isDeleted: { $ne: true } })
+      .select('authors userId')
+      .lean();
+
+    const coAuthorMap = new Map();
+
+    rawCoAuthors.forEach(co => {
+      const key = (co.authorId || co.name || '').toLowerCase().trim();
+      if (!key) return;
+      coAuthorMap.set(key, {
+        _id: co._id,
+        authorId: co.authorId,
+        name: co.name,
+        fullName: co.name,
+        affiliation: co.affiliation || '',
+        institution: co.affiliation || '',
+        photo: co.photo || '',
+        profileImage: co.photo || '',
+        profileURL: co.profileURL || '',
+        sharedPublicationsCount: 1,
+        source: 'indexed'
+      });
+    });
+
+    userPubs.forEach(pub => {
+      if (pub.authors) {
+        const authorNames = typeof pub.authors === 'string'
+          ? pub.authors.split(',').map(a => a.trim())
+          : (Array.isArray(pub.authors) ? pub.authors.map(a => typeof a === 'string' ? a : a.name) : []);
+
+        authorNames.forEach(aName => {
+          if (!aName) return;
+          const key = aName.toLowerCase().trim();
+          if (coAuthorMap.has(key)) {
+            const existing = coAuthorMap.get(key);
+            existing.sharedPublicationsCount = (existing.sharedPublicationsCount || 1) + 1;
+          } else {
+            coAuthorMap.set(key, {
+              _id: key,
+              authorId: key,
+              name: aName,
+              fullName: aName,
+              affiliation: '',
+              institution: '',
+              photo: '',
+              profileImage: '',
+              profileURL: '',
+              sharedPublicationsCount: 1,
+              source: 'publication'
+            });
+          }
+        });
+      }
+    });
+
+    const names = Array.from(coAuthorMap.values()).map(c => c.name);
+    const registeredUsers = await User.find({
+      isDeleted: { $ne: true },
+      $or: [
+        { fullName: { $in: names } },
+        { firstName: { $in: names } },
+        { username: { $in: names } }
+      ]
+    }).select('_id firstName lastName fullName profileImage profileSlug username').lean();
+
+    const registeredUserIds = registeredUsers.map(u => u._id);
+    const registeredProfiles = await Profile.find({ userId: { $in: registeredUserIds }, isDeleted: { $ne: true } })
+      .select('userId institution designation department researchAreas')
+      .lean();
+
+    const profileMap = new Map();
+    registeredProfiles.forEach(p => profileMap.set(p.userId.toString(), p));
+
+    const regUserMap = new Map();
+    registeredUsers.forEach(u => {
+      const nameKey = (u.fullName || `${u.firstName} ${u.lastName}`).toLowerCase().trim();
+      regUserMap.set(nameKey, u);
+      if (u.firstName) regUserMap.set(u.firstName.toLowerCase().trim(), u);
+    });
+
+    const result = Array.from(coAuthorMap.values()).map(co => {
+      const key = co.name.toLowerCase().trim();
+      const matchedUser = regUserMap.get(key);
+      if (matchedUser) {
+        const matchedProf = profileMap.get(matchedUser._id.toString());
+        const userImg = matchedUser.profileImage?.url || matchedUser.profileImage || '';
+        return {
+          _id: co._id,
+          userId: matchedUser._id,
+          name: matchedUser.fullName || `${matchedUser.firstName} ${matchedUser.lastName}`,
+          fullName: matchedUser.fullName || `${matchedUser.firstName} ${matchedUser.lastName}`,
+          profileImage: userImg || co.photo || '',
+          profileSlug: matchedUser.profileSlug || matchedUser.username || matchedUser._id.toString(),
+          institution: matchedProf?.institution || co.affiliation || '',
+          designation: matchedProf?.designation || 'Researcher',
+          department: matchedProf?.department || '',
+          researchAreas: matchedProf?.researchAreas || [],
+          sharedPublicationsCount: co.sharedPublicationsCount || 1
+        };
+      }
+      return {
+        _id: co._id,
+        userId: null,
+        name: co.name,
+        fullName: co.name,
+        profileImage: co.photo || '',
+        profileSlug: '',
+        institution: co.affiliation || '',
+        designation: 'Co-Author',
+        department: '',
+        researchAreas: [],
+        sharedPublicationsCount: co.sharedPublicationsCount || 1
+      };
+    });
+
+    result.sort((a, b) => b.sharedPublicationsCount - a.sharedPublicationsCount);
+
+    if (limit && typeof limit === 'number' && limit > 0) {
+      return result.slice(0, limit);
+    }
+
+    return result;
   }
 }
 

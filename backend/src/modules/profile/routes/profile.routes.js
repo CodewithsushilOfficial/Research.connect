@@ -15,14 +15,20 @@ router.post(
   profileController.uploadFile
 );
 
-// Profile detail retrieval for the logged in user (defined before dynamic slug to avoid collision)
+// ── Static Authenticated Routes FIRST (Prevents Express Route Collision with :profileSlug) ──
 router.get('/me', authMiddleware, profileController.getProfile);
+router.get('/metrics/me', authMiddleware, profileController.getMetricsBySlug);
+router.get('/me/metrics', authMiddleware, profileController.getMetricsBySlug);
+router.get('/co-authors/me', authMiddleware, profileController.getCoAuthorsBySlug);
+router.get('/me/co-authors', authMiddleware, profileController.getCoAuthorsBySlug);
 
-// Public route to view a researcher profile by slug
-router.get('/:profileSlug', optionalAuth, profileController.getPublicProfile);
-
-// Public route to retrieve researcher publications portfolio by profile slug
+// ── Dynamic Routes By Profile Slug ──────────────────────────────────
+router.get('/:profileSlug/metrics', optionalAuth, profileController.getMetricsBySlug);
+router.get('/:profileSlug/co-authors', optionalAuth, profileController.getCoAuthorsBySlug);
 router.get('/:profileSlug/publications', optionalAuth, profileController.getPublicationsByProfileSlug);
+
+// ── Single Param Public Route LAST ──────────────────────────────────
+router.get('/:profileSlug', optionalAuth, profileController.getPublicProfile);
 
 // Secure routes below this point
 router.use(authMiddleware);

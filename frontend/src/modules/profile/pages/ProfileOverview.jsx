@@ -28,6 +28,8 @@ import {
 import profileService from '../../../services/profile.service';
 import publicationService from '../../../services/publication.service';
 import { updateProfileState, updateUserState } from '../../../redux/slices/authSlice';
+import ResearchMetrics from '../components/ResearchMetrics';
+import CoAuthorsSection from '../components/CoAuthorsSection';
 
 const PUB_CATEGORIES = ['Journal Paper', 'Conference Paper', 'Patent', 'Book Chapter', 'Book'];
 
@@ -521,9 +523,13 @@ const ProfileOverview = () => {
                       </div>
                     )}
 
+                    {/* Research Metrics Section with Zero Value Filtering */}
+                    <div className="pt-6 border-t border-slate-200">
+                      <ResearchMetrics metrics={profile?.metrics} />
+                    </div>
+
                     {/* Dynamic Publications Card */}
-                    {/* Dynamic Publications Card */}
-<div className="space-y-4 pt-6 border-t border-slate-200">
+                    <div className="space-y-4 pt-6 border-t border-slate-200">
   <div className="flex items-center justify-between gap-3 flex-wrap">
     <h3 className="text-base font-black text-[#0F172A] tracking-tight">Publications Portfolio</h3>
     <div className="flex items-center gap-2">
@@ -900,57 +906,11 @@ const ProfileOverview = () => {
           </div>
 
           {/* Co-Authors Network Sidebar Widget */}
-          <div className="bg-bg-card border border-border rounded-2xl p-5 shadow-sm space-y-4">
-            <div>
-              <h4 className="text-xs font-black text-text-primary tracking-tight uppercase">Co-Authors</h4>
-              <p className="text-[10px] text-text-secondary mt-0.5 font-bold uppercase tracking-wider">Academic Collaboration Network</p>
-            </div>
-            
-            {profile?.coAuthors && profile.coAuthors.length > 0 ? (
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 gap-2.5">
-                  {(showAllCoAuthors ? profile.coAuthors : profile.coAuthors.slice(0, 5)).map((co, idx) => {
-                    const borderColors = [
-                      'border-light-blue hover:border-primary/30 bg-light-blue/10',
-                      'border-light-green hover:border-accent-green/30 bg-light-green/10',
-                      'border-light-purple hover:border-accent-indigo/30 bg-light-purple/10',
-                      'border-light-orange hover:border-accent-orange/30 bg-light-orange/10'
-                    ];
-                    const selectedBorder = borderColors[idx % borderColors.length];
-                    return (
-                      <div key={co._id || co.name} className={`p-3 border rounded-xl hover:shadow-sm transition-all duration-200 hover:-translate-y-0.5 flex items-start gap-2.5 ${selectedBorder}`}>
-                        <Avatar
-                          src={co.photo}
-                          name={co.name}
-                          size="sm"
-                          showBorder
-                        />
-                        <div className="min-w-0 flex-grow">
-                          <h5 className="text-xs font-black text-text-primary truncate">{co.name}</h5>
-                          <p className="text-[9px] text-text-secondary truncate font-bold uppercase tracking-wide">{co.affiliation || 'Academic Researcher'}</p>
-                          {co.profileURL && (
-                            <a href={co.profileURL} target="_blank" rel="noopener noreferrer" className="text-[9px] text-primary font-black hover:text-primary/80 hover:underline block mt-1 transition-colors">
-                              Scholar Profile &rarr;
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                {profile.coAuthors.length > 5 && (
-                  <button
-                    onClick={() => setShowAllCoAuthors(!showAllCoAuthors)}
-                    className="w-full text-center py-2.5 border border-border bg-bg-page hover:bg-light-purple/40 text-[10px] font-black text-text-secondary hover:text-primary uppercase tracking-wider rounded-xl transition-all duration-200 active:scale-[0.98]"
-                  >
-                    {showAllCoAuthors ? 'Show Less' : `View All (${profile.coAuthors.length})`}
-                  </button>
-                )}
-              </div>
-            ) : (
-              <p className="text-xs text-text-muted italic">No co-authors indexed yet.</p>
-            )}
-          </div>
+          <CoAuthorsSection
+            coAuthors={profile?.coAuthors}
+            title="Co-Authors"
+            subhead="Academic Collaboration Network"
+          />
         </div>
       </div>
 

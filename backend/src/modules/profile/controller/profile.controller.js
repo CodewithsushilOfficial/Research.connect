@@ -47,6 +47,21 @@ class ProfileController {
     return res.success('Researcher profile retrieved successfully.', profile);
   });
 
+  // Retrieve metrics for a specific profile slug or authenticated user
+  getMetricsBySlug = asyncHandler(async (req, res) => {
+    const { profileSlug } = req.params;
+    const metrics = await profileService.getMetricsBySlug(profileSlug || 'me', req.user?._id);
+    return res.success('Researcher metrics retrieved successfully.', metrics);
+  });
+
+  // Retrieve co-authors for a specific profile slug or authenticated user
+  getCoAuthorsBySlug = asyncHandler(async (req, res) => {
+    const { profileSlug } = req.params;
+    const limit = req.query.limit ? parseInt(req.query.limit, 10) : null;
+    const coAuthors = await profileService.getCoAuthorsBySlug(profileSlug || 'me', req.user?._id, limit);
+    return res.success('Researcher co-authors retrieved successfully.', coAuthors);
+  });
+
   // Update profile details (bulk/flexible payload)
   updateProfile = asyncHandler(async (req, res) => {
     const profile = await profileService.updateProfile(req.user._id, req.body);

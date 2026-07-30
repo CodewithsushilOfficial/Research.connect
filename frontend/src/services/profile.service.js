@@ -136,8 +136,17 @@ class ProfileService {
     return { success: true, data: [] };
   }
 
-  async getKeywords() {
-    return { success: true, data: [] };
+  // Get research metrics by slug (or own if 'me')
+  async getMetrics(profileSlug = 'me') {
+    const path = profileSlug === 'me' ? '/v1/profile/metrics/me' : `/v1/profile/${profileSlug}/metrics`;
+    return await axiosInstance.get(path);
+  }
+
+  // Get co-authors by slug (or own if 'me')
+  async getCoAuthors(profileSlug = 'me', limit = null) {
+    const basePath = profileSlug === 'me' ? '/v1/profile/co-authors/me' : `/v1/profile/${profileSlug}/co-authors`;
+    const path = limit ? `${basePath}?limit=${limit}` : basePath;
+    return await axiosInstance.get(path);
   }
 }
 
