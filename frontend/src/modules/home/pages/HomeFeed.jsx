@@ -421,50 +421,50 @@ const HomeFeed = () => {
     const scorePercent = Math.min(100, Math.round((rawScore / 100) * 100));
 
     return (
-      <div className="bg-[#FFFFFF] border border-[#E2E8F0] p-4 sm:p-6 rounded-[18px] shadow-sm space-y-4 text-left">
+      <div className="bg-bg-card border border-border p-4 sm:p-6 rounded-[18px] shadow-sm space-y-4 text-left">
         <div className="flex justify-between items-start">
           <div className="space-y-0.5">
-            <h3 className="font-bold text-xs text-[#475569] uppercase tracking-wider flex items-center gap-2">
-              <Award className="w-4 h-4 text-[#2563EB]" /> Academic Standing
+            <h3 className="font-bold text-xs text-text-secondary uppercase tracking-wider flex items-center gap-2">
+              <Award className="w-4 h-4 text-primary" /> Academic Standing
             </h3>
             {scholarProfile ? (
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#22C55E] bg-[#DCFCE7] px-2.5 py-0.5 rounded-full mt-1 border border-[#DCFCE7] shadow-sm">
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-accent-green bg-light-green px-2.5 py-0.5 rounded-full mt-1 border border-light-green shadow-sm">
                 Verified Scholar
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full mt-1 border border-slate-100 shadow-sm">
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-text-muted bg-bg-surface px-2.5 py-0.5 rounded-full mt-1 border border-border shadow-sm">
                 Standard Profile
               </span>
             )}
           </div>
-          <Star className="w-5 h-5 text-[#F59E0B] fill-[#F59E0B]" />
+          <Star className="w-5 h-5 text-accent-orange fill-accent-orange" />
         </div>
         
         <div className="flex items-center gap-4 pt-1">
-          <div className="relative w-16 h-16 flex items-center justify-center shrink-0 bg-[#F8FAFC] border border-[#E2E8F0] rounded-full p-1 shadow-inner">
+          <div className="relative w-16 h-16 flex items-center justify-center shrink-0 bg-bg-page border border-border rounded-full p-1 shadow-inner">
             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-              <path className="text-slate-100" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-              <path className="text-[#2563EB]" strokeDasharray={`${scorePercent}, 100`} strokeWidth="3" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              <path className="text-bg-surface" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              <path className="text-primary" strokeDasharray={`${scorePercent}, 100`} strokeWidth="3" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
             </svg>
-            <span className="absolute text-[10px] font-black text-[#0F172A] tracking-tighter">{Math.round(rawScore)}</span>
+            <span className="absolute text-[10px] font-black text-text-primary tracking-tighter">{Math.round(rawScore)}</span>
           </div>
           <div className="min-w-0">
-            <h4 className="font-extrabold text-sm text-[#0F172A] leading-tight">Research Score: {rawScore}</h4>
-            <p className="text-xs text-[#475569] font-semibold mt-1">Academic Rank: {profile?.academicRank || 'Student'}</p>
-            <p className="text-[10px] text-[#475569]/80 font-medium leading-normal mt-0.5">
+            <h4 className="font-extrabold text-sm text-text-primary leading-tight">Research Score: {rawScore}</h4>
+            <p className="text-xs text-text-secondary font-semibold mt-1">Academic Rank: {profile?.academicRank || 'Student'}</p>
+            <p className="text-[10px] text-text-secondary/80 font-medium leading-normal mt-0.5">
               Top {Math.max(1, 100 - Math.min(99, Math.floor(profile?.metrics?.researchScore || 0)))}% of collaborators worldwide.
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-[#E2E8F0] text-center text-xs">
-          <div className="p-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl flex flex-col items-center">
-            <span className="text-[9px] text-[#475569] block font-bold uppercase tracking-wider">Completion</span>
-            <span className="font-extrabold text-[#22C55E] mt-0.5">{profile?.profileCompletion || 0}%</span>
+        <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-border text-center text-xs">
+          <div className="p-2.5 bg-bg-page border border-border rounded-xl flex flex-col items-center">
+            <span className="text-[9px] text-text-secondary block font-bold uppercase tracking-wider">Completion</span>
+            <span className="font-extrabold text-accent-green mt-0.5">{profile?.profileCompletion || 0}%</span>
           </div>
-          <div className="p-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl flex flex-col items-center">
-            <span className="text-[9px] text-[#475569] block font-bold uppercase tracking-wider">Research Rank</span>
-            <span className="font-extrabold text-[#4F46E5] mt-0.5">{profile?.researchRank || 'Junior'}</span>
+          <div className="p-2.5 bg-bg-page border border-border rounded-xl flex flex-col items-center">
+            <span className="text-[9px] text-text-secondary block font-bold uppercase tracking-wider">Research Rank</span>
+            <span className="font-extrabold text-accent-indigo mt-0.5">{profile?.researchRank || 'Junior'}</span>
           </div>
         </div>
       </div>
@@ -479,12 +479,12 @@ const HomeFeed = () => {
     );
 
     return (
-      <div className="bg-[#FFFFFF] border border-[#E2E8F0] p-4 sm:p-6 rounded-[18px] shadow-sm space-y-4 text-left">
+      <div className="bg-bg-card border border-border p-4 sm:p-6 rounded-[18px] shadow-sm space-y-4 text-left">
         <div className="flex justify-between items-center">
-          <h3 className="font-bold text-xs text-[#475569] uppercase tracking-wider flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-[#2563EB]" /> Trending Keywords
+          <h3 className="font-bold text-xs text-text-secondary uppercase tracking-wider flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-primary" /> Trending Keywords
           </h3>
-          <span className="text-[10px] text-[#475569] font-bold bg-[#F8FAFC] px-2 py-0.5 rounded-full border border-[#E2E8F0]">
+          <span className="text-[10px] text-text-secondary font-bold bg-bg-page px-2 py-0.5 rounded-full border border-border">
             {keywordsList.length} tags
           </span>
         </div>
@@ -496,9 +496,9 @@ const HomeFeed = () => {
             placeholder="Search keywords..."
             value={keywordSearchQuery}
             onChange={(e) => setKeywordSearchQuery(e.target.value)}
-            className="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl pl-9 pr-3 py-1.5 text-xs text-[#0F172A] focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-all font-semibold"
+            className="w-full bg-bg-page border border-border rounded-xl pl-9 pr-3 py-1.5 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-primary focus:bg-bg-card transition-all font-semibold"
           />
-          <Search className="w-3.5 h-3.5 text-[#475569]/60 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-3.5 h-3.5 text-text-secondary/60 absolute left-3 top-1/2 -translate-y-1/2" />
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -509,7 +509,7 @@ const HomeFeed = () => {
                 dispatch(setQuery(k.tag));
                 navigate(`/search?q=${encodeURIComponent(k.tag)}`);
               }}
-              className="text-xs bg-[#DBEAFE] hover:bg-[#2563EB] hover:text-white border border-[#DBEAFE] hover:border-[#2563EB] text-[#2563EB] px-2.5 py-1 rounded-full font-bold cursor-pointer transition-all duration-200 transform hover:scale-[1.03] active:scale-95 flex items-center gap-1"
+              className="text-xs bg-light-blue hover:bg-primary hover:text-white border border-light-blue hover:border-primary text-primary px-2.5 py-1 rounded-full font-bold cursor-pointer transition-all duration-200 transform hover:scale-[1.03] active:scale-95 flex items-center gap-1"
             >
               #{k.tag}
               <span className="text-[9px] opacity-75 font-normal">({k.count})</span>
@@ -522,7 +522,7 @@ const HomeFeed = () => {
             dispatch(setQuery(''));
             navigate('/search');
           }}
-          className="w-full py-2 bg-[#F8FAFC] hover:bg-[#2563EB] border border-[#E2E8F0] hover:border-[#2563EB] text-[#475569] hover:text-white font-bold text-xs rounded-xl transition-all duration-200 transform hover:scale-[1.03] active:scale-95 hover:shadow-md shadow-sm"
+          className="w-full py-2 bg-bg-page hover:bg-primary border border-border hover:border-primary text-text-secondary hover:text-white font-bold text-xs rounded-xl transition-all duration-200 transform hover:scale-[1.03] active:scale-95 hover:shadow-md shadow-sm"
         >
           View All Keywords
         </button>
@@ -532,19 +532,19 @@ const HomeFeed = () => {
 
   const renderSuggestedResearchers = () => {
     return (
-      <div className="bg-[#FFFFFF] border border-[#E2E8F0] p-4 sm:p-6 rounded-[18px] shadow-sm space-y-4 text-left">
-        <h3 className="font-bold text-xs text-[#475569] uppercase tracking-wider flex items-center gap-2">
-          <Users className="w-4 h-4 text-[#4F46E5]" /> Suggested Researchers
+      <div className="bg-bg-card border border-border p-4 sm:p-6 rounded-[18px] shadow-sm space-y-4 text-left">
+        <h3 className="font-bold text-xs text-text-secondary uppercase tracking-wider flex items-center gap-2">
+          <Users className="w-4 h-4 text-accent-indigo" /> Suggested Researchers
         </h3>
         
         <div className="space-y-4">
           {suggestedResearchers.length === 0 ? (
-            <p className="text-xs text-[#475569]/60 text-center py-2">No recommendations at this time.</p>
+            <p className="text-xs text-text-muted text-center py-2">No recommendations at this time.</p>
           ) : (
             suggestedResearchers.slice(0, 3).map((res, idx) => {
               const matchPercent = res.matchPercentage || (90 - idx * 5);
               return (
-                <div key={idx} className="group border-b border-[#E2E8F0]/60 pb-3.5 last:border-0 last:pb-0 transition-all duration-200">
+                <div key={idx} className="group border-b border-border/60 pb-3.5 last:border-0 last:pb-0 transition-all duration-200">
                   <div className="flex gap-3 min-w-0">
                     <div 
                       onClick={() => navigate(`/profile/${res.profileSlug || res.userId}`)}
@@ -561,28 +561,28 @@ const HomeFeed = () => {
                       <div className="flex justify-between items-start gap-1">
                         <h4 
                           onClick={() => navigate(`/profile/${res.profileSlug || res.userId}`)}
-                          className="font-bold text-xs text-[#0F172A] truncate leading-tight hover:text-[#2563EB] cursor-pointer transition-colors"
+                          className="font-bold text-xs text-text-primary truncate leading-tight hover:text-primary cursor-pointer transition-colors"
                         >
                           {res.name}
                         </h4>
-                        <span className="text-[9px] font-bold text-[#22C55E] bg-[#DCFCE7] px-1.5 py-0.5 rounded-full shrink-0">
+                        <span className="text-[9px] font-bold text-accent-green bg-light-green px-1.5 py-0.5 rounded-full shrink-0">
                           {matchPercent}% match
                         </span>
                       </div>
-                      <p className="text-[10px] text-[#475569] truncate leading-tight mt-0.5">
+                      <p className="text-[10px] text-text-secondary truncate leading-tight mt-0.5">
                         {res.designation || 'Scholar'} • {res.institution || 'Institute'}
                       </p>
-                      <p className="text-[10px] text-[#475569]/80 truncate mt-1">
+                      <p className="text-[10px] text-text-secondary/80 truncate mt-1">
                         Reason: {res.reasons && res.reasons.length > 0 ? res.reasons.join(', ') : 'Suggested Match'}
                       </p>
                     </div>
                   </div>
                   
-                  {/* Action buttons with Blue Hover and Scale transitions */}
+                  {/* Action buttons */}
                   <div className="flex gap-2 mt-3.5 pl-13">
                     <button 
                       onClick={() => handleFollowResearcher(res.userId)}
-                      className="flex-1 py-1.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-[10px] rounded-lg transition-all duration-200 transform hover:scale-[1.03] active:scale-95 hover:shadow shadow-sm"
+                      className="flex-1 py-1.5 bg-primary hover:bg-primary-hover text-white font-bold text-[10px] rounded-lg transition-all duration-200 transform hover:scale-[1.03] active:scale-95 hover:shadow shadow-sm"
                     >
                       Follow
                     </button>
@@ -590,9 +590,9 @@ const HomeFeed = () => {
                       onClick={() => {
                         navigate(`/messages?participantId=${res.userId}`);
                       }}
-                      className="flex-1 py-1.5 bg-white hover:bg-[#2563EB] border border-[#E2E8F0] hover:border-[#2563EB] text-[#475569] hover:text-white font-bold text-[10px] rounded-lg transition-all duration-200 transform hover:scale-[1.03] active:scale-95 hover:shadow shadow-sm flex items-center justify-center gap-1"
+                      className="flex-1 py-1.5 bg-bg-card hover:bg-primary border border-border hover:border-primary text-text-secondary hover:text-white font-bold text-[10px] rounded-lg transition-all duration-200 transform hover:scale-[1.03] active:scale-95 hover:shadow shadow-sm flex items-center justify-center gap-1"
                     >
-                      <Mail className="w-3 h-3 text-[#475569]/60 group-hover:text-white" /> Message
+                      <Mail className="w-3 h-3 text-text-secondary/60 group-hover:text-white" /> Message
                     </button>
                   </div>
                 </div>
@@ -606,12 +606,12 @@ const HomeFeed = () => {
 
   const renderTopCoAuthors = () => {
     return (
-      <div className="bg-[#FFFFFF] border border-[#E2E8F0] p-4 sm:p-6 rounded-[18px] shadow-sm space-y-4 text-left">
+      <div className="bg-bg-card border border-border p-4 sm:p-6 rounded-[18px] shadow-sm space-y-4 text-left">
         <div className="flex justify-between items-center">
-          <h3 className="font-bold text-xs text-[#475569] uppercase tracking-wider flex items-center gap-2">
-            <Users className="w-4 h-4 text-[#4F46E5]" /> Top Co-authors
+          <h3 className="font-bold text-xs text-text-secondary uppercase tracking-wider flex items-center gap-2">
+            <Users className="w-4 h-4 text-accent-indigo" /> Top Co-authors
           </h3>
-          <span className="text-[10px] text-[#475569] font-bold bg-[#F8FAFC] px-2 py-0.5 rounded-full border border-[#E2E8F0]">
+          <span className="text-[10px] text-text-secondary font-bold bg-bg-page px-2 py-0.5 rounded-full border border-border">
             {coAuthors.length} co-authors
           </span>
         </div>
@@ -619,13 +619,13 @@ const HomeFeed = () => {
         <div className="space-y-3">
           {coAuthors.length === 0 ? (
             <div className="text-center py-4">
-              <Users className="w-8 h-8 text-[#CBD5E1] mx-auto mb-2" />
-              <p className="text-xs text-[#94A3B8] font-medium">No co-authors yet.</p>
-              <p className="text-[10px] text-[#CBD5E1] mt-0.5">Sync your Google Scholar profile to discover co-authors.</p>
+              <Users className="w-8 h-8 text-text-muted mx-auto mb-2" />
+              <p className="text-xs text-text-muted font-medium">No co-authors yet.</p>
+              <p className="text-[10px] text-text-muted mt-0.5">Sync your Google Scholar profile to discover co-authors.</p>
             </div>
           ) : (
             coAuthors.slice(0, 5).map((author, idx) => (
-              <div key={idx} className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-[#F8FAFC] transition-colors">
+              <div key={idx} className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-bg-page transition-colors">
                 <Avatar
                   src={author.photo}
                   name={author.name}
@@ -634,13 +634,13 @@ const HomeFeed = () => {
                 />
                 <div className="min-w-0 flex-1 text-left">
                   <div className="flex justify-between items-start">
-                    <h4 className="font-bold text-xs text-[#0F172A] truncate leading-tight">{author.name}</h4>
-                    <span className="text-[9px] font-bold text-[#4F46E5] bg-[#EDE9FE] px-1.5 py-0.5 rounded-full shrink-0">
+                    <h4 className="font-bold text-xs text-text-primary truncate leading-tight">{author.name}</h4>
+                    <span className="text-[9px] font-bold text-accent-indigo bg-light-purple px-1.5 py-0.5 rounded-full shrink-0">
                       {author.collaborationCount ?? idx + 1} colabs
                     </span>
                   </div>
-                  <p className="text-[10px] text-[#475569] truncate mt-0.5">{author.affiliation || 'Independent Scholar'}</p>
-                  <p className="text-[9px] text-[#475569]/70 truncate font-medium">Interest: {author.researchInterest || 'Research'}</p>
+                  <p className="text-[10px] text-text-secondary truncate mt-0.5">{author.affiliation || 'Independent Scholar'}</p>
+                  <p className="text-[9px] text-text-secondary/70 truncate font-medium">Interest: {author.researchInterest || 'Research'}</p>
                 </div>
               </div>
             ))
@@ -650,7 +650,7 @@ const HomeFeed = () => {
         {coAuthors.length > 0 && (
           <button 
             onClick={() => setShowAllCoAuthorsModal(true)}
-            className="w-full py-2 bg-[#F8FAFC] hover:bg-[#2563EB] border border-[#E2E8F0] hover:border-[#2563EB] text-[#475569] hover:text-white font-bold text-xs rounded-xl transition-all duration-200 transform hover:scale-[1.03] active:scale-95 hover:shadow-md shadow-sm"
+            className="w-full py-2 bg-bg-page hover:bg-primary border border-border hover:border-primary text-text-secondary hover:text-white font-bold text-xs rounded-xl transition-all duration-200 transform hover:scale-[1.03] active:scale-95 hover:shadow-md shadow-sm"
           >
             View All Co-Authors
           </button>
@@ -757,36 +757,36 @@ const HomeFeed = () => {
         
         {/* CENTER FEED SECTION (8 Cols) */}
         <div className="lg:col-span-8 space-y-6">
-          <div className="border border-[#E2E8F0] p-3 sm:p-5 rounded-2xl sm:rounded-3xl shadow-sm text-left relative overflow-hidden bg-gradient-to-tr from-[#F8FAFC] to-[#FFFFFF]">
+          <div className="border border-border p-3 sm:p-5 rounded-2xl sm:rounded-3xl shadow-sm text-left relative overflow-hidden bg-gradient-to-tr from-bg-page to-bg-card">
             {/* Background elements */}
-            <div className="absolute right-0 top-0 w-96 h-96 bg-gradient-to-bl from-[#2563EB]/10 via-[#4F46E5]/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute right-0 top-0 w-96 h-96 bg-gradient-to-bl from-primary/10 via-accent-indigo/5 to-transparent rounded-full blur-3xl pointer-events-none" />
             
             <div className="relative z-10 space-y-2 sm:space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
                 <div>
                   <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                    <h1 className="text-sm sm:text-xl lg:text-2xl font-extrabold text-[#0F172A] tracking-tight leading-tight">
+                    <h1 className="text-sm sm:text-xl lg:text-2xl font-extrabold text-text-primary tracking-tight leading-tight">
                       Welcome back, {user?.firstName || 'Scholar'} {user?.lastName || ''}
                     </h1>
-                    <span className="inline-flex items-center justify-center bg-[#DBEAFE] text-[#2563EB] text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full border border-[#DBEAFE]">
+                    <span className="inline-flex items-center justify-center bg-light-blue text-primary text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full border border-light-blue">
                       Active
                     </span>
                   </div>
-                  <p className="text-[11px] sm:text-xs text-[#475569] mt-0.5 font-semibold leading-snug">Your research feed is dynamically optimized based on your interests.</p>
+                  <p className="text-[11px] sm:text-xs text-text-secondary mt-0.5 font-semibold leading-snug">Your research feed is dynamically optimized based on your interests.</p>
                 </div>
                 
                 {/* Micro metrics */}
                 <div className="flex gap-2.5 sm:gap-4 shrink-0">
                   <div className="text-left">
-                    <span className="text-[8px] sm:text-[10px] text-[#475569]/70 uppercase font-bold tracking-wider block">New Citations</span>
-                    <span className="text-sm sm:text-lg font-black text-[#2563EB] flex items-center gap-1">
-                      {getNewCitations() > 0 ? `+${getNewCitations()}` : '0'} <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-[#22C55E]" />
+                    <span className="text-[8px] sm:text-[10px] text-text-secondary/70 uppercase font-bold tracking-wider block">New Citations</span>
+                    <span className="text-sm sm:text-lg font-black text-primary flex items-center gap-1">
+                      {getNewCitations() > 0 ? `+${getNewCitations()}` : '0'} <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-accent-green" />
                     </span>
                   </div>
-                  <div className="h-7 sm:h-8 w-px bg-[#E2E8F0] self-center"></div>
+                  <div className="h-7 sm:h-8 w-px bg-border self-center"></div>
                   <div className="text-left">
-                    <span className="text-[8px] sm:text-[10px] text-[#475569]/70 uppercase font-bold tracking-wider block">Suggested Collaborations</span>
-                    <span className="text-sm sm:text-lg font-black text-[#4F46E5]">
+                    <span className="text-[8px] sm:text-[10px] text-text-secondary/70 uppercase font-bold tracking-wider block">Suggested Collaborations</span>
+                    <span className="text-sm sm:text-lg font-black text-accent-indigo">
                       {suggestedResearchers.length} {suggestedResearchers.length === 1 ? 'match' : 'matches'}
                     </span>
                   </div>
@@ -795,11 +795,11 @@ const HomeFeed = () => {
 
               {/* Research Insights Banner */}
               {sidebarData?.aiInsight && (
-                <div className="bg-[#EDE9FE]/40 border border-[#EDE9FE] rounded-lg sm:rounded-2xl p-2 sm:p-3 flex gap-2 sm:gap-3 items-start">
-                  <BrainCircuit className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-[#4F46E5] shrink-0 mt-0.5" />
+                <div className="bg-light-purple/40 border border-light-purple rounded-lg sm:rounded-2xl p-2 sm:p-3 flex gap-2 sm:gap-3 items-start">
+                  <BrainCircuit className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-accent-indigo shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="text-[11px] sm:text-xs font-bold text-[#0F172A]">Today's Research Insights</h4>
-                    <p className="text-[10px] sm:text-xs text-[#475569] mt-0.5 font-semibold leading-relaxed">
+                    <h4 className="text-[11px] sm:text-xs font-bold text-text-primary">Today's Research Insights</h4>
+                    <p className="text-[10px] sm:text-xs text-text-secondary mt-0.5 font-semibold leading-relaxed">
                       {sidebarData.aiInsight.insight}
                     </p>
                   </div>
@@ -810,27 +810,27 @@ const HomeFeed = () => {
               <div className="grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:gap-3 pt-0.5">
                 <button 
                   onClick={() => navigate(user?.profileSlug ? `/profile/${user.profileSlug}` : '/profile')}
-                  className="col-span-2 sm:col-span-1 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-[11px] sm:text-xs px-3 py-2 sm:px-5 sm:py-2.5 rounded-lg sm:rounded-xl transition-all duration-200 transform active:scale-95 sm:hover:scale-[1.03] hover:shadow-md shadow-sm min-h-[38px] sm:min-h-[44px] flex items-center justify-center"
+                  className="col-span-2 sm:col-span-1 bg-primary hover:bg-primary-hover text-white font-bold text-[11px] sm:text-xs px-3 py-2 sm:px-5 sm:py-2.5 rounded-lg sm:rounded-xl transition-all duration-200 transform active:scale-95 sm:hover:scale-[1.03] hover:shadow-md shadow-sm min-h-[38px] sm:min-h-[44px] flex items-center justify-center"
                 >
                   Continue Profile
                 </button>
                 <button 
                   onClick={handleSyncScholar}
                   disabled={syncing}
-                  className="bg-white hover:bg-[#2563EB] border border-[#E2E8F0] hover:border-[#2563EB] text-[#475569] hover:text-white font-bold text-[11px] sm:text-xs px-2.5 py-2 sm:px-5 sm:py-2.5 rounded-lg sm:rounded-xl transition-all duration-200 transform active:scale-95 sm:hover:scale-[1.03] hover:shadow-md shadow-sm flex items-center justify-center gap-1 sm:gap-1.5 min-h-[38px] sm:min-h-[44px] disabled:opacity-60"
+                  className="bg-bg-card hover:bg-primary border border-border hover:border-primary text-text-secondary hover:text-white font-bold text-[11px] sm:text-xs px-2.5 py-2 sm:px-5 sm:py-2.5 rounded-lg sm:rounded-xl transition-all duration-200 transform active:scale-95 sm:hover:scale-[1.03] hover:shadow-md shadow-sm flex items-center justify-center gap-1 sm:gap-1.5 min-h-[38px] sm:min-h-[44px] disabled:opacity-60"
                 >
                   {syncing ? <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin shrink-0" /> : <RefreshCw className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />}
                   <span className="truncate">Sync Scholar</span>
                 </button>
                 <button 
                   onClick={() => toast.success('Upload Publication Modal')}
-                  className="bg-white hover:bg-[#2563EB] border border-[#E2E8F0] hover:border-[#2563EB] text-[#475569] hover:text-white font-bold text-[11px] sm:text-xs px-2.5 py-2 sm:px-5 sm:py-2.5 rounded-lg sm:rounded-xl transition-all duration-200 transform active:scale-95 sm:hover:scale-[1.03] hover:shadow-md shadow-sm min-h-[38px] sm:min-h-[44px] flex items-center justify-center"
+                  className="bg-bg-card hover:bg-primary border border-border hover:border-primary text-text-secondary hover:text-white font-bold text-[11px] sm:text-xs px-2.5 py-2 sm:px-5 sm:py-2.5 rounded-lg sm:rounded-xl transition-all duration-200 transform active:scale-95 sm:hover:scale-[1.03] hover:shadow-md shadow-sm min-h-[38px] sm:min-h-[44px] flex items-center justify-center"
                 >
                   <span className="truncate">Create Publication</span>
                 </button>
                 <button 
                   onClick={() => toast.success('Create Project Modal')}
-                  className="col-span-2 sm:col-span-1 bg-white hover:bg-[#2563EB] border border-[#E2E8F0] hover:border-[#2563EB] text-[#475569] hover:text-white font-bold text-[11px] sm:text-xs px-2.5 py-2 sm:px-5 sm:py-2.5 rounded-lg sm:rounded-xl transition-all duration-200 transform active:scale-95 sm:hover:scale-[1.03] hover:shadow-md shadow-sm min-h-[38px] sm:min-h-[44px] flex items-center justify-center"
+                  className="col-span-2 sm:col-span-1 bg-bg-card hover:bg-primary border border-border hover:border-primary text-text-secondary hover:text-white font-bold text-[11px] sm:text-xs px-2.5 py-2 sm:px-5 sm:py-2.5 rounded-lg sm:rounded-xl transition-all duration-200 transform active:scale-95 sm:hover:scale-[1.03] hover:shadow-md shadow-sm min-h-[38px] sm:min-h-[44px] flex items-center justify-center"
                 >
                   Create Project
                 </button>

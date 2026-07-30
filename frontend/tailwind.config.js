@@ -16,53 +16,43 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#2563EB',
-          hover: '#1D4ED8',
+          DEFAULT: 'var(--color-primary)',
+          hover: 'var(--color-primary-hover)',
         },
         accent: {
-          indigo: '#4F46E5',
-          green: '#22C55E',
-          orange: '#F59E0B',
-          red: '#EF4444',
+          indigo: 'var(--color-accent-indigo)',
+          green: 'var(--color-accent-green)',
+          orange: 'var(--color-accent-orange)',
+          red: 'var(--color-accent-red)',
         },
         bg: {
-          page: '#F8FAFC',
-          card: '#FFFFFF',
-          surface: '#F1F5F9',
+          page: 'var(--color-bg-page)',
+          card: 'var(--color-bg-card)',
+          surface: 'var(--color-bg-surface)',
         },
         text: {
-          primary: '#0F172A',
-          secondary: '#475569',
-          muted: '#94A3B8',
+          primary: 'var(--color-text-primary)',
+          secondary: 'var(--color-text-secondary)',
+          muted: 'var(--color-text-muted)',
         },
         border: {
-          DEFAULT: '#E2E8F0',
+          DEFAULT: 'var(--color-border)',
         },
         light: {
-          blue: '#DBEAFE',
-          green: '#DCFCE7',
-          orange: '#FEF3C7',
-          purple: '#EDE9FE',
+          blue: 'var(--color-light-blue)',
+          green: 'var(--color-light-green)',
+          orange: 'var(--color-light-orange)',
+          purple: 'var(--color-light-purple)',
         },
-        // Extended slate shades used across the codebase
-        slate: {
-          55: '#F8FAFC',
-          105: '#E8ECF1',
-          150: '#CBD5E1',
-          405: '#94A3B8',
-          450: '#9CA3AF',
-          455: '#9CA3AF',
-          650: '#4B5563',
-          655: '#4B5563',
-          850: '#1E293B',
-        },
-        // Extended blue shades
-        blue: {
-          650: '#2563EB',
-        },
-        // Extended red shades
-        red: {
-          650: '#DC2626',
+        sidebar: 'var(--color-sidebar)',
+        navbar: 'var(--color-navbar)',
+        input: 'var(--color-input)',
+        ring: 'var(--color-ring)',
+        chart: {
+          1: 'var(--color-chart-1)',
+          2: 'var(--color-chart-2)',
+          3: 'var(--color-chart-3)',
+          4: 'var(--color-chart-4)',
         },
       },
       fontFamily: {
