@@ -110,38 +110,41 @@ const WelcomeHeader = ({ welcomeData }) => {
   const name = welcomeData?.fullName || welcomeData?.firstName || 'Researcher';
 
   return (
-    <div className="bg-bg-card border border-border rounded-2xl p-5 shadow-sm space-y-4">
+    <div className="bg-bg-card border border-border rounded-2xl p-4 sm:p-5 shadow-sm space-y-3 sm:space-y-4">
       {/* Title */}
-      <h1 className="font-extrabold text-xl sm:text-2xl text-text-primary tracking-tight">
+      <h1
+        className="font-extrabold text-text-primary tracking-tight whitespace-nowrap overflow-hidden"
+        style={{ fontSize: 'clamp(0.75rem, 4.2vw, 1.5rem)' }}
+      >
         Welcome back, <span className="text-primary">{name}</span> 👋
       </h1>
 
       {/* Action Buttons Row */}
-      <div className="flex items-center flex-wrap gap-3">
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-3">
         <button
           onClick={() => navigate('/search')}
           aria-label="Explore Research"
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-primary hover:bg-primary-hover shadow-sm transition-all"
+          className="col-span-2 sm:col-span-1 flex items-center justify-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-full sm:rounded-xl text-[11px] sm:text-xs font-bold text-white bg-primary hover:bg-primary-hover shadow-sm transition-all whitespace-nowrap w-full sm:w-auto"
         >
-          <Compass size={15} />
+          <Compass size={14} className="shrink-0" />
           Explore Research
         </button>
 
         <button
           onClick={() => navigate('/publications/create')}
           aria-label="Create Publication"
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-text-primary bg-bg-card hover:bg-bg-surface border border-border hover:border-primary transition-all"
+          className="flex items-center justify-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-full sm:rounded-xl text-[11px] sm:text-xs font-bold text-text-primary bg-bg-card hover:bg-bg-surface border border-border hover:border-primary transition-all whitespace-nowrap w-full sm:w-auto"
         >
-          <Plus size={15} />
+          <Plus size={14} className="shrink-0" />
           Create Publication
         </button>
 
         <button
           onClick={() => navigate('/projects/create')}
           aria-label="Create Project"
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-text-primary bg-bg-card hover:bg-bg-surface border border-border hover:border-primary transition-all"
+          className="flex items-center justify-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-full sm:rounded-xl text-[11px] sm:text-xs font-bold text-text-primary bg-bg-card hover:bg-bg-surface border border-border hover:border-primary transition-all whitespace-nowrap w-full sm:w-auto"
         >
-          <FolderKanban size={15} />
+          <FolderKanban size={14} className="shrink-0" />
           Create Project
         </button>
       </div>
@@ -230,31 +233,29 @@ const FeedColumn = ({ welcomeData, sidebarData }) => {
       {/* 1. Welcome Card */}
       <WelcomeHeader welcomeData={welcomeData} sidebarData={sidebarData} />
 
-      {/* 2. Tabs Bar (Underline & Pill style matching Image 2) */}
-      <div className="border-b border-border pb-1">
-        <div className="flex items-center gap-6 overflow-x-auto no-scrollbar">
-          {TABS.map(({ id, label, icon: Icon }) => {
-            const active = activeTab === id;
-            return (
-              <button
-                key={id}
-                onClick={() => setActiveTab(id)}
-                className={`flex items-center gap-2 py-2.5 font-bold text-sm transition-all border-b-2 whitespace-nowrap ${
-                  active
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-text-muted hover:text-text-primary'
-                }`}
-              >
-                <Icon size={15} />
-                {label}
-              </button>
-            );
-          })}
-        </div>
+      {/* 2. Tabs Bar (Pill style) */}
+      <div className="flex items-center flex-wrap gap-1.5 sm:gap-2">
+        {TABS.map(({ id, label, icon: Icon }) => {
+          const active = activeTab === id;
+          return (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full font-bold text-[11px] sm:text-xs whitespace-nowrap border transition-all ${
+                active
+                  ? 'bg-primary border-primary text-white shadow-sm'
+                  : 'bg-bg-card border-border text-text-muted hover:text-text-primary hover:border-primary/40'
+              }`}
+            >
+              <Icon size={13} className="shrink-0" />
+              {label}
+            </button>
+          );
+        })}
       </div>
 
       {/* 3. Feed List */}
-      <div className="space-y-4">
+      <div className="space-y-4 min-h-[60vh]">
         {isFirstLoad ? (
           [1, 2, 3].map(i => <FeedSkeleton key={i} />)
         ) : feed.length === 0 && !loading ? (
