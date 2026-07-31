@@ -1,10 +1,14 @@
 import axiosInstance from '../api/axiosInstance';
 
 class RecommendationService {
-  async getResearchers(limit = 5, cursor = '') {
-    const params = new URLSearchParams({ limit });
-    if (cursor) params.set('cursor', cursor);
-    return await axiosInstance.get(`/v1/recommendations/researchers?${params}`);
+  async getResearchers(params = {}) {
+    let queryParams;
+    if (typeof params === 'number') {
+      queryParams = { limit: params };
+    } else {
+      queryParams = params;
+    }
+    return await axiosInstance.get('/v1/recommendations/researchers', { params: queryParams });
   }
 
   async getPublications(limit = 5, cursor = '') {

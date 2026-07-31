@@ -7,6 +7,23 @@ dist/
 build/
 out/
 .next/
+.vercel/
+.cache/
+.vite/
+
+# Temporary files & Dump logs
+*.tmp
+*.temp
+*.bak
+*.old
+*.orig
+*.backup
+*.swp
+*.swo
+*.log
+git_log.txt
+diagnose_types.js
+crash.log
 
 # IDEs and editors
 .idea/
@@ -20,13 +37,15 @@ out/
 # Operating System files
 .DS_Store
 Thumbs.db
+ehthumbs.db
+Desktop.ini
 
 # Environment files
 .env
 .env.*
 !.env.example
 
-# Logs
+# Logs & Audit Dumps
 *.log
 backend/logs/
 
@@ -36,9 +55,6 @@ backend/logs/
 # MiMoCode
 .mimocode/
 
-
-# Uploads
+# Uploads & Temp config directories
 backend/uploads/
-
-# DNS cache and temp config files
 backend/src/config/database/temp/

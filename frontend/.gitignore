@@ -1,2 +1,24 @@
-.vercel
-.env*
+# Dependencies
+node_modules/
+
+# Production build outputs
+dist/
+build/
+.vercel/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Logs & Caches
+*.log
+.cache/
+.vite/
+
+# Editor & System files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

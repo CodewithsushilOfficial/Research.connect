@@ -53,9 +53,9 @@ const HomeFeed = () => {
 
   return (
     <div className="bg-bg-page min-h-screen">
-      <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-6">
+      <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 pt-0 pb-6">
 
-        {/* ── 2-Column Responsive Grid (Matching Image 2) ── */}
+        {/* ── 2-Column Responsive Grid ── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
           {/* 1. Center Main Feed Column (lg:col-span-8) */}
@@ -66,8 +66,8 @@ const HomeFeed = () => {
             />
           </div>
 
-          {/* 2. Right Sidebar Column (lg:col-span-4) */}
-          <div className="col-span-1 lg:col-span-4 lg:sticky lg:top-20">
+          {/* 2. Right Sidebar Column (lg:col-span-4) — Sticky Top 0 to align visually with main feed */}
+          <div className="col-span-1 lg:col-span-4 lg:sticky lg:top-0">
             <RightSidebar
               sidebarData={sidebarData}
               suggestions={suggestions}

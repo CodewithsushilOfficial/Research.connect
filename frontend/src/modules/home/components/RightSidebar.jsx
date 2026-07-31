@@ -165,8 +165,8 @@ const SuggestedResearchers = ({ researchers = [], onFollowed }) => {
       </div>
 
       <button
-        onClick={() => navigate('/connections')}
-        className="w-full text-xs font-semibold text-text-secondary hover:text-primary bg-bg-surface hover:bg-bg-card border border-border hover:border-primary py-2.5 rounded-xl transition-all text-center"
+        onClick={() => navigate('/researchers/suggested')}
+        className="w-full text-xs font-semibold text-text-secondary hover:text-primary bg-bg-surface hover:bg-bg-card border border-border hover:border-primary py-2.5 rounded-xl transition-all text-center cursor-pointer"
       >
         View All Researchers
       </button>

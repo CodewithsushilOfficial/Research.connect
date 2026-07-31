@@ -40,7 +40,8 @@ const EditProject = React.lazy(() => import('../modules/project/pages/EditProjec
 const NetworkPage = React.lazy(() => import('../modules/connections/pages/NetworkPage'));
 const ConnectionsPage = React.lazy(() => import('../modules/connections/pages/ConnectionsPage'));
 const InvitationsPage = React.lazy(() => import('../modules/connections/pages/InvitationsPage'));
-const DiscoverResearchersPage = React.lazy(() => import('../modules/follow/pages/DiscoverResearchersPage'));
+const SuggestedResearchersPage = React.lazy(() => import('../modules/follow/pages/SuggestedResearchersPage'));
+const DiscoverResearchersPage = SuggestedResearchersPage;
 const NotificationCenter = React.lazy(() => import('../modules/notifications/pages/NotificationCenter'));
 
 // Phase 6 — Collaboration Workspaces
@@ -156,7 +157,8 @@ const AppRoutes = () => {
           <Route path="network" element={<NetworkPage />} />
           <Route path="network/connections" element={<ConnectionsPage />} />
           <Route path="network/invitations" element={<InvitationsPage />} />
-          <Route path="discover/researchers" element={<DiscoverResearchersPage />} />
+          <Route path="researchers/suggested" element={<SuggestedResearchersPage />} />
+          <Route path="discover/researchers" element={<SuggestedResearchersPage />} />
 
           <Route path="settings" element={<ComingSoon title="System Settings Coming Soon" />} />
           <Route path="notifications" element={<NotificationCenter />} />
