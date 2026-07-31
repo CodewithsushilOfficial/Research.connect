@@ -8,6 +8,7 @@ router.use(authMiddleware);
 
 // Recommendation endpoints
 router.get('/researchers', recommendationsController.getResearchers);
+router.get('/suggested', recommendationsController.getResearchers);
 router.get('/publications', recommendationsController.getPublications);
 
 router.get('/projects', recommendationsController.getProjects);

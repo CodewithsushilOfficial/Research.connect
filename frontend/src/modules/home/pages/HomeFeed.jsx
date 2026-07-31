@@ -54,7 +54,7 @@ const HomeFeed = () => {
 
   return (
     <div className="bg-bg-page min-h-screen">
-      <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-6">
+      <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 pt-0 pb-6">
 
         {/* ── 2-Column Responsive Grid (Matching Image 2) ── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">

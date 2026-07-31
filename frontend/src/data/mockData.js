@@ -1,7 +1,8 @@
-// Mock data for legacy messaging components
-// These are fallback values used by the old messaging UI components
+// Messaging Utilities & Fallback Constants
+// Shared formatting helpers and default user fallback structure
 
 export const CURRENT_USER = {
+  id: 'current-user',
   _id: 'current-user',
   firstName: 'You',
   lastName: '',
@@ -9,40 +10,9 @@ export const CURRENT_USER = {
   email: '',
   profileImage: '',
   profileSlug: '',
+  avatarUrl: 'https://ui-avatars.com/api/?background=DBEAFE&color=2563EB&name=You',
 };
 
-export const MOCK_USERS = [
-  {
-    _id: 'mock-user-1',
-    firstName: 'Sarah',
-    lastName: 'Chen',
-    fullName: 'Sarah Chen',
-    profileImage: '',
-    profileSlug: 'sarah-chen',
-    isOnline: true,
-    lastSeen: new Date(),
-  },
-  {
-    _id: 'mock-user-2',
-    firstName: 'James',
-    lastName: 'Wilson',
-    fullName: 'James Wilson',
-    profileImage: '',
-    profileSlug: 'james-wilson',
-    isOnline: false,
-    lastSeen: new Date(Date.now() - 3600000),
-  },
-];
-
-export const SARAH_AUTO_REPLIES = [
-  'That sounds great! Let me think about it.',
-  'Interesting point. I\'ll look into that.',
-  'Thanks for sharing! This is very relevant to my work.',
-  'I agree. We should discuss this further.',
-  'Let me check my schedule and get back to you.',
-];
-
-// Utility functions used by messaging components
 export const formatLastSeen = (date) => {
   if (!date) return 'Unknown';
   const now = new Date();

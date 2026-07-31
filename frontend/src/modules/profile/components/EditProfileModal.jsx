@@ -9,7 +9,7 @@ const EditProfileModal = ({ isOpen, onClose, profile, user, onSave, loading }) =
   
   // URL Default Fallbacks (Pure White Cover and Default Guest)
   const defaultAvatarUrl = 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png';
-  const defaultWhiteCoverUrl = 'https://dummyimage.com/1200x400/ffffff/ffffff.png'; 
+  const defaultWhiteCoverUrl = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400"><rect width="100%" height="100%" fill="%23ffffff"/></svg>';
 
   // Local Form state
   const [formData, setFormData] = useState({
