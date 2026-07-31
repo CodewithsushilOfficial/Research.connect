@@ -1,5 +1,5 @@
 import React, { useState, useCallback, memo } from 'react';
-import { Search, Pin, PinOff, Archive, ArchiveRestore, MessageCircle, Plus, X, BadgeCheck, Users2, Inbox } from 'lucide-react';
+import { Search, Pin, PinOff, Archive, ArchiveRestore, MessageCircle, Plus, X, BadgeCheck, Users2 } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import messagesService from '../services/messages.service';
@@ -117,7 +117,6 @@ const ConversationList = ({
     return !conv.isArchived;
   });
 
-  const totalUnread = conversations.reduce((sum, c) => sum + (c.isArchived ? 0 : (c.unreadCount || 0)), 0);
 
   const formatTime = (dateStr) => {
     if (!dateStr) return '';
@@ -143,22 +142,7 @@ const ConversationList = ({
 
   return (
     <div className="w-full h-full flex flex-col bg-gradient-to-b from-slate-50 to-white text-left relative">
-      <div className="shrink-0 px-4 pt-5 pb-3 bg-white border-b border-slate-100">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center shrink-0">
-              <Inbox className="w-4.5 h-4.5 text-white" strokeWidth={2.2} />
-            </div>
-            <div>
-              <h3 className="text-base font-extrabold text-slate-900 leading-tight">Inbox</h3>
-              {totalUnread > 0 && <p className="text-[11px] font-bold text-blue-600 leading-tight">{totalUnread} unread</p>}
-            </div>
-          </div>
-          <button onClick={onComposeClick} className="hidden md:flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white rounded-full text-xs font-bold transition-all cursor-pointer shadow-sm">
-            <Plus className="w-3.5 h-3.5" strokeWidth={3} /> New chat
-          </button>
-        </div>
-
+      <div className="shrink-0 px-4 pt-4 pb-3 bg-white border-b border-slate-100">
         <div className="relative">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" strokeWidth={2.5} />
           <input type="text" placeholder="Search people or messages" value={search} onChange={(e) => setSearch(e.target.value)}
@@ -166,17 +150,17 @@ const ConversationList = ({
           {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-3.5 h-3.5" /></button>}
         </div>
 
-        <div className="flex gap-1.5 mt-3 overflow-x-auto no-scrollbar">
+        <div className="flex gap-1 mt-3 overflow-x-auto pb-1 scrollbar-thin">
           {[{ id: 'all', label: 'All' }, { id: 'unread', label: 'Unread' }, { id: 'groups', label: 'Groups' }, { id: 'pinned', label: 'Pinned' }, { id: 'archived', label: 'Archived' }].map((tab) => (
             <button key={tab.id} onClick={() => setActiveSubTab(tab.id)}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer border ${activeSubTab === tab.id ? 'bg-blue-600 border-blue-600 text-white shadow-sm shadow-blue-200' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+              className={`shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap transition-all cursor-pointer border ${activeSubTab === tab.id ? 'bg-blue-600 border-blue-600 text-white shadow-sm shadow-blue-200' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`}>
               {tab.label}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-2.5 py-2.5 space-y-1.5 pb-20 md:pb-2.5">
+      <div className="flex-1 overflow-y-auto px-2.5 py-2.5 space-y-1.5 pb-20">
         {filtered.length > 0 ? filtered.map((conv) => (
           <ConversationItem
             key={conv._id}
@@ -216,7 +200,7 @@ const ConversationList = ({
         )}
       </div>
 
-      <button onClick={onComposeClick} className="md:hidden absolute bottom-5 right-5 w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white shadow-lg shadow-blue-600/30 flex items-center justify-center transition-all cursor-pointer z-20">
+      <button onClick={onComposeClick} className="absolute bottom-5 right-5 w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white shadow-lg shadow-blue-600/30 flex items-center justify-center transition-all cursor-pointer z-20" title="New chat">
         <Plus className="w-6 h-6" strokeWidth={2.5} />
       </button>
 
