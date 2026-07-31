@@ -137,7 +137,7 @@ const GeneralSettings = ({ profile, refetch, setSaveTrigger, setIsSubmittingPare
   }, [formData, interests, setSaveTrigger]);
 
   return (
-    <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-sm space-y-6">
+    <div className="bg-white border border-slate-200 rounded-3xl p-4 md:p-5 shadow-sm space-y-4">
       {/* Card Header */}
       <div>
         <h3 className="text-base font-black text-text-primary font-display">Account Information</h3>
@@ -147,11 +147,11 @@ const GeneralSettings = ({ profile, refetch, setSaveTrigger, setIsSubmittingPare
       </div>
 
       {/* Edge-to-edge Horizontal Line */}
-      <div className="border-t border-slate-100 -mx-6 md:-mx-8" />
+      <div className="border-t border-slate-100 -mx-4 md:-mx-5" />
 
       {/* Form Fields */}
-      <form onSubmit={(e) => e.preventDefault()} className="space-y-5">
-        <div className="space-y-1.5">
+      <form onSubmit={(e) => e.preventDefault()} className="space-y-3">
+        <div className="space-y-1">
           <Input
             label="Username"
             name="username"
@@ -161,9 +161,9 @@ const GeneralSettings = ({ profile, refetch, setSaveTrigger, setIsSubmittingPare
             error={errors.username}
             disabled={isSubmitting}
             placeholder="pawan-agrahari"
-            className="!space-y-1.5"
+            className="!space-y-1"
           />
-          <p className="text-[10.5px] text-text-secondary font-medium leading-relaxed">
+          <p className="text-[10.5px] text-text-secondary font-medium leading-snug">
             Used in your public profile link. Changing it will break any previously shared links.
           </p>
         </div>
@@ -175,11 +175,11 @@ const GeneralSettings = ({ profile, refetch, setSaveTrigger, setIsSubmittingPare
           value={formData.email}
           disabled
           placeholder="agrahari511@gmail.com"
-          className="opacity-75 cursor-not-allowed !space-y-1.5"
+          className="opacity-75 cursor-not-allowed !space-y-1"
         />
 
         {/* Research Interests tag manager */}
-        <div className="space-y-3 pt-2">
+        <div className="space-y-2 pt-1">
           <label className="text-xs font-semibold text-text-secondary tracking-wide flex items-center gap-1">
             Research Interests
           </label>
@@ -207,11 +207,11 @@ const GeneralSettings = ({ profile, refetch, setSaveTrigger, setIsSubmittingPare
             </button>
           </div>
 
-          <div className="flex flex-wrap gap-2 pt-1">
+          <div className="flex flex-wrap gap-1.5">
             {interests.map((interest, idx) => (
               <span
                 key={idx}
-                className="inline-flex items-center gap-1.5 text-xs bg-slate-50 border border-slate-150 px-3 py-1.5 rounded-xl font-semibold text-text-primary"
+                className="inline-flex items-center gap-1.5 text-xs bg-slate-50 border border-slate-150 px-3 py-1 rounded-xl font-semibold text-text-primary"
               >
                 {interest}
                 <button
