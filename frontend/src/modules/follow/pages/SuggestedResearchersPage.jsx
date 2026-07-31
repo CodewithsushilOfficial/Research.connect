@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Sparkles, Compass, AlertCircle, ArrowLeft, Search, 
+  AlertCircle, ArrowLeft, Search, 
   Filter, RefreshCw, X, ChevronDown, Check, Handshake, 
   SlidersHorizontal, Award, Users, BookOpen, Building2, MapPin
 } from 'lucide-react';
@@ -154,22 +154,6 @@ const SuggestedResearchersPage = () => {
         </div>
       </div>
 
-      {/* 2. Hero Banner */}
-      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white rounded-3xl p-6 sm:p-8 text-left relative overflow-hidden shadow-xl">
-        <div className="absolute right-0 bottom-0 translate-y-6 translate-x-6 opacity-10 pointer-events-none">
-          <Compass className="w-64 h-64" />
-        </div>
-        <div className="space-y-3 relative z-10 max-w-2xl">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-extrabold uppercase tracking-wider">
-            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-            <span>Academic Discovery Engine</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">Suggested Researchers</h1>
-          <p className="text-xs sm:text-sm text-blue-100 font-medium leading-relaxed">
-            Discover and connect with scholars recommendations generated from MongoDB matching algorithms based on shared research areas, publication topics, citation graphs, institution overlap, and co-authorship history.
-          </p>
-        </div>
-      </div>
 
       {/* 3. Search & Filter Bar */}
       <div className="bg-bg-card border border-border rounded-2xl p-5 shadow-sm space-y-4">
