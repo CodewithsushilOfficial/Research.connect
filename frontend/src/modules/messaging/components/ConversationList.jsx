@@ -200,9 +200,13 @@ const ConversationList = ({
         )}
       </div>
 
-      <button onClick={onComposeClick} className="absolute bottom-5 right-5 w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white shadow-lg shadow-blue-600/30 flex items-center justify-center transition-all cursor-pointer z-20" title="New chat">
-        <Plus className="w-6 h-6" strokeWidth={2.5} />
-      </button>
+     <button 
+  onClick={onComposeClick} 
+  className="fixed bottom-5 right-5 w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white shadow-lg shadow-blue-600/30 flex items-center justify-center transition-all cursor-pointer z-50" 
+  title="New chat"
+>
+  <Plus className="w-6 h-6" strokeWidth={2.5} />
+</button>
 
       {sheetConv && (
         <div className="fixed inset-0 z-40 flex items-end md:items-center md:justify-center" onClick={() => setSheetConv(null)}>
