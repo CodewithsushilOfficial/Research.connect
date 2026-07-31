@@ -1554,7 +1554,7 @@ class PublicationService {
   }
 
   /**
-   * Get related researchers
+   * Get related researchers dynamically based on keywords, research areas, co-authorship, and institution.
    */
   async getRelatedResearchers(publicationId, limit = 5) {
     const publication = await Publication.findById(publicationId).lean();
@@ -1564,40 +1564,90 @@ class PublicationService {
 
     const User = require('../../../models/User');
     const Profile = require('../../../models/Profile');
+    const PublicationAuthor = require('../../../models/PublicationAuthor');
+    const PublicationResearchArea = require('../../../models/PublicationResearchArea');
+    const PublicationKeyword = require('../../../models/PublicationKeyword');
 
-    const query = {
-      userId: { $ne: publication.userId },
-      isDeleted: { $ne: true }
-    };
+    // Fetch keywords, research areas, and co-authors of target publication
+    const [pubKeywords, pubAreas, pubAuthors] = await Promise.all([
+      PublicationKeyword.find({ publicationId }).lean(),
+      PublicationResearchArea.find({ publicationId }).lean(),
+      PublicationAuthor.find({ publicationId }).lean()
+    ]);
 
-    if (publication.institution) {
-      query.institution = publication.institution;
+    const keywordsList = pubKeywords.map(k => k.keyword).filter(Boolean);
+    const areasList = pubAreas.map(a => a.researchArea).filter(Boolean);
+
+    const excludeUserIds = [publication.userId];
+
+    // Priority matching: Match researchers sharing research areas, keywords, or institution
+    const matchConditions = [];
+    if (areasList.length > 0) matchConditions.push({ researchAreas: { $in: areasList } });
+    if (keywordsList.length > 0) matchConditions.push({ keywords: { $in: keywordsList } });
+    if (publication.institution) matchConditions.push({ institution: publication.institution });
+
+    let profiles = [];
+    if (matchConditions.length > 0) {
+      profiles = await Profile.find({
+        userId: { $nin: excludeUserIds },
+        isDeleted: { $ne: true },
+        $or: matchConditions
+      })
+      .populate('userId', 'firstName lastName fullName email profileImage profileSlug slug username designation institution')
+      .limit(Number(limit) * 2)
+      .lean();
     }
 
-    let profiles = await Profile.find(query)
-      .populate('userId', 'firstName lastName fullName email profileImage institution department designation profileSlug slug username')
-      .limit(Number(limit))
-      .lean();
-
+    // Fallback matching: If insufficient matches, pull other active researchers from MongoDB
     if (profiles.length < limit) {
-      const remainingLimit = limit - profiles.length;
-      const existingUserIds = profiles.map(p => p.userId?._id?.toString() || p.userId?.toString());
-      existingUserIds.push(publication.userId.toString());
-
-      const fallbackQuery = {
+      const existingUserIds = [...excludeUserIds, ...profiles.map(p => p.userId?._id?.toString()).filter(Boolean)];
+      const fallbackProfiles = await Profile.find({
         userId: { $nin: existingUserIds },
         isDeleted: { $ne: true }
-      };
-
-      const fallbackProfiles = await Profile.find(fallbackQuery)
-        .populate('userId', 'firstName lastName fullName email profileImage institution department designation profileSlug slug username')
-        .limit(remainingLimit)
-        .lean();
+      })
+      .populate('userId', 'firstName lastName fullName email profileImage profileSlug slug username designation institution')
+      .limit(Number(limit) - profiles.length)
+      .lean();
 
       profiles = [...profiles, ...fallbackProfiles];
     }
 
-    return profiles;
+    // Format clean, standardized output for frontend
+    const results = await Promise.all(profiles.slice(0, Number(limit)).map(async (p) => {
+      const u = p.userId;
+      if (!u) return null;
+
+      const fullName = u.fullName || `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username || 'Researcher';
+      const profileSlug = u.profileSlug || u.slug || u.username || u._id.toString();
+      const avatarUrl = u.profileImage?.url || u.profileImage || p.profileImage?.url || p.profileImage || '';
+      const institution = p.institution || u.institution || publication.institution || '';
+      const designation = p.designation || u.designation || 'Researcher';
+      const researchAreas = p.researchAreas || [];
+
+      const [pubCount, userPubs] = await Promise.all([
+        Publication.countDocuments({ userId: u._id, isDeleted: { $ne: true } }),
+        Publication.find({ userId: u._id, isDeleted: { $ne: true } }).select('citations').lean()
+      ]);
+
+      const citationCount = userPubs.reduce((sum, pub) => sum + (pub.citations || 0), 0);
+
+      return {
+        _id: u._id,
+        userId: u._id,
+        fullName,
+        name: fullName,
+        profileSlug,
+        avatar: avatarUrl,
+        profileImage: avatarUrl,
+        institution,
+        designation,
+        researchAreas,
+        publicationCount: pubCount,
+        citationCount
+      };
+    }));
+
+    return results.filter(Boolean);
   }
 
   /**

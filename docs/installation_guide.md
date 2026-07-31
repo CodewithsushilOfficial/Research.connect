@@ -9,7 +9,7 @@ Ensure you have the following installed on your system:
 - **Node.js**: v18.x or higher
 - **NPM**: v9.x or higher
 - **MongoDB**: A running local MongoDB instance or a MongoDB Atlas URI string
-- **Redis**: v6.x or higher running locally or a secure Cloud Redis URL (e.g. Upstash)
+- **Redis**: v6.x or higher running locally or a secure Cloud Redis URL (e.g. Railway Redis)
 
 ---
 

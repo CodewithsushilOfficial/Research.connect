@@ -150,6 +150,18 @@ const ProjectCache = {
   del: async (idOrSlug) => cacheInstance.del(`project:${idOrSlug}`)
 };
 
+const MetricsCache = {
+  get: async (userIdOrSlug) => cacheInstance.get(`metrics:${userIdOrSlug}`),
+  set: async (userIdOrSlug, data, ttl = 300) => cacheInstance.set(`metrics:${userIdOrSlug}`, data, ttl),
+  del: async (userIdOrSlug) => cacheInstance.del(`metrics:${userIdOrSlug}`)
+};
+
+const CoAuthorCache = {
+  get: async (userIdOrSlug) => cacheInstance.get(`coauthors:${userIdOrSlug}`),
+  set: async (userIdOrSlug, data, ttl = 300) => cacheInstance.set(`coauthors:${userIdOrSlug}`, data, ttl),
+  del: async (userIdOrSlug) => cacheInstance.del(`coauthors:${userIdOrSlug}`)
+};
+
 module.exports = {
   cacheService: cacheInstance,
   ScholarCache,
@@ -159,5 +171,8 @@ module.exports = {
   AIPromptCache,
   LookupCache,
   PlatformStatsCache,
-  ProjectCache
+  ProjectCache,
+  MetricsCache,
+  CoAuthorCache
 };
+

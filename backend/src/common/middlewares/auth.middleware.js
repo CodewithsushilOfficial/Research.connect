@@ -24,12 +24,12 @@ const authMiddlewareHandler = async (req, res, next, options = {}) => {
       throw new UnauthorizedError('User account not found.');
     }
 
-    if (user.status !== 'active') {
-      throw new ForbiddenError(`Your account is currently ${user.status}. Please contact support.`);
+    if (user.status === 'suspended') {
+      throw new ForbiddenError('Your account has been suspended. Please contact support.');
     }
 
     if (user.isBlocked) {
-      throw new ForbiddenError('Your account has been suspended.');
+      throw new ForbiddenError('Your account has been blocked.');
     }
 
     // Verify active session if sessionId is in decoded token and strict session checking is requested

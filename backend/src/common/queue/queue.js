@@ -3,7 +3,7 @@ const IORedis = require('ioredis');
 const logger = require('../logger/winston');
 
 // Redis URL fallback to localhost
-const REDIS_URI = process.env.REDIS_URL || 'redis://localhost:6379';
+const REDIS_URI = process.env.REDIS_URL || process.env.REDIS_URI || 'redis://localhost:6379';
 
 // ioredis connection instance with graceful fallback
 let connection = null;
@@ -21,6 +21,9 @@ try {
       return 1000;
     }
   };
+  if (REDIS_URI.startsWith('rediss://')) {
+    options.tls = { rejectUnauthorized: false };
+  }
   connection = new IORedis(REDIS_URI, options);
 
   connection.on('connect', () => {

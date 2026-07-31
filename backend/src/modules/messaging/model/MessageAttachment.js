@@ -14,15 +14,14 @@ const messageAttachmentSchema = new mongoose.Schema(
     fileUrl: {
       type: String
     },
-    // objectKey is the Cloudflare R2 storage key (previously called publicId for Cloudinary).
-    // Optional to maintain backwards compatibility and support multiple storage providers.
+    // objectKey is the Cloudflare R2 storage key.
     objectKey: {
       type: String,
       default: null
     },
     storageProvider: {
       type: String,
-      enum: ['r2', 'cloudinary', 'local'],
+      enum: ['r2', 'local'],
       default: 'r2'
     },
     filename: {

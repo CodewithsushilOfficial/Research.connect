@@ -9,6 +9,10 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
+    // 0. Audit environment variables without exposing secrets
+    const { validateEnvironmentAudit } = require('./config/environment');
+    validateEnvironmentAudit(logger);
+
     // 1. Establish Database Connection
     await connectDB();
 
@@ -17,6 +21,14 @@ const startServer = async () => {
       await redisClient.connect();
     } catch (redisErr) {
       logger.error('Failed to connect to Redis on startup. Proceeding in fallback mode:', redisErr.message);
+    }
+
+    // 1.8 Verify SMTP Infrastructure Connection
+    try {
+      const { verifySMTP } = require('./modules/authentication/helper/email.helper');
+      await verifySMTP();
+    } catch (smtpErr) {
+      logger.error('Failed to verify SMTP connection on startup:', smtpErr.message);
     }
 
     // 2. Express + Register Routes (loaded dynamically after DB connection)
@@ -38,6 +50,15 @@ const startServer = async () => {
         } else {
           logger.info('Database index syncing skipped (SYNC_INDEXES is not set to true).');
         }
+
+        // Always ensure performance compound indexes exist
+        try {
+          const { ensurePerformanceIndexes } = require('./config/database/performance_indexes');
+          await ensurePerformanceIndexes();
+        } catch (err) {
+          logger.error('Failed to ensure performance indexes:', err);
+        }
+
 
         // Run self-healing schema migrations in background
         try {

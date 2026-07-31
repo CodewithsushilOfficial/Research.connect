@@ -233,12 +233,11 @@ const OtpVerificationPage = () => {
         toast.success(response.message || 'Verification successful!');
         dispatch(setCredentials(response.data));
 
-        // Redirect based on whether user was pending (registration completion redirect to success page)
-        // Or if it was simple login redirect to dashboard
-        if (purpose === 'registration' || response.message?.toLowerCase().includes('registration') || response.message?.toLowerCase().includes('verified')) {
+        // Direct navigation: login goes directly to home feed; registration goes to success page
+        if (purpose === 'registration') {
           navigate('/success');
         } else {
-          navigate('/');
+          navigate('/home', { replace: true });
         }
       }
     } catch (error) {

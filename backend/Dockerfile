@@ -1,21 +1,23 @@
-FROM node:20-alpine
-
-# Install build dependencies for native node modules (like bcrypt, sharp, etc.) if needed
-RUN apk add --no-cache make gcc g++ python3
-
+# Stage 1: Build & Dependencies
+FROM node:20-alpine AS builder
 WORKDIR /app
-
-# Copy dependency definitions
+RUN apk add --no-cache make gcc g++ python3
 COPY package*.json ./
+RUN npm ci --only=production
 
-# Install all dependencies (production & development for local build compatibility)
-RUN npm ci
+# Stage 2: Production Runtime Environment
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
 
-# Copy rest of the backend codebase
+# Copy production node_modules & application source
+COPY --from=builder /app/node_modules ./node_modules
+COPY package*.json ./
 COPY . .
 
-# Expose port (default Express backend port is 5000)
+# Run as non-root unprivileged node user for security
+USER node
+
 EXPOSE 5000
 
-# Default command starts the REST API backend
-CMD ["node", "src/server.js"]
+CMD ["node", "--max-http-header-size=1000000", "src/server.js"]

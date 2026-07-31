@@ -3,13 +3,105 @@ const env = require('../../../config/environment');
 const logger = require('../../../common/logger/winston');
 const queue = require('../../../common/queue/queue');
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: env.email.user,
-    pass: env.email.pass
+const createPooledTransporter = () => {
+  const options = {
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 100,
+    rateDelta: 1000,
+    rateLimit: 5,
+    host: env.email.host || 'smtp.gmail.com',
+    port: env.email.port || 587,
+    secure: env.email.secure || false,
+    auth: {
+      user: env.email.user,
+      pass: env.email.pass
+    },
+    tls: {
+      rejectUnauthorized: false
+    }
+  };
+
+  if (!env.email.host || env.email.host === 'smtp.gmail.com') {
+    options.service = 'gmail';
   }
-});
+
+  return nodemailer.createTransport(options);
+};
+
+const transporter = createPooledTransporter();
+
+const verifySMTP = async () => {
+  if (!env.email.user || !env.email.pass) {
+    logger.warn('[SMTP WARNING] EMAIL_USER or EMAIL_PASS not configured. Email dispatches will fail.');
+    return false;
+  }
+  try {
+    await transporter.verify();
+    logger.info(`[SMTP SUCCESS] Connected and authenticated to SMTP server as ${env.email.user}`);
+    return true;
+  } catch (error) {
+    logger.error(`[SMTP ERROR] Failed to authenticate to SMTP server: ${error.message}`);
+    return false;
+  }
+};
+
+// Direct synchronous SMTP dispatcher for critical transactional emails (OTP)
+const sendDirectEmail = async (to, subject, html) => {
+  if (!env.email.user || !env.email.pass) {
+    const errorMsg = `[SMTP ERROR] Cannot dispatch email to ${to}: EMAIL_USER / EMAIL_PASS environment variables are missing.`;
+    logger.error(errorMsg);
+    throw new Error('Email infrastructure credentials missing');
+  }
+
+  const mailOptions = {
+    from: `"${env.email.fromName || 'Research Connect'}" <${env.email.user}>`,
+    to,
+    subject,
+    html,
+    text: htmlToPlainText(html)
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    logger.info(`[SMTP DISPATCH SUCCESS] Email sent to ${to} | Subject: "${subject}" | MessageId: ${info.messageId}`);
+    return true;
+  } catch (error) {
+    logger.error(`[SMTP DISPATCH FAILURE] Failed to send email to ${to}: ${error.message}`);
+    // Attempt fallback queueing if queue service is available
+    try {
+      await queue.enqueue('email', { to, subject, html, text: htmlToPlainText(html) });
+      logger.info(`[SMTP QUEUE FALLBACK] Enqueued email job to ${to} as secondary fallback`);
+    } catch (qErr) {
+      logger.error(`[SMTP QUEUE FALLBACK FAILED] Queue fallback also failed for ${to}: ${qErr.message}`);
+    }
+    throw error;
+  }
+};
+
+// Queue-based dispatcher for bulk/non-critical emails (Welcome, Newsletters)
+const sendQueuedEmail = async (to, subject, html) => {
+  try {
+    const jobData = {
+      to,
+      subject,
+      html,
+      text: htmlToPlainText(html)
+    };
+
+    const jobId = await queue.enqueue('email', jobData);
+    if (!jobId) {
+      // Inline fallback if queue is unavailable
+      logger.info(`[EMAIL QUEUE INLINE] Queue unavailable, sending email directly to ${to}`);
+      return await sendDirectEmail(to, subject, html);
+    }
+    logger.info(`[EMAIL QUEUED] Enqueued job ${jobId} to ${to} for subject: "${subject}"`);
+    return true;
+  } catch (error) {
+    logger.warn(`[EMAIL QUEUE ERROR] Queue failed for ${to}. Falling back to direct SMTP: ${error.message}`);
+    return await sendDirectEmail(to, subject, html);
+  }
+};
 
 // Update these to match your real branding / support details
 const BRAND = {
@@ -299,7 +391,7 @@ const sendRegistrationOtp = async (to, otp, firstName = '') => {
     <p class="expiry-note">Valid for 10 minutes</p>
     ${securityTipsBlock()}
   `;
-  return await sendEmail(
+  return await sendDirectEmail(
     to,
     `Verify Your Email - ${BRAND.name} OTP`,
     wrapEmailTemplate('Email Verification', content, { preheader: `Your verification code is ${otp}` })
@@ -324,7 +416,7 @@ const sendLoginOtp = async (to, otp, metadata = {}, firstName = '') => {
     <p>If this wasn't you, log in immediately and change your password, or contact support.</p>
     ${securityTipsBlock()}
   `;
-  return await sendEmail(
+  return await sendDirectEmail(
     to,
     `Security Login Code - ${BRAND.name} OTP`,
     wrapEmailTemplate('Login Verification', content, { preheader: `Your login code is ${otp}` })
@@ -342,7 +434,7 @@ const sendForgotPasswordOtp = async (to, otp, firstName = '') => {
     <p>If you didn't request a password reset, please contact us immediately to secure your account.</p>
     ${securityTipsBlock()}
   `;
-  return await sendEmail(
+  return await sendDirectEmail(
     to,
     `Reset Password - ${BRAND.name} OTP`,
     wrapEmailTemplate('Reset Password Request', content, { preheader: `Your password reset code is ${otp}` })
@@ -367,7 +459,7 @@ const sendWelcomeEmail = async (to, firstName, ctaUrl = BRAND.websiteUrl) => {
     </div>
     <p>Questions or feedback? Our support team is always happy to help.</p>
   `;
-  return await sendEmail(
+  return await sendQueuedEmail(
     to,
     `Welcome to ${BRAND.name}!`,
     wrapEmailTemplate('Welcome!', content, { preheader: `Welcome to ${BRAND.name}, ${firstName}!` })
@@ -384,7 +476,7 @@ const sendPasswordChangedEmail = async (to, firstName = '') => {
       <strong>Security alert:</strong> If you did not perform this change, please contact support immediately to secure your account.
     </div>
   `;
-  return await sendEmail(
+  return await sendQueuedEmail(
     to,
     `Security Alert: Password Changed - ${BRAND.name}`,
     wrapEmailTemplate('Password Updated', content, { preheader: 'Your password was just changed' })
@@ -405,7 +497,7 @@ const sendSecurityAlertEmail = async (to, eventDescription, metadata = {}) => {
     </div>
     <p>If this wasn't you, secure your account immediately by resetting your password.</p>
   `;
-  return await sendEmail(
+  return await sendQueuedEmail(
     to,
     `Security Alert - ${BRAND.name}`,
     wrapEmailTemplate('Security Alert', content, { preheader: eventDescription })
@@ -413,6 +505,9 @@ const sendSecurityAlertEmail = async (to, eventDescription, metadata = {}) => {
 };
 
 module.exports = {
+  transporter,
+  verifySMTP,
+  sendDirectEmail,
   sendRegistrationOtp,
   sendLoginOtp,
   sendForgotPasswordOtp,

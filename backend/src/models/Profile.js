@@ -349,10 +349,14 @@ ProfileSchema.set('toObject', {
 });
 
 // Indexes for searching specialists/universities
-ProfileSchema.index({ institution: 1 });
+ProfileSchema.index({ userId: 1, isDeleted: 1 });
+ProfileSchema.index({ profileSlug: 1, isDeleted: 1 });
+ProfileSchema.index({ slug: 1, isDeleted: 1 });
+ProfileSchema.index({ institution: 1, isDeleted: 1 });
 ProfileSchema.index({ company: 1 });
 ProfileSchema.index({ department: 1 });
-ProfileSchema.index({ researchAreas: 1 });
+ProfileSchema.index({ researchAreas: 1, isDeleted: 1 });
+ProfileSchema.index({ keywords: 1, isDeleted: 1 });
 ProfileSchema.index({ isDeleted: 1 });
 
 // Pre-init hook to cast legacy string URLs to structured objects

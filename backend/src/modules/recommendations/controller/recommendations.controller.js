@@ -3,15 +3,48 @@ const asyncHandler = require('../../../common/middlewares/asyncHandler.middlewar
 
 class RecommendationsController {
   getResearchers = asyncHandler(async (req, res) => {
-    const { limit = 10, cursor } = req.query;
-    
-    // Proactively trigger refresh in the background if empty to populate
-    const result = await recommendationsService.getRecommendedResearchers(req.user._id, { limit, cursor });
-    
-    if (result.docs.length === 0 && !cursor) {
-      setImmediate(() => recommendationsService.refreshAllRecommendations(req.user._id));
-    }
-    
+    const {
+      limit = 12,
+      page = 1,
+      cursor,
+      search = '',
+      researchArea = '',
+      institution = '',
+      department = '',
+      country = '',
+      designation = '',
+      keyword = '',
+      minPublications,
+      minCitations,
+      minHIndex,
+      isAvailableForCollaboration,
+      isVerified,
+      recentlyJoined,
+      sortBy = 'matchPercentage'
+    } = req.query;
+
+    const options = {
+      limit: Number(limit),
+      page: Number(page),
+      cursor,
+      search: String(search).trim(),
+      researchArea: String(researchArea).trim(),
+      institution: String(institution).trim(),
+      department: String(department).trim(),
+      country: String(country).trim(),
+      designation: String(designation).trim(),
+      keyword: String(keyword).trim(),
+      minPublications: minPublications !== undefined && minPublications !== '' ? Number(minPublications) : undefined,
+      minCitations: minCitations !== undefined && minCitations !== '' ? Number(minCitations) : undefined,
+      minHIndex: minHIndex !== undefined && minHIndex !== '' ? Number(minHIndex) : undefined,
+      isAvailableForCollaboration: isAvailableForCollaboration === 'true' || isAvailableForCollaboration === true,
+      isVerified: isVerified === 'true' || isVerified === true,
+      recentlyJoined: recentlyJoined === 'true' || recentlyJoined === true,
+      sortBy
+    };
+
+    const result = await recommendationsService.getRecommendedResearchers(req.user._id, options);
+
     return res.success('Recommended researchers retrieved successfully.', result);
   });
 

@@ -31,12 +31,20 @@ const configureHelmet = () => {
 };
 
 const configureCors = () => {
-  const allowedOrigins = [env.clientUrl, 'http://localhost:5173', 'http://127.0.0.1:5173'];
+  const allowedOrigins = [
+    env.clientUrl,
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:5174',
+    'http://127.0.0.1:5174'
+  ].filter(Boolean);
   
   return cors({
     origin: (origin, callback) => {
       // Allow mobile app requests, curl, postman or internal requests with undefined origin
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
         callback(null, true);
       } else {
         callback(new Error(`Origin ${origin} not allowed by CORS gateway policy.`));

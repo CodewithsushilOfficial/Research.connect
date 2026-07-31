@@ -137,21 +137,21 @@ const GeneralSettings = ({ profile, refetch, setSaveTrigger, setIsSubmittingPare
   }, [formData, interests, setSaveTrigger]);
 
   return (
-    <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-sm space-y-6">
+    <div className="bg-white border border-slate-200 rounded-2xl p-4 md:p-6 shadow-sm space-y-4">
       {/* Card Header */}
       <div>
-        <h3 className="text-base font-black text-text-primary font-display">Account Information</h3>
-        <p className="text-[11px] font-semibold text-text-secondary mt-1">
+        <h3 className="text-base md:text-lg font-bold text-text-primary font-display">Account Information</h3>
+        <p className="text-[10px] md:text-xs font-semibold text-text-secondary mt-1.5">
           Manage your username and research interests.
         </p>
       </div>
 
       {/* Edge-to-edge Horizontal Line */}
-      <div className="border-t border-slate-100 -mx-6 md:-mx-8" />
+      <div className="border-t border-slate-100 -mx-4 md:-mx-6" />
 
       {/* Form Fields */}
-      <form onSubmit={(e) => e.preventDefault()} className="space-y-5">
-        <div className="space-y-1.5">
+      <form onSubmit={(e) => e.preventDefault()} className="space-y-3 md:space-y-4">
+        <div className="space-y-1">
           <Input
             label="Username"
             name="username"
@@ -161,9 +161,9 @@ const GeneralSettings = ({ profile, refetch, setSaveTrigger, setIsSubmittingPare
             error={errors.username}
             disabled={isSubmitting}
             placeholder="pawan-agrahari"
-            className="!space-y-1.5"
+            className="!space-y-1"
           />
-          <p className="text-[10.5px] text-text-secondary font-medium leading-relaxed">
+          <p className="text-[9.5px] md:text-xs text-text-secondary font-medium leading-snug">
             Used in your public profile link. Changing it will break any previously shared links.
           </p>
         </div>
@@ -175,12 +175,12 @@ const GeneralSettings = ({ profile, refetch, setSaveTrigger, setIsSubmittingPare
           value={formData.email}
           disabled
           placeholder="agrahari511@gmail.com"
-          className="opacity-75 cursor-not-allowed !space-y-1.5"
+          className="opacity-75 cursor-not-allowed !space-y-1"
         />
 
         {/* Research Interests tag manager */}
-        <div className="space-y-3 pt-2">
-          <label className="text-xs font-semibold text-text-secondary tracking-wide flex items-center gap-1">
+        <div className="space-y-2 pt-1">
+          <label className="text-xs md:text-sm font-semibold text-text-secondary tracking-wide flex items-center gap-1">
             Research Interests
           </label>
           <div className="flex gap-2">
@@ -201,17 +201,17 @@ const GeneralSettings = ({ profile, refetch, setSaveTrigger, setIsSubmittingPare
               type="button"
               onClick={handleAddInterest}
               disabled={isSubmitting}
-              className="px-3 bg-slate-55 border border-slate-200 hover:bg-slate-100 text-slate-600 transition-all rounded-lg shrink-0 flex items-center justify-center"
+              className="px-3 md:px-4 py-1.5 md:py-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600 transition-all rounded-lg shrink-0 flex items-center justify-center"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4 md:w-4.5 md:h-4.5" />
             </button>
           </div>
 
-          <div className="flex flex-wrap gap-2 pt-1">
+          <div className="flex flex-wrap gap-2">
             {interests.map((interest, idx) => (
               <span
                 key={idx}
-                className="inline-flex items-center gap-1.5 text-xs bg-slate-50 border border-slate-150 px-3 py-1.5 rounded-xl font-semibold text-text-primary"
+                className="inline-flex items-center gap-1 text-xs md:text-sm bg-slate-50 border border-slate-150 px-3 md:px-4 py-1 md:py-1.5 rounded-lg md:rounded-xl font-semibold text-text-primary"
               >
                 {interest}
                 <button
@@ -219,12 +219,12 @@ const GeneralSettings = ({ profile, refetch, setSaveTrigger, setIsSubmittingPare
                   onClick={() => handleRemoveInterest(interest)}
                   className="hover:bg-slate-200 text-slate-400 hover:text-slate-600 rounded-full p-0.5"
                 >
-                  <X className="w-3 h-3" />
+                  <X className="w-3 h-3 md:w-3.5 md:h-3.5" />
                 </button>
               </span>
             ))}
             {interests.length === 0 && (
-              <p className="text-xs text-text-secondary italic">No research interests added yet.</p>
+              <p className="text-xs md:text-sm text-text-secondary italic">No research interests added yet.</p>
             )}
           </div>
         </div>

@@ -6,6 +6,9 @@
   "scripts": {
     "start": "node --max-http-header-size=1000000 src/server.js",
     "dev": "nodemon --max-http-header-size=1000000 src/server.js",
+    "worker": "node src/worker-server.js",
+    "socket": "node src/socket-server.js",
+    "scraper": "node src/scraper-server.js",
     "seed": "node src/config/database/seed.js"
   },
   "keywords": [

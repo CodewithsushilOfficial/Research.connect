@@ -19,6 +19,7 @@ const projectService = {
   deleteProject: (id) => axiosInstance.delete(`/v1/projects/${id}`),
   
   toggleBookmark: (id, type = 'bookmark') => axiosInstance.patch(`/v1/projects/${id}/bookmark`, { type }),
+  toggleFollow: (id) => axiosInstance.post(`/v1/projects/${id}/follow`),
   getBookmarkStatus: (id) => axiosInstance.get(`/v1/projects/${id}/bookmark-status`),
 
   // ─── Analytics ─────────────────────────────────────────────────────────────

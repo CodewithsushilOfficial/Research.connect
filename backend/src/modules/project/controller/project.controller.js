@@ -120,6 +120,13 @@ const ProjectController = {
     const result = await projectService.deleteProject(req.params.id, req.user._id);
     return successResponse(res, 200, 'Project deleted.', result);
   }),
+  /**
+   * POST /api/v1/projects/:id/follow
+   */
+  toggleFollow: asyncHandler(async (req, res) => {
+    const result = await projectService.toggleFollow(req.params.id, req.user._id);
+    return successResponse(res, 200, `Project ${result.action} successfully.`, result);
+  }),
 };
 
 module.exports = ProjectController;

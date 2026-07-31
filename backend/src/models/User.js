@@ -326,6 +326,11 @@ UserSchema.index({ createdAt: -1 });
 UserSchema.index({ firstName: 1 });
 UserSchema.index({ lastName: 1 });
 UserSchema.index({ fullName: 1 });
+UserSchema.index({ isDeleted: 1, status: 1 });
+UserSchema.index({ email: 1, isDeleted: 1 });
+UserSchema.index({ profileSlug: 1, isDeleted: 1 });
+UserSchema.index({ slug: 1, isDeleted: 1 });
+UserSchema.index({ username: 1, isDeleted: 1 });
 
 // Sync hooks for Meilisearch
 UserSchema.post('save', function (doc) {

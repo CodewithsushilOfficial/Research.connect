@@ -4,6 +4,18 @@ const { checkHealth: checkDbHealth } = require('../config/database/connection');
 const redisClient = require('../config/redis');
 
 /**
+ * Base health probe: verifies system liveness.
+ */
+router.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'UP',
+    message: 'Research Connect API Gateway is healthy',
+    timestamp: new Date(),
+    uptime: process.uptime()
+  });
+});
+
+/**
  * Liveness probe: verifies if the Express gateway process is alive.
  */
 router.get('/liveness', (req, res) => {
@@ -40,6 +52,27 @@ router.get('/readiness', async (req, res) => {
   };
 
   if (isHealthy) {
+    res.status(200).json(responsePayload);
+  } else {
+    res.status(503).json(responsePayload);
+  }
+});
+
+/**
+ * Redis Health Probe: verifies Railway Redis status and measures ping latency.
+ */
+router.get('/redis', async (req, res) => {
+  const isConnected = redisClient && redisClient.isOpen && redisClient.isReady;
+  const latency = isConnected ? (await redisClient.getLatency() || 'N/A') : 'N/A';
+
+  const responsePayload = {
+    status: isConnected ? 'healthy' : 'unhealthy',
+    provider: 'Railway Redis',
+    latency,
+    connected: Boolean(isConnected)
+  };
+
+  if (isConnected) {
     res.status(200).json(responsePayload);
   } else {
     res.status(503).json(responsePayload);

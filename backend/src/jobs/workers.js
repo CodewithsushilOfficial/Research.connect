@@ -3,6 +3,8 @@ const logger = require('../common/logger/winston');
 const nodemailer = require('nodemailer');
 const env = require('../config/environment');
 
+const { sendDirectEmail } = require('../modules/authentication/helper/email.helper');
+
 /**
  * 1. Email Worker Handler
  * Processes transactional and notification emails.
@@ -32,24 +34,8 @@ const emailWorkerHandler = async (job) => {
     }
   }
 
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: env.email.user,
-      pass: env.email.pass
-    }
-  });
-
-  const mailOptions = {
-    from: `"Research Connect" <${env.email.user}>`,
-    to: job.to,
-    subject: job.subject,
-    html: job.html,
-    text: job.text
-  };
-
-  await transporter.sendMail(mailOptions);
-  logger.info(`[Email Worker] Nodemailer SMTP successfully sent mail to ${job.to}`);
+  await sendDirectEmail(job.to, job.subject, job.html);
+  logger.info(`[Email Worker] SMTP successfully sent mail to ${job.to}`);
 };
 
 /**

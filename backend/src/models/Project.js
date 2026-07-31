@@ -157,7 +157,10 @@ const ProjectSchema = new Schema(
 // ─── Indexes ─────────────────────────────────────────────────────────────────
 ProjectSchema.index({ owner: 1, status: 1, createdAt: -1 });
 ProjectSchema.index({ userId: 1, status: 1, createdAt: -1 });
+ProjectSchema.index({ owner: 1, isDeleted: 1 });
+ProjectSchema.index({ institution: 1, visibility: 1, isDeleted: 1 });
 ProjectSchema.index({ status: 1, visibility: 1, createdAt: -1 });
+ProjectSchema.index({ visibility: 1, status: 1, isDeleted: 1 });
 ProjectSchema.index({ researchDomain: 1, status: 1 });
 ProjectSchema.index({ country: 1, status: 1 });
 ProjectSchema.index({ applicationDeadline: 1, status: 1 });

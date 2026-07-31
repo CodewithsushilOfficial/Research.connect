@@ -222,6 +222,30 @@ const ProjectService = {
       return null;
     }
   },
+  // ─── FOLLOW / UNFOLLOW ──────────────────────────────────────────────────
+  async toggleFollow(projectId, userId) {
+    const project = await projectRepository.findById(projectId);
+    if (!project) throw new NotFoundError('Project not found.');
+
+    const ProjectFollower = require('../../../models/ProjectFollower');
+    const existing = await ProjectFollower.findOne({ projectId: project._id, userId });
+
+    let action = 'followed';
+    if (existing) {
+      await ProjectFollower.deleteOne({ _id: existing._id });
+      action = 'unfollowed';
+      await projectRepository.incrementCounter(project._id, 'starCount', -1);
+    } else {
+      await ProjectFollower.create({ projectId: project._id, userId });
+      action = 'followed';
+      await projectRepository.incrementCounter(project._id, 'starCount', 1);
+    }
+
+    await cacheService.del(`project:${project._id}`);
+    await cacheService.del(`project:${project.slug}`);
+
+    return { action, projectId: project._id };
+  },
 };
 
 module.exports = ProjectService;
