@@ -10,6 +10,7 @@ import recommendationService from '../../../services/recommendation.service';
 
 import FeedColumn from '../components/FeedColumn';
 import RightSidebar from '../components/RightSidebar';
+import StickyBox from '../../../components/common/StickyBox';
 
 /**
  * HomeFeed — Clean 2-Column Academic Layout (Matching Reference Image 2)
@@ -55,8 +56,8 @@ const HomeFeed = () => {
     <div className="bg-bg-page min-h-screen">
       <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 pt-0 pb-6">
 
-        {/* ── 2-Column Responsive Grid ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* ── 2-Column Responsive Grid (Matching Image 2) ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
 
           {/* 1. Center Main Feed Column (lg:col-span-8) */}
           <div className="col-span-1 lg:col-span-8">
@@ -66,15 +67,17 @@ const HomeFeed = () => {
             />
           </div>
 
-          {/* 2. Right Sidebar Column (lg:col-span-4) — Sticky Top 0 to align visually with main feed */}
-          <div className="col-span-1 lg:col-span-4 lg:sticky lg:top-0">
-            <RightSidebar
-              sidebarData={sidebarData}
-              suggestions={suggestions}
-              profile={profile}
-              user={user}
-              onFollowed={handleFollowed}
-            />
+          {/* 2. Right Sidebar Column (lg:col-span-4) — StickyBox computes exact pixel position via JS, immune to nested-scroll-container CSS sticky glitches. Column stretches (items-stretch) to match feed height so it has room to stay pinned the whole way down. */}
+          <div className="col-span-1 lg:col-span-4">
+            <StickyBox offset={80}>
+              <RightSidebar
+                sidebarData={sidebarData}
+                suggestions={suggestions}
+                profile={profile}
+                user={user}
+                onFollowed={handleFollowed}
+              />
+            </StickyBox>
           </div>
 
         </div>

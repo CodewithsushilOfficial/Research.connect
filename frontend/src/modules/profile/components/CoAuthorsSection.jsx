@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Users, ExternalLink, X, BookOpen, Building2 } from 'lucide-react';
@@ -98,10 +99,13 @@ const CoAuthorsSection = ({ coAuthors = [], title = 'Co-Authors', subhead = 'Aca
         </button>
       )}
 
-      {/* View All Co-Authors Modal */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+      {/* View All Co-Authors Modal — rendered via portal so it always covers
+          the full viewport, even when this component sits inside a
+          transformed ancestor (e.g. the sticky sidebar on Home Feed) */}
+      {createPortal(
+        <AnimatePresence>
+          {isModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -194,7 +198,9 @@ const CoAuthorsSection = ({ coAuthors = [], title = 'Co-Authors', subhead = 'Aca
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 };
