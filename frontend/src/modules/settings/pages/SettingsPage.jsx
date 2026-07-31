@@ -108,12 +108,12 @@ const SettingsPage = ({ profile, refetch, isOwnProfile }) => {
       </div>
 
       {/* Filter trigger button + active section badge, kept separate */}
-      <div className="flex items-center gap-1 md:gap-2 relative z-20">
+      <div className="flex items-center gap-2 md:gap-2 lg:gap-3 relative z-20">
         <div className="relative">
           <button
             onClick={() => setShowFilterDrawer((prev) => !prev)}
             aria-expanded={showFilterDrawer}
-            className={`flex items-center gap-1 md:gap-2 px-2 md:px-3.5 py-1 md:py-2 rounded-md md:rounded-xl text-[9px] md:text-xs font-bold transition-all cursor-pointer border active:scale-95 whitespace-nowrap ${
+            className={`flex items-center gap-2 md:gap-2 px-3 md:px-3.5 py-2 md:py-2 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold transition-all cursor-pointer border active:scale-95 whitespace-nowrap ${
               showFilterDrawer
                 ? 'bg-primary border-primary text-white shadow-sm shadow-blue-500/20'
                 : 'bg-slate-100 border-transparent hover:bg-slate-200 text-slate-700'
@@ -149,7 +149,7 @@ const SettingsPage = ({ profile, refetch, isOwnProfile }) => {
           )}
         </div>
 
-        <div className={`flex items-center gap-1 px-2 md:px-3 py-1 md:py-2 rounded-md md:rounded-xl text-[9px] md:text-xs font-extrabold whitespace-nowrap truncate max-w-[45%] ${
+        <div className={`flex items-center gap-2 px-3 md:px-3 py-2 md:py-2 rounded-lg md:rounded-xl text-[10px] md:text-xs font-extrabold whitespace-nowrap truncate max-w-[50%] ${
           activeTab === 'danger' ? 'bg-red-50 text-accent-red' : 'bg-blue-50 text-primary'
         }`}>
           {ActiveIcon && <ActiveIcon className="w-2.5 h-2.5 md:w-3.5 md:h-3.5 shrink-0" />}
