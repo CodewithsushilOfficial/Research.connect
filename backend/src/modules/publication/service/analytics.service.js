@@ -10,9 +10,22 @@ const PublicationCitation = require('../../../models/PublicationCitation');
 const Profile = require('../../../models/Profile');
 const { NotFoundError, ForbiddenError } = require('../../../common/errors/AppError');
 
+/**
+ * @class AnalyticsService
+ * @description Service layer orchestrating publication performance metrics, daily time-series aggregation,
+ * and profile-wide engagement summaries. Implements ownership validation, database-side aggregation,
+ * and O(N) zero-filling normalization for time-series charts.
+ */
 class AnalyticsService {
   /**
-   * Main analytics summary for a single publication
+   * Main analytics summary for a single publication.
+   * Fetches total views, downloads, bookmarks, comments, citations, recommendations, and rolling activity.
+   *
+   * @param {string|mongoose.Types.ObjectId} pubId - Unique ID of the publication.
+   * @param {string|mongoose.Types.ObjectId} requestingUserId - ID of the authenticated user requesting analytics.
+   * @returns {Promise<Object>} Object containing publication metadata, total interaction KPIs, and recent activity (7d/30d).
+   * @throws {NotFoundError} If publication does not exist.
+   * @throws {ForbiddenError} If requesting user is not the owner of the publication.
    */
   async getPublicationAnalytics(pubId, requestingUserId) {
     const pub = await Publication.findById(pubId)
@@ -96,7 +109,12 @@ class AnalyticsService {
   }
 
   /**
-   * Views timeline grouped by day (for line chart)
+   * Views timeline grouped by day for line chart rendering.
+   * Performs MongoDB aggregation grouped by calendar day and zero-fills missing date intervals.
+   *
+   * @param {string|mongoose.Types.ObjectId} pubId - Unique ID of the publication.
+   * @param {'7d'|'30d'|'90d'} [period='30d'] - Historical time window duration.
+   * @returns {Promise<{period: string, timeline: Array<{date: string, views: number}>}>} Normalized time-series.
    */
   async getViewsTimeline(pubId, period = '30d') {
     const objectId = new mongoose.Types.ObjectId(pubId);
@@ -144,7 +162,12 @@ class AnalyticsService {
   }
 
   /**
-   * Downloads timeline grouped by day
+   * Downloads timeline grouped by day for line chart rendering.
+   * Performs database-level aggregation across PublicationDownload documents with zero-filled gaps.
+   *
+   * @param {string|mongoose.Types.ObjectId} pubId - Unique ID of the publication.
+   * @param {'7d'|'30d'|'90d'} [period='30d'] - Historical time window duration.
+   * @returns {Promise<{period: string, timeline: Array<{date: string, downloads: number}>}>} Normalized time-series.
    */
   async getDownloadsTimeline(pubId, period = '30d') {
     const objectId = new mongoose.Types.ObjectId(pubId);
@@ -191,7 +214,14 @@ class AnalyticsService {
   }
 
   /**
-   * Profile-level aggregate analytics across all publications
+   * Profile-level aggregate analytics across all non-deleted publications owned by a researcher.
+   * Computes totals for views, downloads, bookmarks, citations, recommendations, and category distribution.
+   *
+   * @param {string} profileSlug - Public slug identifying the researcher profile.
+   * @param {string|mongoose.Types.ObjectId} requestingUserId - ID of the authenticated requester.
+   * @returns {Promise<Object>} Aggregated profile summary, publication type distribution, and top 5 works.
+   * @throws {NotFoundError} If profile is not found.
+   * @throws {ForbiddenError} If requester does not own the profile.
    */
   async getProfilePublicationAnalytics(profileSlug, requestingUserId) {
     const profile = await Profile.findOne({ profileSlug }).select('userId').lean();
