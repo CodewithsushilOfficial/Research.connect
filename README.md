@@ -9,6 +9,7 @@ This documentation reflects all completed phases including the full messaging sy
 For in-depth explanations of specific features, refer to:
 
 - [Architecture Guide](file:///c:/Users/codew/Downloads/Research.connect/docs/architecture_guide.md) — System layers, security mechanisms, and background jobs.
+- [Website Analytics Guide](docs/WEBSITE_ANALYTICS.md) — Analytics architecture, metric models, aggregation pipelines, and data flows.
 - [Folder Guide](file:///c:/Users/codew/Downloads/Research.connect/docs/folder_guide.md) — Codebase layouts and file conventions.
 - [Coding Standards & Guidelines](file:///c:/Users/codew/Downloads/Research.connect/docs/coding_standards.md) — Coding conventions, repository, and service rules.
 - [Installation Guide](file:///c:/Users/codew/Downloads/Research.connect/docs/installation_guide.md) — Local environment installation and setup steps.
