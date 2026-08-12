@@ -4,19 +4,29 @@ const Form = ({
   children,
   onSubmit,
   className = '',
-  id = ''
+  id,
+  noValidate = true,
+  ...props
 }) => {
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (onSubmit) onSubmit(e);
+    
+    if (onSubmit) {
+      try {
+        await onSubmit(e);
+      } catch (error) {
+        console.error('Form submission error:', error);
+      }
+    }
   };
 
   return (
     <form
       id={id}
       onSubmit={handleSubmit}
-      className={`space-y-4 ${className}`}
-      noValidate
+      className={['space-y-4', className].filter(Boolean).join(' ')}
+      noValidate={noValidate}
+      {...props}
     >
       {children}
     </form>
