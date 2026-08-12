@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useRef } from 'react';
+import React, { forwardRef, useEffect, useRef, useImperativeHandle } from 'react';
 
 const Checkbox = forwardRef(({
   label,
@@ -7,21 +7,13 @@ const Checkbox = forwardRef(({
   required = false,
   className = '',
   disabled = false,
-  indeterminate = false, // New feature prop
+  indeterminate = false,
   ...props
 }, ref) => {
-  // Create an internal ref to access the DOM node for the indeterminate assignment
   const internalRef = useRef(null);
 
-  // Sync the external forwarded ref with our internal ref
-  useEffect(() => {
-    if (!ref) return;
-    if (typeof ref === 'function') {
-      ref(internalRef.current);
-    } else {
-      ref.current = internalRef.current;
-    }
-  }, [ref]);
+  // Safely expose the internal HTMLInputElement DOM node to the parent ref
+  useImperativeHandle(ref, () => internalRef.current);
 
   // Handle the imperative DOM assignment for the indeterminate property
   useEffect(() => {
